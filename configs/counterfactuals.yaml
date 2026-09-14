@@ -10,7 +10,7 @@ version: faireval-counterfactuals-v1
 movielens_1m:
   confirmatory:
     gender:
-      values: [female, male]
+      values: ["female", "male"]
       scope: all_confirmatory_users_with_observed_value
       interpretation: >-
         Historical MovieLens-1M dataset-native binary gender field. This does not
@@ -18,7 +18,7 @@ movielens_1m:
         the field provided by the benchmark release.
   robustness:
     age_group:
-      values: [under_18, 18_24, 25_34, 35_44, 45_49, 50_55, 56_plus]
+      values: ["under_18", "18_24", "25_34", "35_44", "45_49", "50_55", "56_plus"]
       users: 20
       strategy: all_non_observed_categories
       interpretation: >-
@@ -36,14 +36,14 @@ movielens_1m:
 lastfm_1k:
   confirmatory:
     gender:
-      values: [female, male]
+      values: ["female", "male"]
       scope: all_confirmatory_users_with_observed_value
       interpretation: >-
         Historical Last.fm profile field normalized from dataset-native m/f.
         Results are limited to this dataset representation.
   robustness:
     age_group:
-      values: [under_18, 18_24, 25_34, 35_44, 45_54, 55_plus]
+      values: ["under_18", "18_24", "25_34", "35_44", "45_54", "55_plus"]
       users: 20
       strategy: all_non_observed_categories
   excluded:
@@ -59,7 +59,7 @@ mind:
     enabled: true
     users: 20
     cue_attribute: synthetic_profile_marker
-    values: [profile_A, profile_B]
+    values: ["profile_A", "profile_B"]
     interpretation: >-
       Pure prompt-sensitivity stress test only. Never pool with observed-group
       counterfactual estimates or label as demographic fairness evidence.
