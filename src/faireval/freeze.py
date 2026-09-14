@@ -53,6 +53,80 @@ def instance_to_dict(instance: UserInstance) -> dict[str, Any]:
     }
 
 
+def _item_from_dict(row: Mapping[str, Any], *, field: str) -> Item:
+    if "item_id" not in row or "title" not in row:
+        raise ValueError(f"{field} item must contain item_id and title")
+    metadata = row.get("metadata", {})
+    if not isinstance(metadata, Mapping):
+        raise ValueError(f"{field}.metadata must be an object")
+    return Item(
+        item_id=str(row["item_id"]),
+        title=str(row["title"]),
+        metadata=dict(metadata),
+    )
+
+
+def instance_from_dict(row: Mapping[str, Any]) -> UserInstance:
+    """Reconstruct and validate one frozen benchmark instance."""
+    if row.get("schema_version") != "faireval-instance-v1":
+        raise ValueError(f"unexpected instance schema version: {row.get('schema_version')!r}")
+    for required in ("dataset", "user_id", "history", "candidates", "relevant_item_ids"):
+        if required not in row:
+            raise ValueError(f"frozen instance missing required field {required!r}")
+
+    history_raw = row["history"]
+    candidates_raw = row["candidates"]
+    relevant_raw = row["relevant_item_ids"]
+    if not isinstance(history_raw, list) or not isinstance(candidates_raw, list):
+        raise ValueError("history and candidates must be arrays")
+    if not isinstance(relevant_raw, list):
+        raise ValueError("relevant_item_ids must be an array")
+
+    personality_raw = row.get("personality")
+    personality = None
+    if personality_raw is not None:
+        if not isinstance(personality_raw, Mapping):
+            raise ValueError("personality must be an object or null")
+        expected = {
+            "openness",
+            "conscientiousness",
+            "extraversion",
+            "agreeableness",
+            "neuroticism",
+        }
+        if set(personality_raw) != expected:
+            raise ValueError(
+                "personality must contain exactly the five OCEAN fields; "
+                f"found={sorted(personality_raw)!r}"
+            )
+        personality = PersonalityProfile(
+            openness=float(personality_raw["openness"]),
+            conscientiousness=float(personality_raw["conscientiousness"]),
+            extraversion=float(personality_raw["extraversion"]),
+            agreeableness=float(personality_raw["agreeableness"]),
+            neuroticism=float(personality_raw["neuroticism"]),
+        )
+        personality.as_dict()
+
+    demographics = row.get("demographics", {})
+    metadata = row.get("instance_metadata", {})
+    if not isinstance(demographics, Mapping) or not isinstance(metadata, Mapping):
+        raise ValueError("demographics and instance_metadata must be objects")
+
+    instance = UserInstance(
+        dataset=str(row["dataset"]),
+        user_id=str(row["user_id"]),
+        history=[_item_from_dict(item, field="history") for item in history_raw],
+        candidates=[_item_from_dict(item, field="candidates") for item in candidates_raw],
+        relevant_item_ids=frozenset(str(value) for value in relevant_raw),
+        demographics=dict(demographics),
+        personality=personality,
+        instance_metadata=dict(metadata),
+    )
+    instance.validate()
+    return instance
+
+
 def canonical_json(row: Mapping[str, Any]) -> str:
     return json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -135,7 +209,10 @@ def freeze_dataset(
         "preprocessing_manifest": _json_safe(adapter.preprocessing_manifest()),
     }
     manifest_path = output_dir / "manifest.json"
-    _atomic_write_lines(manifest_path, [json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2)])
+    _atomic_write_lines(
+        manifest_path,
+        [json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2)],
+    )
     # Hash after writing; keep it outside the manifest to avoid a self-hash cycle.
     manifest["manifest_sha256"] = file_sha256(manifest_path)
     return manifest
@@ -163,6 +240,9 @@ def verify_freeze(output_dir: Path) -> dict[str, Any]:
             row = json.loads(line)
             if row.get("schema_version") != "faireval-instance-v1":
                 raise ValueError(f"instances.jsonl:{line_no}: unexpected schema version")
+            # Validate structure while verifying so a hash-consistent but malformed
+            # artifact cannot enter an experiment plan.
+            instance_from_dict(row)
             count += 1
     if count != int(manifest.get("instance_count", -1)):
         raise ValueError(
@@ -174,3 +254,15 @@ def verify_freeze(output_dir: Path) -> dict[str, Any]:
         "verified_instances_sha256": actual_hash,
         "verified_instance_count": count,
     }
+
+
+def load_frozen_instances(output_dir: Path) -> list[UserInstance]:
+    """Load instances only after verifying their manifest hash and structure."""
+    verify_freeze(output_dir)
+    instance_path = output_dir / "instances.jsonl"
+    instances: list[UserInstance] = []
+    with instance_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                instances.append(instance_from_dict(json.loads(line)))
+    return instances
