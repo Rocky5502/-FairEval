@@ -13,14 +13,14 @@ class GoogleGenAIAdapter(ProviderAdapter):
         self.api_key_env = api_key_env
 
     def supports_seed(self) -> bool:
-        # Treat reproducibility through repeated sampling; do not assume provider
-        # seed semantics unless explicitly verified for the frozen API version.
+        # The Interactions API exposes a seed, but FairEval does not assume
+        # cross-provider seed equivalence. Repeated generations are the primary
+        # stochasticity estimator in the six-family analysis.
         return False
 
     def generate(self, request: GenerationRequest) -> GenerationResponse:
         try:
             from google import genai
-            from google.genai import types
         except ImportError as exc:  # pragma: no cover - environment dependent
             raise RuntimeError("Install the 'providers' optional dependency") from exc
 
@@ -29,28 +29,60 @@ class GoogleGenAIAdapter(ProviderAdapter):
             raise RuntimeError(f"Missing environment variable {self.api_key_env}")
 
         client = genai.Client(api_key=api_key)
-        config = types.GenerateContentConfig(
-            temperature=request.temperature,
-            top_p=request.top_p,
-            max_output_tokens=request.max_output_tokens,
-            response_mime_type="application/json",
-        )
-        response = client.models.generate_content(
+        # Gemini 3.8 Flash deprecates temperature/top_p/top_k and does not support
+        # fully disabling thinking. FairEval therefore freezes the lowest
+        # supported thinking level ('low') and records that sampling controls were
+        # requested by the cross-provider protocol but not applied by Gemini.
+        interaction = client.interactions.create(
             model=request.model_id,
-            contents=request.prompt,
-            config=config,
+            input=request.prompt,
+            generation_config={
+                "thinking_level": "low",
+                "max_output_tokens": request.max_output_tokens,
+            },
+            response_format={
+                "type": "text",
+                "mime_type": "application/json",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "ranked_item_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        }
+                    },
+                    "required": ["ranked_item_ids"],
+                    "additionalProperties": False,
+                },
+            },
         )
+        usage = getattr(interaction, "usage", None)
+        usage_payload = None
+        if usage is not None:
+            if hasattr(usage, "model_dump"):
+                usage_payload = usage.model_dump()
+            else:
+                usage_payload = {
+                    "total_input_tokens": getattr(usage, "total_input_tokens", None),
+                    "total_output_tokens": getattr(usage, "total_output_tokens", None),
+                    "total_thought_tokens": getattr(usage, "total_thought_tokens", None),
+                    "total_tokens": getattr(usage, "total_tokens", None),
+                }
+
         return GenerationResponse(
-            text=response.text or "",
+            text=getattr(interaction, "output_text", "") or "",
             requested_model_id=request.model_id,
-            resolved_model_version=getattr(response, "model_version", None),
+            resolved_model_version=getattr(interaction, "model", None),
             provider_metadata={
-                "response_id": getattr(response, "response_id", None),
-                "usage_metadata": (
-                    response.usage_metadata.model_dump()
-                    if getattr(response, "usage_metadata", None) is not None
-                    and hasattr(response.usage_metadata, "model_dump")
-                    else None
-                ),
+                "interaction_id": getattr(interaction, "id", None),
+                "status": getattr(interaction, "status", None),
+                "reasoning_or_thinking_applied": "low",
+                "sampling_controls_requested": {
+                    "temperature": request.temperature,
+                    "top_p": request.top_p,
+                },
+                "sampling_controls_applied": False,
+                "sampling_policy": "provider_default_sampling_controls_deprecated",
+                "usage": usage_payload,
             },
         )
