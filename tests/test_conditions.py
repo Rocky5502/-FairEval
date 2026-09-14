@@ -1,6 +1,8 @@
 import pytest
 
 from faireval.conditions import (
+    all_categorical_demographic_counterfactuals,
+    build_one_trait_donor_map,
     build_personality_derangement,
     demographic_counterfactual,
     observed_demographic,
@@ -12,9 +14,9 @@ from faireval.conditions import (
 from faireval.schema import Item, PersonalityProfile, UserInstance
 
 
-def _user(user_id, *, openness, gender="female"):
+def _user(user_id, *, openness, gender="female", dataset="toy"):
     return UserInstance(
-        dataset="toy",
+        dataset=dataset,
         user_id=user_id,
         history=[Item("h", "History")],
         candidates=[Item("a", "A"), Item("b", "B")],
@@ -54,13 +56,57 @@ def test_demographic_counterfactual_changes_exactly_requested_field():
     assert cf.intervention["counterfactual_value"] == "male"
 
 
+def test_all_categorical_counterfactuals_do_not_cherry_pick_one_alternative():
+    user = _user("u1", openness=0.2)
+    conditions = all_categorical_demographic_counterfactuals(
+        user,
+        attribute="age_group",
+        allowed_values=("18_24", "25_34", "35_44", "45_54"),
+    )
+    assert len(conditions) == 3
+    assert {condition.demographics["age_group"] for condition in conditions} == {
+        "18_24",
+        "35_44",
+        "45_54",
+    }
+    assert all(condition.demographics["gender"] == "female" for condition in conditions)
+
+
 def test_personality_derangement_is_deterministic_and_has_no_self_donors():
     users = [_user(f"u{i}", openness=i / 10) for i in range(1, 6)]
     first = build_personality_derangement(users, seed=2027)
     second = build_personality_derangement(list(reversed(users)), seed=2027)
     assert first == second
     assert set(first) == {u.user_id for u in users}
+    assert set(first.values()) == {u.user_id for u in users}
     assert all(target != donor for target, donor in first.items())
+
+
+def test_personality_derangement_rejects_cross_dataset_pooling():
+    users = [
+        _user("u1", openness=0.2, dataset="d1"),
+        _user("u2", openness=0.8, dataset="d2"),
+    ]
+    with pytest.raises(ValueError, match="within one dataset"):
+        build_personality_derangement(users, seed=2027)
+
+
+def test_frozen_one_trait_donor_map_is_order_invariant_and_non_noop():
+    users = [
+        _user("u1", openness=0.1),
+        _user("u2", openness=0.1),
+        _user("u3", openness=0.4),
+        _user("u4", openness=0.7),
+        _user("u5", openness=0.9),
+    ]
+    by_id = {user.user_id: user for user in users}
+    first = build_one_trait_donor_map(users, trait="openness", seed=17)
+    second = build_one_trait_donor_map(list(reversed(users)), trait="openness", seed=17)
+    assert first == second
+    assert set(first) == set(by_id)
+    for target_id, donor_id in first.items():
+        assert target_id != donor_id
+        assert by_id[target_id].personality.openness != by_id[donor_id].personality.openness
 
 
 def test_shuffled_and_one_trait_conditions_are_falsifiable_controls():
@@ -69,6 +115,7 @@ def test_shuffled_and_one_trait_conditions_are_falsifiable_controls():
     shuffled = shuffled_personality(target, donor_instance=donor)
     assert shuffled.personality == donor.personality
     assert shuffled.demographics is None
+    assert shuffled.intervention["preserves_cohort_profile_distribution"] is True
 
     one_trait = one_trait_counterfactual(target, trait="openness", donor_instance=donor)
     assert one_trait.personality is not None
@@ -76,6 +123,7 @@ def test_shuffled_and_one_trait_conditions_are_falsifiable_controls():
     assert one_trait.personality.conscientiousness == pytest.approx(0.4)
     assert one_trait.personality.extraversion == pytest.approx(0.5)
     assert one_trait.intervention["trait"] == "openness"
+    assert one_trait.intervention["other_traits_held_fixed"] is True
 
 
 def test_one_trait_rejects_noop_donor():
