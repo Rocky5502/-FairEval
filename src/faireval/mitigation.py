@@ -4,6 +4,22 @@ from collections.abc import Mapping, Sequence
 from statistics import pvariance
 
 
+def _validate_ranking(
+    ranking: Sequence[str],
+    candidates: Sequence[str],
+    *,
+    label: str,
+) -> tuple[str, ...]:
+    values = tuple(str(item) for item in ranking)
+    if len(set(values)) != len(values):
+        raise ValueError(f"{label} contains duplicate item IDs")
+    candidate_set = {str(item) for item in candidates}
+    unknown = sorted(set(values) - candidate_set)
+    if unknown:
+        raise ValueError(f"{label} contains items outside candidate set: {unknown!r}")
+    return values
+
+
 def _rank_map(ranking: Sequence[str], candidates: Sequence[str]) -> dict[str, int]:
     default_rank = len(candidates) + 1
     positions = {str(item): idx for idx, item in enumerate(ranking, start=1)}
@@ -28,21 +44,23 @@ def pair_scores(
     """Compute Preference-Aligned Identity Re-ranking (PAIR) scores.
 
     Let ``b(i)`` be normalized support in the preference-only/neutral ranking and
-    ``r_a(i)`` support under demographic context ``a``. PAIR uses
+    ``r_a(i)`` support under identity context ``a``. PAIR uses
 
         consensus(i) = alpha*b(i) + (1-alpha)*mean_a r_a(i)
         instability(i) = Var_a[r_a(i)]
         score(i) = consensus(i) - lambda*instability(i)
 
-    ``alpha`` and ``lambda`` are validation-only hyperparameters. The test split
-    must never be used to choose them.
+    At least two identity-conditioned rankings are required: with only one,
+    counterfactual instability is undefined for the purpose of this mitigation
+    and the variance penalty degenerates to zero. ``alpha`` and ``lambda`` are
+    validation-only hyperparameters; the test split must never choose them.
     """
     if not 0.0 <= alpha_neutral <= 1.0:
         raise ValueError("alpha_neutral must be in [0,1]")
     if lambda_instability < 0.0:
         raise ValueError("lambda_instability must be non-negative")
-    if not counterfactual_rankings:
-        raise ValueError("at least one counterfactual ranking is required")
+    if len(counterfactual_rankings) < 2:
+        raise ValueError("PAIR requires at least two identity-conditioned rankings")
 
     candidate_ids = [str(x) for x in candidate_ids]
     if len(set(candidate_ids)) != len(candidate_ids):
@@ -51,11 +69,14 @@ def pair_scores(
     if n_candidates == 0:
         raise ValueError("candidate_ids cannot be empty")
 
-    neutral_map = _rank_map(neutral_ranking, candidate_ids)
-    cf_maps = [
-        _rank_map(ranking, candidate_ids)
-        for ranking in counterfactual_rankings.values()
-    ]
+    neutral = _validate_ranking(neutral_ranking, candidate_ids, label="neutral_ranking")
+    validated_cf = {
+        str(name): _validate_ranking(ranking, candidate_ids, label=f"counterfactual[{name}]")
+        for name, ranking in counterfactual_rankings.items()
+    }
+
+    neutral_map = _rank_map(neutral, candidate_ids)
+    cf_maps = [_rank_map(ranking, candidate_ids) for ranking in validated_cf.values()]
 
     scores: dict[str, float] = {}
     for item in candidate_ids:
@@ -63,7 +84,7 @@ def pair_scores(
         cf_support = [_rank_support(rank_map[item], n_candidates) for rank_map in cf_maps]
         cf_mean = sum(cf_support) / len(cf_support)
         consensus = alpha_neutral * neutral_support + (1.0 - alpha_neutral) * cf_mean
-        instability = pvariance(cf_support) if len(cf_support) > 1 else 0.0
+        instability = pvariance(cf_support)
         scores[item] = consensus - lambda_instability * instability
     return scores
 
