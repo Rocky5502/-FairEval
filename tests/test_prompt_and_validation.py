@@ -3,6 +3,7 @@ import json
 from faireval.evaluator import validate_ranking_output
 from faireval.prompts import (
     AUDIT_SYSTEM_INSTRUCTION,
+    CUE_IDS,
     IDENTITY_IRRELEVANCE_SYSTEM_INSTRUCTION,
     PROMPT_TEMPLATES,
     build_ranking_prompt,
@@ -70,11 +71,13 @@ def test_pure_demographic_counterfactual_changes_one_payload_field_only():
         instance,
         PromptCondition("C2a", "cf_gender_a", demographics={"gender": "A"}),
         k=2,
+        candidate_order_seed=1729,
     )
     right = build_ranking_prompt(
         instance,
         PromptCondition("C2b", "cf_gender_b", demographics={"gender": "B"}),
         k=2,
+        candidate_order_seed=1729,
     )
     assert changed_payload_fields(left, right) == ("demographic_context",)
 
@@ -92,7 +95,13 @@ def test_all_templates_keep_identical_structural_fields_and_candidate_order():
     instance = _instance()
     condition = PromptCondition("C0", "neutral")
     prompts = {
-        template_id: build_ranking_prompt(instance, condition, k=2, template_id=template_id)
+        template_id: build_ranking_prompt(
+            instance,
+            condition,
+            k=2,
+            template_id=template_id,
+            candidate_order_seed=2718,
+        )
         for template_id in PROMPT_TEMPLATES
     }
     payloads = {name: parse_prompt_payload(prompt) for name, prompt in prompts.items()}
@@ -102,6 +111,46 @@ def test_all_templates_keep_identical_structural_fields_and_candidate_order():
         assert payload["candidate_items"] == reference["candidate_items"]
         assert payload["preference_history"] == reference["preference_history"]
         assert payload["output_contract"] == reference["output_contract"]
+
+
+def test_candidate_order_seed_is_deterministic_and_changes_only_candidates():
+    instance = _instance()
+    condition = PromptCondition("C0", "neutral")
+    p1 = build_ranking_prompt(instance, condition, k=2, candidate_order_seed=1729)
+    p2 = build_ranking_prompt(instance, condition, k=2, candidate_order_seed=1729)
+    p3 = build_ranking_prompt(instance, condition, k=2, candidate_order_seed=31415)
+    assert p1 == p2
+    payload1 = parse_prompt_payload(p1)
+    payload3 = parse_prompt_payload(p3)
+    assert payload1["preference_history"] == payload3["preference_history"]
+    assert payload1["demographic_context"] == payload3["demographic_context"]
+    assert payload1["candidate_items"] != payload3["candidate_items"]
+
+
+def test_demographic_cue_variants_preserve_non_context_evidence():
+    instance = _instance()
+    condition = PromptCondition(
+        "C2",
+        "demographic",
+        demographics={"age_group": "25-34", "gender": "A"},
+    )
+    payloads = []
+    for cue_id in CUE_IDS:
+        prompt = build_ranking_prompt(
+            instance,
+            condition,
+            k=2,
+            cue_id=cue_id,
+            candidate_order_seed=1729,
+        )
+        payloads.append(parse_prompt_payload(prompt))
+    reference = payloads[0]
+    for payload in payloads[1:]:
+        assert payload["preference_history"] == reference["preference_history"]
+        assert payload["candidate_items"] == reference["candidate_items"]
+        assert payload["personality_ocean"] == reference["personality_ocean"]
+        assert payload["output_contract"] == reference["output_contract"]
+    assert len({json.dumps(p["demographic_context"], sort_keys=True) for p in payloads}) == len(CUE_IDS)
 
 
 def test_validator_accepts_only_exact_candidate_ranking():
