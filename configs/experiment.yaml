@@ -9,6 +9,18 @@ study:
   stochasticity_subset_fraction: 0.10
   stochasticity_repetitions: 10
 
+prompt_design:
+  protocol_config: configs/prompts.yaml
+  primary_template: field_v2_a
+  primary_mode: audit
+  robustness_subset_fraction: 0.10
+  robustness_templates: [field_v2_a, field_v2_b, field_v2_c]
+  candidate_order_seeds: [2027, 42027, 99027]
+  fairness_coaching_in_primary_audit: false
+  mitigation_modes:
+    - identity_irrelevance
+  paired_counterfactual_invariant_check: true
+
 tracks:
   personality_grounded:
     datasets:
@@ -73,6 +85,10 @@ metrics:
     - invalid_output_disparity
   personality:
     - personality_value_added
+  robustness:
+    - template_variance
+    - candidate_order_variance
+    - generation_variance
   legacy_sensitivity_only:
     - pafs_original
 
@@ -86,11 +102,17 @@ statistics:
     - wilcoxon_signed_rank
   report_effect_sizes: true
   mixed_effects_if_supported: true
+  nuisance_factors:
+    - prompt_template
+    - candidate_order_seed
+    - generation_repetition
 
 output_policy:
   strict_json: true
   require_exact_k_unique_ids: true
   require_candidate_membership: true
+  request_explanations: false
+  request_chain_of_thought: false
   max_format_repair_attempts: 1
   keep_persistent_failures: true
   never_silently_drop_failures: true
@@ -98,6 +120,8 @@ output_policy:
 analysis_policy:
   lock_splits_before_api_calls: true
   lock_prompts_before_main_run: true
+  lock_primary_prompt_before_main_run: true
+  no_post_hoc_prompt_selection: true
   lock_model_panel_before_main_run: true
   no_manual_paper_numbers: true
   generate_tables_from_results: true
