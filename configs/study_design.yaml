@@ -1,0 +1,204 @@
+# FairEval ECIR 2027 factorized study design
+# This file defines the experiment *before* the main API run. It is deliberately
+# factorized so every RQ has a clean estimand without exploding into an
+# uninterpretable Cartesian product.
+
+version: faireval-study-v3
+status: pre_run
+
+principles:
+  primary_unit: user
+  paired_design: true
+  freeze_before_main_run:
+    - dataset_versions
+    - user_splits
+    - candidate_sets
+    - candidate_order_primary
+    - prompt_template_primary
+    - model_panel
+    - decoding_settings
+    - metric_definitions
+    - analysis_code_commit
+  prohibited:
+    - choose_prompt_after_seeing_results
+    - silently_drop_invalid_outputs
+    - infer_protected_attributes_from_names_or_text
+    - change_model_alias_mid_run_without_new_manifest_version
+    - use_llm_judge_for_primary_ranking_metrics
+    - report_behavioral_list_change_as_fairness_by_itself
+
+sample_size:
+  design: variance_pilot_then_freeze
+  pilot_users_per_dataset: 20
+  confirmatory_min_users_per_dataset: 60
+  confirmatory_max_users_per_dataset: 120
+  target_users_per_dataset_if_feasible: 100
+  rule: >-
+    Use the pilot only to estimate variance, invalid-output rate, and runtime/cost.
+    Do not use the pilot treatment-effect mean to choose N. Freeze the final N
+    and split hashes before the confirmatory run. Pilot users are excluded from
+    confirmatory inference unless the analysis plan is explicitly amended before
+    looking at confirmatory outcomes.
+
+primary_prompt:
+  template_id: field_v2_a
+  prompt_mode: audit
+  cue_style: structured_fields
+  candidate_order: frozen_instance_permutation
+  k: 10
+
+primary_generation:
+  repetitions: 3
+  temperature: 0.2
+  top_p: 1.0
+  max_output_tokens: 512
+  exact_json_contract: true
+  format_repair_attempts: 1
+  repair_may_change_ranking: false
+
+rq1_demographic_counterfactual_fairness:
+  claim_scope: observed-demographic datasets only
+  datasets:
+    - movielens_1m
+    - lastfm
+  conditions:
+    - preference_only
+    - observed_demographic
+    - paired_counterfactual_demographic
+  primary_outcomes:
+    - counterfactual_utility_gap_ndcg10
+    - counterfactual_utility_gap_recall10
+    - invalid_output_disparity
+  secondary_outcomes:
+    - counterfactual_exposure_gap_if_item_groups_are_valid
+    - rbo10_behavioral_shift
+    - jaccard10_behavioral_shift
+  causal_invariant: >-
+    Within a paired counterfactual, history, candidates, candidate order, task
+    wording, output contract, model, and decoding settings are identical; only
+    the pre-registered demographic field changes.
+
+rq2_grounded_personality_value:
+  datasets:
+    - personality2018
+    - music_master_bfi2
+    - reasoner
+  core_conditions:
+    - preference_only
+    - true_measured_personality
+    - shuffled_personality_matched_control
+  one_trait_ablation:
+    enabled: true
+    subset_users_per_dataset: 30
+    traits:
+      - openness
+      - conscientiousness
+      - extraversion
+      - agreeableness
+      - neuroticism
+    intervention: pre_registered_quantile_swap
+  primary_outcomes:
+    - personality_value_added_ndcg10
+    - personality_value_added_recall10
+  guardrail: >-
+    Personality is psychographic context, not a protected demographic variable.
+    The study asks whether measured profiles add user-specific recommendation
+    value and whether that value is stable, not whether 'personality groups' are
+    legally protected classes.
+
+rq3_reliability:
+  all_six_families: true
+  all_six_datasets: true
+  prompt_robustness:
+    subset_users_per_dataset: 20
+    template_ids:
+      - field_v2_a
+      - field_v2_b
+      - field_v2_c
+    selection_policy: report_all_pre_registered_templates
+  cue_style_robustness:
+    subset_users_per_dataset: 20
+    styles:
+      - structured_fields
+      - compact_natural_language_profile
+    note: >-
+      The natural-language style is a robustness/ecological-validity check; it
+      is not allowed to replace the primary structured causal-audit prompt after
+      results are observed.
+  candidate_order_robustness:
+    subset_users_per_dataset: 20
+    deterministic_permutations: 3
+    same_permutations_across_conditions: true
+  stochasticity_audit:
+    subset_fraction: 0.10
+    repetitions: 10
+    temperature: 0.7
+  cutoff_sensitivity:
+    k_values: [5, 10, 20]
+  outcomes:
+    - between_generation_variance
+    - between_prompt_variance
+    - candidate_order_variance
+    - rank_correlation_of_model_conclusions
+    - invalid_output_rate
+
+rq4_mitigation:
+  datasets:
+    - movielens_1m
+    - lastfm
+  baselines:
+    - unmitigated_audit_prompt
+    - identity_irrelevance_instruction
+    - counterfactually_fair_prompting_baseline
+    - pair_reranker
+  lambda_selection:
+    method: validation_only
+    grid: [0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6]
+    no_test_set_tuning: true
+  report:
+    - ndcg10
+    - recall10
+    - absolute_counterfactual_utility_gap
+    - exposure_gap_if_available
+    - invalid_output_rate
+    - utility_fairness_pareto_frontier
+  success_definition: >-
+    A mitigation is not successful merely because rankings become more similar.
+    It must reduce harmful counterfactual utility/exposure gaps while preserving
+    recommendation utility within a pre-registered tolerance.
+
+mind_scope:
+  role: candidate_constrained_domain_generalization
+  observed_identity_claims_allowed: false
+  primary_use:
+    - utility_generalization
+    - prompt_and_candidate_order_reliability
+  synthetic_identity_stress_test:
+    enabled: true
+    subset_users: 20
+    label_in_paper: synthetic_counterfactual_stress_test
+    never_pool_with_observed_demographic_estimates: true
+
+statistics:
+  confidence_level: 0.95
+  bootstrap_samples: 10000
+  paired_permutation_primary: true
+  wilcoxon_sensitivity: true
+  multiple_comparison_correction: holm_within_rq_family
+  effect_sizes: true
+  dataset_level_reporting_before_any_meta_summary: true
+  model_family_level_reporting: true
+  mixed_effects_or_variance_components_for_rq3: true
+  missingness:
+    invalid_generation_is_outcome: true
+    no_complete_case_only_primary_analysis: true
+
+reporting:
+  no_manual_numbers_in_latex: true
+  tables_generated_from_frozen_results: true
+  figures_generated_from_frozen_results: true
+  every_result_artifact_records:
+    - input_result_hashes
+    - analysis_code_commit
+    - generation_timestamp_utc
+    - config_hash
