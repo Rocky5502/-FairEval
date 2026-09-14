@@ -1,9 +1,9 @@
 # FairEval ECIR 2027 model manifest
+# Verified against official provider documentation on 2026-09-15.
 #
-# This file is a PRE-RUN manifest. Do not silently change model IDs after the
-# main experiment begins. If a provider alias can move, record the provider's
-# returned/version metadata in each response manifest and prefer a dated or
-# immutable snapshot when one exists.
+# This is a PRE-RUN manifest. Do not silently change model IDs after the pilot
+# freeze. If an alias can move, record the resolved/version metadata returned or
+# documented by the provider and prefer an immutable snapshot when one exists.
 
 models:
   - family: openai
@@ -11,66 +11,93 @@ models:
     model_id: gpt-5.6-terra
     api_key_env: OPENAI_API_KEY
     enabled: true
+    reasoning_or_thinking_setting: none
+    verification: official_openai_models_2026-09-15
     notes: >-
-      Cost-balanced GPT-5.6 family candidate. Confirm the exact callable API ID
-      with the provider immediately before pilot freeze.
+      Cost-balanced GPT-5.6 family model. Do not replace with Sol/Luna after
+      inspecting results; a model change requires a new experiment version.
 
   - family: anthropic
     name: claude-sonnet-5
     model_id: claude-sonnet-5
     api_key_env: ANTHROPIC_API_KEY
     enabled: true
+    reasoning_or_thinking_setting: disabled
+    verification: official_anthropic_active_models_2026-09-15
     notes: >-
-      Active Claude model as of the design freeze. Prefer an immutable snapshot
-      ID if Anthropic exposes one for the run.
+      Active Claude model. Prefer an immutable snapshot identifier if Anthropic
+      exposes one at pilot freeze; otherwise log the resolved model metadata.
 
   - family: google
     name: gemini-3.8-flash
     model_id: gemini-3.8-flash
     api_key_env: GEMINI_API_KEY
     enabled: true
-    notes: Stable Gemini API model released September 2026.
+    reasoning_or_thinking_setting: provider_low_or_disabled
+    verification: official_gemini_models_2026-09-15
+    notes: >-
+      Stable Gemini API model, GA since 2026-09-02. Freeze provider-native
+      thinking configuration during the pilot and retain it for every condition.
 
   - family: deepseek
     name: deepseek-v4-flash
     model_id: deepseek-v4-flash
     api_key_env: DEEPSEEK_API_KEY
     enabled: true
+    reasoning_or_thinking_setting: non_thinking
+    verification: official_deepseek_api_2026-09-15
     notes: >-
-      Record the backend version reported/documented for each run; the alias is
-      currently associated with the V4-Flash-0731 line.
+      Alias documented as DeepSeek-V4-Flash-0731 at design time. The alias can
+      move, so store the backend/version metadata and run dates with every call.
 
   - family: qwen
     name: qwen3.8-max
     model_id: qwen3.8-max
     api_key_env: DASHSCOPE_API_KEY
     enabled: true
-    notes: Alibaba Cloud Model Studio Qwen family candidate.
+    reasoning_or_thinking_setting: provider_low_or_disabled
+    verification: alibaba_model_studio_2026-09-15
+    notes: >-
+      Current Qwen family candidate from Alibaba Cloud Model Studio. Freeze the
+      exact callable ID, region, and reasoning configuration at pilot freeze.
 
   - family: meta
     name: llama-4-maverick
     model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct
     api_key_env: LLAMA_PROVIDER_API_KEY
     enabled: true
+    reasoning_or_thinking_setting: not_applicable
     provider: null
+    verification: official_meta_llama_2026-09-15
     notes: >-
-      Provider/checkpoint is intentionally not frozen yet. Pin the exact hosted
-      checkpoint (or local revision hash) before pilot freeze; never compare a
-      moving provider alias against pinned API models.
+      Meta confirms Llama 4 Maverick as an official model, but the experiment
+      provider/checkpoint is intentionally not frozen yet. Pin the exact hosted
+      checkpoint or local revision hash before pilot freeze. Never use an
+      unversioned moving provider alias for the final comparison.
 
 generation:
   top_k: 10
   max_output_tokens: 512
+
+  # Main audit: low-variance generation. If a provider does not accept a field,
+  # the adapter must record that fact rather than silently pretending equivalence.
   temperature_main: 0.2
-  temperature_stochasticity: 0.7
-  top_p: 1.0
+  top_p_main: 1.0
   main_repetitions: 3
+
+  # Focused RQ3 audit on a frozen subset only.
+  temperature_stochasticity: 0.7
+  top_p_stochasticity: 1.0
   stochasticity_repetitions: 10
   stochasticity_fraction: 0.10
+
   structured_output: true
+  request_chain_of_thought: false
+  allow_provider_default_reasoning: false
 
 reproducibility_required_fields:
   - provider
+  - provider_region
   - model_family
   - requested_model_id
   - resolved_model_version
@@ -81,6 +108,9 @@ reproducibility_required_fields:
   - reasoning_or_thinking_setting
   - seed_requested
   - seed_supported
+  - prompt_template_id
+  - prompt_mode
+  - candidate_order_seed
   - prompt_sha256
   - request_sha256
   - response_sha256
