@@ -1,0 +1,87 @@
+# FairEval ECIR 2027 model manifest
+#
+# This file is a PRE-RUN manifest. Do not silently change model IDs after the
+# main experiment begins. If a provider alias can move, record the provider's
+# returned/version metadata in each response manifest and prefer a dated or
+# immutable snapshot when one exists.
+
+models:
+  - family: openai
+    name: gpt-5.6-terra
+    model_id: gpt-5.6-terra
+    api_key_env: OPENAI_API_KEY
+    enabled: true
+    notes: >-
+      Cost-balanced GPT-5.6 family candidate. Confirm the exact callable API ID
+      with the provider immediately before pilot freeze.
+
+  - family: anthropic
+    name: claude-sonnet-5
+    model_id: claude-sonnet-5
+    api_key_env: ANTHROPIC_API_KEY
+    enabled: true
+    notes: >-
+      Active Claude model as of the design freeze. Prefer an immutable snapshot
+      ID if Anthropic exposes one for the run.
+
+  - family: google
+    name: gemini-3.8-flash
+    model_id: gemini-3.8-flash
+    api_key_env: GEMINI_API_KEY
+    enabled: true
+    notes: Stable Gemini API model released September 2026.
+
+  - family: deepseek
+    name: deepseek-v4-flash
+    model_id: deepseek-v4-flash
+    api_key_env: DEEPSEEK_API_KEY
+    enabled: true
+    notes: >-
+      Record the backend version reported/documented for each run; the alias is
+      currently associated with the V4-Flash-0731 line.
+
+  - family: qwen
+    name: qwen3.8-max
+    model_id: qwen3.8-max
+    api_key_env: DASHSCOPE_API_KEY
+    enabled: true
+    notes: Alibaba Cloud Model Studio Qwen family candidate.
+
+  - family: meta
+    name: llama-4-maverick
+    model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    api_key_env: LLAMA_PROVIDER_API_KEY
+    enabled: true
+    provider: null
+    notes: >-
+      Provider/checkpoint is intentionally not frozen yet. Pin the exact hosted
+      checkpoint (or local revision hash) before pilot freeze; never compare a
+      moving provider alias against pinned API models.
+
+generation:
+  top_k: 10
+  max_output_tokens: 512
+  temperature_main: 0.2
+  temperature_stochasticity: 0.7
+  top_p: 1.0
+  main_repetitions: 3
+  stochasticity_repetitions: 10
+  stochasticity_fraction: 0.10
+  structured_output: true
+
+reproducibility_required_fields:
+  - provider
+  - model_family
+  - requested_model_id
+  - resolved_model_version
+  - request_utc
+  - temperature
+  - top_p
+  - max_output_tokens
+  - reasoning_or_thinking_setting
+  - seed_requested
+  - seed_supported
+  - prompt_sha256
+  - request_sha256
+  - response_sha256
+  - code_commit_sha
