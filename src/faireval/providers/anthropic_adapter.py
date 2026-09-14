@@ -16,15 +16,7 @@ class AnthropicAdapter(ProviderAdapter):
         return False
 
     @staticmethod
-    def _uses_provider_default_sampling(model_id: str) -> bool:
-        """Whether FairEval must omit deprecated sampling controls.
-
-        Anthropic documents ``temperature``, ``top_p``, and ``top_k`` as
-        deprecated for Claude Opus 4.7 and later. The current FairEval panel uses
-        Claude Sonnet 5, for which we therefore omit explicit sampling controls
-        and record that provider defaults were applied. This is more honest than
-        pretending all six providers expose equivalent decoding knobs.
-        """
+    def _is_current_claude5(model_id: str) -> bool:
         normalized = model_id.strip().lower()
         return normalized.startswith("claude-sonnet-5") or normalized.startswith("claude-opus-5")
 
@@ -39,16 +31,21 @@ class AnthropicAdapter(ProviderAdapter):
             raise RuntimeError(f"Missing environment variable {self.api_key_env}")
 
         client = anthropic.Anthropic(api_key=api_key)
-        use_defaults = self._uses_provider_default_sampling(request.model_id)
+        is_claude5 = self._is_current_claude5(request.model_id)
         create_kwargs = {
             "model": request.model_id,
             "max_tokens": request.max_output_tokens,
             "messages": [{"role": "user", "content": request.prompt}],
         }
-        if not use_defaults:
-            # Retained for older compatible Claude models used only in explicitly
-            # versioned auxiliary experiments. The ECIR core Sonnet-5 run takes
-            # the provider-default branch above.
+        if is_claude5:
+            # Claude Sonnet 5 defaults to adaptive thinking. FairEval explicitly
+            # disables it so the benchmark measures direct ranking behavior. The
+            # same generation also rejects non-default temperature/top_p/top_k,
+            # so those controls are deliberately omitted rather than faked.
+            create_kwargs["thinking"] = {"type": "disabled"}
+        else:
+            # Auxiliary older-Claude experiments may retain explicit controls,
+            # but they are not part of the frozen ECIR six-family core panel.
             create_kwargs["temperature"] = request.temperature
             create_kwargs["top_p"] = request.top_p
 
@@ -67,14 +64,15 @@ class AnthropicAdapter(ProviderAdapter):
             provider_metadata={
                 "id": getattr(response, "id", None),
                 "stop_reason": getattr(response, "stop_reason", None),
+                "reasoning_or_thinking_applied": "disabled" if is_claude5 else None,
                 "sampling_controls_requested": {
                     "temperature": request.temperature,
                     "top_p": request.top_p,
                 },
-                "sampling_controls_applied": not use_defaults,
+                "sampling_controls_applied": not is_claude5,
                 "sampling_policy": (
-                    "provider_default_deprecated_controls_omitted"
-                    if use_defaults
+                    "provider_default_sampling_nondefault_controls_deprecated"
+                    if is_claude5
                     else "explicit_temperature_and_top_p"
                 ),
                 "usage": {
