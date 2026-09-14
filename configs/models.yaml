@@ -12,6 +12,7 @@ models:
     api_key_env: OPENAI_API_KEY
     enabled: true
     reasoning_or_thinking_setting: none
+    sampling_policy: explicit_low_variance_where_supported
     verification: official_openai_models_2026-09-15
     notes: >-
       Cost-balanced GPT-5.6 family model. Do not replace with Sol/Luna after
@@ -23,10 +24,13 @@ models:
     api_key_env: ANTHROPIC_API_KEY
     enabled: true
     reasoning_or_thinking_setting: disabled
+    sampling_policy: provider_default_sampling_controls_deprecated
     verification: official_anthropic_active_models_2026-09-15
     notes: >-
-      Active Claude model. Prefer an immutable snapshot identifier if Anthropic
-      exposes one at pilot freeze; otherwise log the resolved model metadata.
+      Active Claude model. Anthropic documents temperature/top_p/top_k as
+      deprecated for newer Claude generations; the adapter omits these controls
+      for Sonnet 5 and logs that provider defaults were applied. Do not claim
+      decoding-parameter equivalence across providers.
 
   - family: google
     name: gemini-3.8-flash
@@ -34,32 +38,39 @@ models:
     api_key_env: GEMINI_API_KEY
     enabled: true
     reasoning_or_thinking_setting: provider_low_or_disabled
+    sampling_policy: explicit_low_variance_where_supported
     verification: official_gemini_models_2026-09-15
     notes: >-
       Stable Gemini API model, GA since 2026-09-02. Freeze provider-native
       thinking configuration during the pilot and retain it for every condition.
 
   - family: deepseek
-    name: deepseek-v4-flash
-    model_id: deepseek-v4-flash
+    name: deepseek-v4.1-flash
+    model_id: deepseek-flash
     api_key_env: DEEPSEEK_API_KEY
     enabled: true
     reasoning_or_thinking_setting: non_thinking
+    sampling_policy: explicit_low_variance_where_supported
     verification: official_deepseek_api_2026-09-15
     notes: >-
-      Alias documented as DeepSeek-V4-Flash-0731 at design time. The alias can
-      move, so store the backend/version metadata and run dates with every call.
+      Current DeepSeek API model name for DeepSeek V4.1 Flash. The former
+      deepseek-v4-flash model is retired and its legacy alias is temporarily
+      routed to V4.1 Flash, so the legacy alias must not be used or described as
+      the July V4-Flash snapshot. Record request date and any returned backend
+      metadata because the current API name is not an immutable snapshot.
 
   - family: qwen
-    name: qwen3.8-max
-    model_id: qwen3.8-max
+    name: qwen3.8-max-0902
+    model_id: qwen3.8-max-0902
     api_key_env: DASHSCOPE_API_KEY
     enabled: true
     reasoning_or_thinking_setting: provider_low_or_disabled
+    sampling_policy: explicit_low_variance_where_supported
     verification: alibaba_model_studio_2026-09-15
     notes: >-
-      Current Qwen family candidate from Alibaba Cloud Model Studio. Freeze the
-      exact callable ID, region, and reasoning configuration at pilot freeze.
+      Immutable dated Qwen3.8-Max snapshot released 2026-09-02 (alias
+      qwen3.8-max-2026-09-02). Prefer this snapshot over the moving qwen3.8-max
+      alias. Freeze the exact Model Studio region/endpoint during the pilot.
 
   - family: meta
     name: llama-4-maverick
@@ -67,33 +78,37 @@ models:
     api_key_env: LLAMA_PROVIDER_API_KEY
     enabled: true
     reasoning_or_thinking_setting: not_applicable
+    sampling_policy: explicit_low_variance_where_supported
     provider: null
     verification: official_meta_llama_2026-09-15
     notes: >-
-      Meta confirms Llama 4 Maverick as an official model, but the experiment
-      provider/checkpoint is intentionally not frozen yet. Pin the exact hosted
-      checkpoint or local revision hash before pilot freeze. Never use an
-      unversioned moving provider alias for the final comparison.
+      The Meta checkpoint identity is static, but the serving provider is not
+      frozen yet. Pin the exact hosted checkpoint/revision and provider endpoint
+      before pilot freeze. Never use an unversioned moving provider alias for the
+      final comparison.
 
 generation:
   top_k: 10
   max_output_tokens: 512
 
-  # Main audit: low-variance generation. If a provider does not accept a field,
-  # the adapter must record that fact rather than silently pretending equivalence.
-  temperature_main: 0.2
-  top_p_main: 1.0
+  # Requested audit profile. Adapters must record whether controls are actually
+  # supported/applied; provider defaults are used where the API deprecates them.
+  temperature_main_requested: 0.2
+  top_p_main_requested: 1.0
   main_repetitions: 3
 
-  # Focused RQ3 audit on a frozen subset only.
-  temperature_stochasticity: 0.7
-  top_p_stochasticity: 1.0
+  # Focused RQ3 audit on a frozen subset only. For providers that do not expose
+  # these controls, repeated generations quantify stochasticity under their
+  # provider-default decoding policy instead.
+  temperature_stochasticity_requested: 0.7
+  top_p_stochasticity_requested: 1.0
   stochasticity_repetitions: 10
   stochasticity_fraction: 0.10
 
   structured_output: true
   request_chain_of_thought: false
   allow_provider_default_reasoning: false
+  cross_provider_decoding_equivalence_claimed: false
 
 reproducibility_required_fields:
   - provider
@@ -102,8 +117,10 @@ reproducibility_required_fields:
   - requested_model_id
   - resolved_model_version
   - request_utc
-  - temperature
-  - top_p
+  - temperature_requested
+  - top_p_requested
+  - sampling_controls_applied
+  - sampling_policy
   - max_output_tokens
   - reasoning_or_thinking_setting
   - seed_requested
