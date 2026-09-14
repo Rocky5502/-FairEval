@@ -5,7 +5,7 @@ import hashlib
 import math
 import random
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from statistics import median
 from typing import Iterator
@@ -256,7 +256,9 @@ class LastFM1KAdapter(DatasetAdapter):
                     artist_names.get(key, key),
                     {
                         "train_play_count": train_counts[key],
-                        "last_seen_utc": datetime.fromtimestamp(last_seen[key]).isoformat(),
+                        "last_seen_utc": datetime.fromtimestamp(
+                            last_seen[key], tz=timezone.utc
+                        ).isoformat(),
                     },
                 )
                 for key in history_artist_ids
