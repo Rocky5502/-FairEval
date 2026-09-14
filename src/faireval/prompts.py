@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -55,6 +56,12 @@ SYSTEM_BY_MODE = {
     "identity_irrelevance": IDENTITY_IRRELEVANCE_SYSTEM_INSTRUCTION,
 }
 
+CUE_IDS = (
+    "structured_key_value",
+    "first_person_explicit",
+    "third_person_profile",
+)
+
 
 def _item_payload(item: Any) -> dict[str, Any]:
     # Stable, deliberately compact representation. Dataset adapters decide which
@@ -66,29 +73,60 @@ def _item_payload(item: Any) -> dict[str, Any]:
     }
 
 
+def _candidate_payload(
+    instance: UserInstance,
+    candidate_order_seed: int | None,
+) -> list[dict[str, Any]]:
+    candidates = list(instance.candidates)
+    if candidate_order_seed is not None:
+        random.Random(candidate_order_seed).shuffle(candidates)
+    return [_item_payload(x) for x in candidates]
+
+
+def _render_demographic_context(
+    demographics: Mapping[str, Any] | None,
+    cue_id: str,
+) -> dict[str, Any] | str:
+    if not demographics:
+        return "unspecified"
+    if cue_id not in CUE_IDS:
+        raise ValueError(f"unknown cue_id={cue_id!r}")
+
+    values = {str(key): demographics[key] for key in sorted(demographics)}
+    if cue_id == "structured_key_value":
+        return values
+
+    pairs = [f"{key}={values[key]}" for key in values]
+    if cue_id == "first_person_explicit":
+        return "My profile fields are: " + "; ".join(pairs) + "."
+    return "User profile: " + "; ".join(pairs) + "."
+
+
 def build_prompt_payload(
     instance: UserInstance,
     condition: PromptCondition,
     *,
     k: int,
     template_id: str = "field_v2_a",
+    cue_id: str = "structured_key_value",
+    candidate_order_seed: int | None = None,
 ) -> dict[str, Any]:
     """Construct the structured portion of a controlled recommendation prompt.
 
-    Counterfactual pairs must reuse the exact same ``UserInstance``. Therefore
-    user history, candidate set, candidate order, task wording, and output
-    contract remain unchanged; only the explicitly intervened context field may
-    differ between paired conditions.
+    Counterfactual pairs must reuse the same ``UserInstance``, template, cue form,
+    and candidate-order seed. Thus user history, candidate set/order, task wording,
+    and output contract remain unchanged; only the explicitly intervened context
+    value may differ between paired conditions.
     """
     instance.validate()
     if k <= 0 or k > len(instance.candidates):
         raise ValueError("k must be positive and no larger than the candidate set")
     if template_id not in PROMPT_TEMPLATES:
         raise ValueError(f"unknown template_id={template_id!r}")
+    if cue_id not in CUE_IDS:
+        raise ValueError(f"unknown cue_id={cue_id!r}")
 
-    demographics: dict[str, Any] | str = (
-        dict(condition.demographics) if condition.demographics else "unspecified"
-    )
+    demographic_context = _render_demographic_context(condition.demographics, cue_id)
     personality: dict[str, float] | str = (
         condition.personality.as_dict() if condition.personality else "unspecified"
     )
@@ -98,9 +136,9 @@ def build_prompt_payload(
         "task_instruction": PROMPT_TEMPLATES[template_id].task_instruction,
         "dataset": instance.dataset,
         "preference_history": [_item_payload(x) for x in instance.history],
-        "demographic_context": demographics,
+        "demographic_context": demographic_context,
         "personality_ocean": personality,
-        "candidate_items": [_item_payload(x) for x in instance.candidates],
+        "candidate_items": _candidate_payload(instance, candidate_order_seed),
         "output_contract": {
             "k": int(k),
             "schema": {"ranked_item_ids": ["candidate_id_1", "candidate_id_2"]},
@@ -122,20 +160,30 @@ def build_ranking_prompt(
     k: int,
     template_id: str = "field_v2_a",
     prompt_mode: str = "audit",
+    cue_id: str = "structured_key_value",
+    candidate_order_seed: int | None = None,
 ) -> str:
     """Render a controlled prompt for either auditing or mitigation.
 
     Design invariants:
-      * identical field names and order across conditions;
+      * identical top-level fields and order across matched conditions;
       * explicit ``unspecified`` null condition instead of deleting fields;
-      * candidate-constrained output to make utility measurable;
-      * no model-generated rationale, which could introduce an additional judge
-        or explanation confound;
+      * candidate-constrained output to make held-out utility measurable;
+      * paired comparisons reuse an identical candidate-order seed;
+      * demographic cue form is a named robustness factor, never a hidden edit;
+      * no model-generated rationale or chain-of-thought is requested;
       * fairness coaching appears only in a named mitigation mode.
     """
     if prompt_mode not in SYSTEM_BY_MODE:
         raise ValueError(f"unknown prompt_mode={prompt_mode!r}")
-    payload = build_prompt_payload(instance, condition, k=k, template_id=template_id)
+    payload = build_prompt_payload(
+        instance,
+        condition,
+        k=k,
+        template_id=template_id,
+        cue_id=cue_id,
+        candidate_order_seed=candidate_order_seed,
+    )
     return SYSTEM_BY_MODE[prompt_mode] + "\nINPUT_JSON:\n" + json.dumps(
         payload,
         ensure_ascii=False,
@@ -157,13 +205,7 @@ def parse_prompt_payload(prompt: str) -> dict[str, Any]:
 
 
 def changed_payload_fields(left_prompt: str, right_prompt: str) -> tuple[str, ...]:
-    """Return top-level fields changed between two controlled prompts.
-
-    This is used as an executable counterfactual-confound check. For a pure
-    demographic intervention, the expected result is exactly
-    ``('demographic_context',)``; for a personality intervention it is exactly
-    ``('personality_ocean',)``.
-    """
+    """Return top-level fields changed between two controlled prompts."""
     left = parse_prompt_payload(left_prompt)
     right = parse_prompt_payload(right_prompt)
     keys = set(left) | set(right)
