@@ -42,6 +42,7 @@ def run_one(
     seed: int | None = None,
     reasoning_or_thinking_setting: str | None = None,
     code_commit_sha: str | None = None,
+    planned_cell_id: str | None = None,
     allow_format_repair: bool = True,
 ) -> dict[str, Any]:
     """Execute and persist one benchmark cell.
@@ -54,6 +55,10 @@ def run_one(
     RQ4 may additionally run named mitigation modes such as
     ``identity_irrelevance``. Template, cue representation, and candidate-order
     seed are logged so presentation choices cannot be hidden from analysis.
+
+    ``planned_cell_id`` links the persisted response to an immutable run-plan
+    row. Resumable execution should always provide it; direct unit/pilot calls may
+    leave it ``None``.
     """
     prompt = build_ranking_prompt(
         instance,
@@ -110,7 +115,8 @@ def run_one(
             final_validation = repaired_validation
 
     row: dict[str, Any] = {
-        "schema_version": "faireval-run-v3",
+        "schema_version": "faireval-run-v4",
+        "planned_cell_id": planned_cell_id,
         "dataset": instance.dataset,
         "user_id": instance.user_id,
         "condition_id": condition.condition_id,
