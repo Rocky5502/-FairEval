@@ -35,6 +35,8 @@ def run_one(
     temperature: float,
     top_p: float,
     max_output_tokens: int,
+    template_id: str = "field_v2_a",
+    prompt_mode: str = "audit",
     seed: int | None = None,
     reasoning_or_thinking_setting: str | None = None,
     code_commit_sha: str | None = None,
@@ -45,8 +47,19 @@ def run_one(
     The raw first response is always retained. A repair call, if used, is stored
     separately and is allowed to change formatting only. Persistent invalidity
     remains an explicit outcome rather than being silently excluded.
+
+    ``prompt_mode='audit'`` is mandatory for RQ1--RQ3 unmitigated evaluation.
+    RQ4 may additionally run named mitigation modes such as
+    ``identity_irrelevance``. Both mode and template are logged so prompt choice
+    can never be hidden from the analysis manifest.
     """
-    prompt = build_ranking_prompt(instance, condition, k=k)
+    prompt = build_ranking_prompt(
+        instance,
+        condition,
+        k=k,
+        template_id=template_id,
+        prompt_mode=prompt_mode,
+    )
     request_utc = datetime.now(timezone.utc).isoformat()
     request = GenerationRequest(
         prompt=prompt,
@@ -93,11 +106,13 @@ def run_one(
             final_validation = repaired_validation
 
     row: dict[str, Any] = {
-        "schema_version": "faireval-run-v1",
+        "schema_version": "faireval-run-v2",
         "dataset": instance.dataset,
         "user_id": instance.user_id,
         "condition_id": condition.condition_id,
         "condition_name": condition.condition_name,
+        "template_id": template_id,
+        "prompt_mode": prompt_mode,
         "repetition": repetition,
         "provider": provider.provider_name,
         "model_family": provider.family,
