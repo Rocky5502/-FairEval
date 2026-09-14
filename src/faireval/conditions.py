@@ -13,6 +13,15 @@ def _stable_int(*parts: object) -> int:
     return int.from_bytes(hashlib.sha256(raw).digest()[:8], "big", signed=False)
 
 
+def _validate_single_dataset(instances: Sequence[UserInstance]) -> None:
+    datasets = {instance.dataset for instance in instances}
+    if len(datasets) != 1:
+        raise ValueError(
+            "condition controls must be planned within one dataset; "
+            f"received datasets={sorted(datasets)!r}"
+        )
+
+
 def preference_only() -> PromptCondition:
     return PromptCondition(
         condition_id="C0",
@@ -72,6 +81,40 @@ def demographic_counterfactual(
     )
 
 
+def all_categorical_demographic_counterfactuals(
+    instance: UserInstance,
+    *,
+    attribute: str,
+    allowed_values: Sequence[Any],
+) -> tuple[PromptCondition, ...]:
+    """Generate every pre-registered non-observed category for one attribute.
+
+    Generating the full declared alternative set prevents selecting a comparison
+    after seeing which counterfactual produces the largest disparity. The caller
+    owns the dataset-native category definition; no category is inferred here.
+    """
+    if attribute not in instance.demographics:
+        raise ValueError(f"attribute {attribute!r} is not observed for this user")
+    values = tuple(allowed_values)
+    if len(values) < 2 or len(set(values)) != len(values):
+        raise ValueError("allowed_values must contain at least two unique values")
+    observed = instance.demographics[attribute]
+    if observed not in values:
+        raise ValueError(
+            f"observed value {observed!r} is not present in allowed_values={values!r}"
+        )
+    return tuple(
+        demographic_counterfactual(
+            instance,
+            attribute=attribute,
+            counterfactual_value=value,
+            counterfactual_id=f"{attribute}_{observed}_to_{value}",
+        )
+        for value in values
+        if value != observed
+    )
+
+
 def true_personality(instance: UserInstance) -> PromptCondition:
     if instance.personality is None:
         raise ValueError(f"{instance.dataset}/{instance.user_id} has no measured personality")
@@ -95,10 +138,13 @@ def build_personality_derangement(
 
     Users without measured personality are rejected rather than silently removed.
     A hash-sorted cyclic shift is used so the mapping is deterministic across
-    Python versions and independent of input list order.
+    Python versions and independent of input list order. Because the mapping is a
+    permutation, the cohort's full multivariate personality distribution and
+    real cross-trait covariance are preserved exactly.
     """
     if len(instances) < 2:
         raise ValueError("at least two users are required for a personality derangement")
+    _validate_single_dataset(instances)
     ids = [str(instance.user_id) for instance in instances]
     if len(set(ids)) != len(ids):
         raise ValueError("user IDs must be unique within a shuffle pool")
@@ -122,6 +168,8 @@ def shuffled_personality(
     *,
     donor_instance: UserInstance,
 ) -> PromptCondition:
+    if instance.dataset != donor_instance.dataset:
+        raise ValueError("personality donor must come from the same dataset")
     if instance.personality is None:
         raise ValueError("target user lacks measured personality")
     if donor_instance.personality is None:
@@ -137,8 +185,71 @@ def shuffled_personality(
         intervention={
             "type": "personality_shuffle",
             "donor_user_id": str(donor_instance.user_id),
+            "preserves_cohort_profile_distribution": True,
         },
     )
+
+
+def build_one_trait_donor_map(
+    instances: Sequence[UserInstance],
+    *,
+    trait: str,
+    seed: int,
+) -> dict[str, str]:
+    """Freeze a deterministic distant-quantile donor for one OCEAN trait.
+
+    Users are sorted by the measured trait with a seeded stable tie-break. The
+    first donor candidate is a half-cohort cyclic shift, so it comes from roughly
+    the opposite half of the empirical distribution. If tied values make that a
+    no-op, the search proceeds deterministically around the cycle until a user
+    with a different observed trait value is found. No fabricated 0/1 extremes
+    and no result-aware donor choice are permitted.
+    """
+    if trait not in OCEAN_KEYS:
+        raise ValueError(f"trait must be one of {OCEAN_KEYS}, got {trait!r}")
+    if len(instances) < 3:
+        raise ValueError("at least three users are required for one-trait donor planning")
+    _validate_single_dataset(instances)
+    ids = [str(instance.user_id) for instance in instances]
+    if len(set(ids)) != len(ids):
+        raise ValueError("user IDs must be unique within a donor pool")
+    for instance in instances:
+        if instance.personality is None:
+            raise ValueError(f"user {instance.user_id} lacks measured personality")
+        instance.personality.as_dict()
+
+    ordered = sorted(
+        instances,
+        key=lambda instance: (
+            float(getattr(instance.personality, trait)),  # type: ignore[arg-type]
+            _stable_int(seed, "one_trait", trait, instance.user_id),
+            str(instance.user_id),
+        ),
+    )
+    values = [float(getattr(instance.personality, trait)) for instance in ordered]  # type: ignore[arg-type]
+    if len(set(values)) < 2:
+        raise ValueError(f"all users have identical {trait}; a trait intervention is impossible")
+
+    n = len(ordered)
+    half_shift = (n + 1) // 2
+    result: dict[str, str] = {}
+    for index, target in enumerate(ordered):
+        target_value = float(getattr(target.personality, trait))  # type: ignore[arg-type]
+        donor = None
+        # Start at the opposite half, then move deterministically through all
+        # non-self candidates. This handles ties without post-hoc selection.
+        for extra in range(n - 1):
+            candidate = ordered[(index + half_shift + extra) % n]
+            if str(candidate.user_id) == str(target.user_id):
+                continue
+            candidate_value = float(getattr(candidate.personality, trait))  # type: ignore[arg-type]
+            if candidate_value != target_value:
+                donor = candidate
+                break
+        if donor is None:  # defensive; global variation check above should prevent this
+            raise ValueError(f"no non-identical {trait} donor for user {target.user_id}")
+        result[str(target.user_id)] = str(donor.user_id)
+    return result
 
 
 def one_trait_counterfactual(
@@ -147,14 +258,11 @@ def one_trait_counterfactual(
     trait: str,
     donor_instance: UserInstance,
 ) -> PromptCondition:
-    """Replace one measured Big Five dimension with a donor user's value.
-
-    This avoids arbitrary extreme values (0/1) and keeps the intervention inside
-    the empirical score distribution. The other four dimensions stay exactly at
-    the target user's measured values.
-    """
+    """Replace one measured Big Five dimension with a frozen donor user's value."""
     if trait not in OCEAN_KEYS:
         raise ValueError(f"trait must be one of {OCEAN_KEYS}, got {trait!r}")
+    if instance.dataset != donor_instance.dataset:
+        raise ValueError("one-trait donor must come from the same dataset")
     if instance.personality is None or donor_instance.personality is None:
         raise ValueError("target and donor must both have measured personality")
     if str(instance.user_id) == str(donor_instance.user_id):
@@ -167,7 +275,7 @@ def one_trait_counterfactual(
     if replacement == original:
         # Equal numeric values are possible; returning an unchanged profile would
         # falsely label a no-op as an intervention.
-        raise ValueError(f"donor has identical {trait} value; choose another frozen donor")
+        raise ValueError(f"donor has identical {trait} value; use the frozen donor planner")
 
     profile = replace(instance.personality, **{trait: replacement})
     profile.as_dict()
@@ -182,6 +290,7 @@ def one_trait_counterfactual(
             "observed_value": original,
             "counterfactual_value": replacement,
             "donor_user_id": str(donor_instance.user_id),
+            "other_traits_held_fixed": True,
         },
     )
 
