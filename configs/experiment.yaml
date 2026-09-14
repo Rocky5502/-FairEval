@@ -10,12 +10,13 @@ study:
   stochasticity_repetitions: 10
 
 prompt_design:
-  protocol_config: configs/prompts.yaml
+  protocol_config: configs/prompt_suite.yaml
+  cue_config: configs/cue_suite.yaml
   primary_template: field_v2_a
   primary_mode: audit
-  robustness_subset_fraction: 0.10
-  robustness_templates: [field_v2_a, field_v2_b, field_v2_c]
-  candidate_order_seeds: [2027, 42027, 99027]
+  primary_cue: structured_key_value
+  candidate_order_policy: deterministic_per_user
+  paired_conditions_share_candidate_order: true
   fairness_coaching_in_primary_audit: false
   mitigation_modes:
     - identity_irrelevance
@@ -27,11 +28,36 @@ tracks:
       - personality2018
       - music_master_bfi2
       - reasoner
-  counterfactual_generalization:
+    core_conditions: [C0, C3, C4]
+    users_per_dataset: 100
+    repetitions: 3
+    one_trait_subset:
+      condition: C5
+      users_per_dataset: 30
+      dimensions: [openness, conscientiousness, extraversion, agreeableness, neuroticism]
+      repetitions: 3
+
+  demographic_counterfactual:
     datasets:
       - movielens_1m
       - lastfm
+    core_conditions: [C0, C1, C2]
+    users_per_dataset: 100
+    repetitions: 3
+    primary_attributes: dataset_supported_and_pre_registered
+    intersectional_subset:
+      condition: C6
+      enabled: true
+      users_per_dataset: 30
+      run_only_if_cell_support_is_adequate: true
+
+  synthetic_stress_test:
+    datasets:
       - mind
+    users_per_dataset: 50
+    conditions: [C0, C2]
+    repetitions: 3
+    observed_demographic_claims_allowed: false
 
 conditions:
   - id: C0
@@ -69,6 +95,56 @@ conditions:
     demographics: observed_or_counterfactual
     personality: measured_ocean
 
+robustness:
+  design: one_factor_at_a_time_on_frozen_subsets
+  never_cross_all_robustness_factors: true
+
+  task_paraphrase:
+    users_per_dataset: 20
+    datasets: all_six
+    representative_conditions_per_dataset: 2
+    templates: [field_v2_a, field_v2_b, field_v2_c]
+    repetitions: 1
+
+  demographic_cue:
+    users_per_dataset: 20
+    datasets: [movielens_1m, lastfm]
+    representative_conditions: [C1, C2]
+    cues: [structured_key_value, first_person_explicit, third_person_profile]
+    repetitions: 1
+
+  candidate_order:
+    users_per_dataset: 20
+    datasets: all_six
+    representative_conditions_per_dataset: 2
+    order_seeds: [1729, 2718, 31415]
+    repetitions: 1
+
+  cutoff:
+    users_per_dataset: 20
+    datasets: all_six
+    representative_conditions_per_dataset: 2
+    k_values: [5, 10, 20]
+    repetitions: 1
+
+  stochasticity:
+    users_per_dataset: 10
+    datasets: all_six
+    representative_conditions_per_dataset: 2
+    repetitions: 10
+    temperature: 0.7
+
+rq4:
+  demographic_datasets: [movielens_1m, lastfm]
+  users_per_dataset: 50
+  reuse_unmitigated_core_runs: true
+  extra_api_modes: [identity_irrelevance]
+  extra_repetitions: 3
+  postprocessing_methods: [pair_reranker]
+  pair_hyperparameters_selected_on_validation_only: true
+  report_pareto_frontier: true
+  preserve_personality_value_check_reuses_rq2_runs: true
+
 metrics:
   utility_primary:
     - ndcg
@@ -87,7 +163,9 @@ metrics:
     - personality_value_added
   robustness:
     - template_variance
+    - cue_variance
     - candidate_order_variance
+    - cutoff_variance
     - generation_variance
   legacy_sensitivity_only:
     - pafs_original
@@ -104,6 +182,7 @@ statistics:
   mixed_effects_if_supported: true
   nuisance_factors:
     - prompt_template
+    - demographic_cue
     - candidate_order_seed
     - generation_repetition
 
@@ -121,8 +200,10 @@ analysis_policy:
   lock_splits_before_api_calls: true
   lock_prompts_before_main_run: true
   lock_primary_prompt_before_main_run: true
-  no_post_hoc_prompt_selection: true
   lock_model_panel_before_main_run: true
+  no_post_hoc_prompt_selection: true
+  no_post_hoc_attribute_selection: true
   no_manual_paper_numbers: true
   generate_tables_from_results: true
   generate_figures_from_results: true
+  do_not_replace_failed_generations_after_outcome_inspection: true
