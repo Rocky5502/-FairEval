@@ -98,15 +98,50 @@ def group_utility_disparity(group_utilities: Mapping[str, Sequence[float]]) -> f
     return max(means) - min(means)
 
 
+def exposure_metadata_coverage(
+    ranking: Sequence[str],
+    item_groups: Mapping[str, str],
+    k: int,
+) -> float:
+    """Fraction of evaluated top-k positions with auditable item-group metadata.
+
+    Exposure disparity is only interpretable when the metadata used to define
+    exposure groups is sufficiently complete. Coverage is therefore a first-class
+    reported quantity rather than an implementation detail.
+    """
+    top = _top(ranking, k)
+    if not top:
+        return 1.0
+    covered = sum(1 for item_id in top if str(item_id) in item_groups)
+    return covered / len(top)
+
+
 def discounted_exposure(
     ranking: Sequence[str],
     item_groups: Mapping[str, str],
     k: int,
+    *,
+    require_complete_metadata: bool = True,
 ) -> dict[str, float]:
-    """Normalized position-discounted exposure by an auditable item group."""
+    """Normalized position-discounted exposure by an auditable item group.
+
+    By default, every evaluated top-k item must have a group label. Silently
+    dropping unlabeled items and renormalizing the remainder can artificially
+    shrink or inflate a counterfactual exposure gap. Exploratory analyses may set
+    ``require_complete_metadata=False``, but must report metadata coverage and may
+    not present the resulting number as the primary CEG estimate.
+    """
+    top = _top(ranking, k)
+    missing = [str(item_id) for item_id in top if str(item_id) not in item_groups]
+    if missing and require_complete_metadata:
+        raise ValueError(
+            "discounted exposure requires complete top-k item-group metadata; "
+            f"missing={missing!r}"
+        )
+
     exposure: dict[str, float] = defaultdict(float)
     total = 0.0
-    for idx, item_id in enumerate(_top(ranking, k), start=1):
+    for idx, item_id in enumerate(top, start=1):
         group = item_groups.get(str(item_id))
         if group is None:
             continue
@@ -121,6 +156,9 @@ def discounted_exposure(
 def counterfactual_exposure_gap(
     left_exposure: Mapping[str, float], right_exposure: Mapping[str, float]
 ) -> float:
-    """Total-variation distance between exposure distributions."""
+    """Total-variation distance between normalized exposure distributions."""
     groups = set(left_exposure) | set(right_exposure)
-    return 0.5 * sum(abs(left_exposure.get(g, 0.0) - right_exposure.get(g, 0.0)) for g in groups)
+    return 0.5 * sum(
+        abs(left_exposure.get(group, 0.0) - right_exposure.get(group, 0.0))
+        for group in groups
+    )
