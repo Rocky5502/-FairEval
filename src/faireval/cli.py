@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .datasets.factory import DATASET_IDS, build_dataset_adapter
+from .execute import completed_cell_ids, execute_plan, load_and_verify_plan, pending_cells
 from .freeze import file_sha256, freeze_dataset, verify_freeze
 from .plan import compile_core_plan
 
@@ -76,6 +77,45 @@ def _plan_core(args: argparse.Namespace) -> int:
     return 0
 
 
+def _execute(args: argparse.Namespace) -> int:
+    plan_dir = Path(args.plan_dir)
+    output_jsonl = Path(args.output_jsonl)
+    family_filter = set(args.family) if args.family else None
+
+    if not args.execute:
+        cells, manifest = load_and_verify_plan(plan_dir)
+        completed = completed_cell_ids(output_jsonl)
+        selected = pending_cells(cells, completed=completed, families=family_filter)
+        if args.max_cells is not None:
+            selected = selected[: args.max_cells]
+        summary = {
+            "mode": "dry_run",
+            "plan_sha256": manifest.get("plan_sha256"),
+            "planned_api_cells_total": len(cells),
+            "completed_plan_cells": len(completed),
+            "selected_pending_cells": len(selected),
+            "family_filter": None if family_filter is None else sorted(family_filter),
+            "max_cells": args.max_cells,
+            "api_calls_made": 0,
+            "instruction": "Re-run with --execute after reviewing this summary and API credentials.",
+        }
+        print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
+        return 0
+
+    if not args.code_commit_sha:
+        raise ValueError("--code-commit-sha is required with --execute")
+    summary = execute_plan(
+        plan_dir=plan_dir,
+        freeze_root=Path(args.freeze_root),
+        output_jsonl=output_jsonl,
+        code_commit_sha=args.code_commit_sha,
+        families=family_filter,
+        max_cells=args.max_cells,
+    )
+    print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="faireval",
@@ -124,6 +164,27 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--one-trait-subset-users", type=int, default=30)
     plan.add_argument("--demographic-robustness-subset-users", type=int, default=20)
     plan.set_defaults(func=_plan_core)
+
+    execute = subparsers.add_parser(
+        "execute-plan",
+        help="inspect or execute pending immutable run-plan cells; dry-run by default",
+    )
+    execute.add_argument("--plan-dir", required=True)
+    execute.add_argument("--freeze-root", required=True)
+    execute.add_argument("--output-jsonl", required=True)
+    execute.add_argument(
+        "--family",
+        action="append",
+        help="optional model-family filter; repeat for multiple families",
+    )
+    execute.add_argument("--max-cells", type=int)
+    execute.add_argument("--code-commit-sha")
+    execute.add_argument(
+        "--execute",
+        action="store_true",
+        help="actually call providers; omit this flag for a zero-call dry run",
+    )
+    execute.set_defaults(func=_execute)
 
     return parser
 
