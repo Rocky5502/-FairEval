@@ -8,11 +8,13 @@ from .openai_compatible import OpenAICompatibleAdapter
 
 
 def build_provider(family: str):
-    """Build a provider adapter from environment configuration.
+    """Build a provider adapter from frozen FairEval provider policy.
 
-    Qwen and Meta hosting endpoints are environment-configured because API keys
-    and endpoints are region/provider specific. This avoids silently routing one
-    experimental family through a different service deployment.
+    The core study uses the lowest practical deliberation mode for a direct
+    ranking task: OpenAI reasoning ``none``; Claude thinking disabled; Gemini
+    thinking ``low`` (its lowest supported 3.8-Flash level); DeepSeek thinking
+    disabled; Qwen thinking disabled; and the base Llama checkpoint without an
+    additional hosted reasoning wrapper. Any change requires a new study config.
     """
     family = family.lower()
     if family == "openai":
@@ -22,6 +24,7 @@ def build_provider(family: str):
             api_key_env="OPENAI_API_KEY",
             supports_seed_flag=False,
             json_mode=True,
+            extra_request_fields={"reasoning_effort": "none"},
         )
     if family == "anthropic":
         return AnthropicAdapter()
@@ -35,6 +38,7 @@ def build_provider(family: str):
             base_url="https://api.deepseek.com",
             supports_seed_flag=False,
             json_mode=True,
+            extra_body={"thinking": {"type": "disabled"}},
         )
     if family == "qwen":
         base_url = os.environ.get("QWEN_BASE_URL")
@@ -49,6 +53,7 @@ def build_provider(family: str):
             base_url=base_url,
             supports_seed_flag=False,
             json_mode=True,
+            extra_body={"enable_thinking": False},
         )
     if family == "meta":
         base_url = os.environ.get("LLAMA_BASE_URL")
