@@ -1,0 +1,104 @@
+study:
+  name: faireval_ecir2027
+  primary_k: 10
+  sensitivity_k: [5, 10, 20]
+  users_per_dataset_target: 100
+  candidate_set_size: 50
+  max_history_items: 20
+  main_repetitions: 3
+  stochasticity_subset_fraction: 0.10
+  stochasticity_repetitions: 10
+
+tracks:
+  personality_grounded:
+    datasets:
+      - personality2018
+      - music_master_bfi2
+      - reasoner
+  counterfactual_generalization:
+    datasets:
+      - movielens_1m
+      - lastfm
+      - mind
+
+conditions:
+  - id: C0
+    name: preference_only
+    demographics: unspecified
+    personality: unspecified
+
+  - id: C1
+    name: observed_demographic
+    demographics: observed_if_available
+    personality: unspecified
+
+  - id: C2
+    name: counterfactual_demographic
+    demographics: paired_counterfactual
+    personality: unspecified
+
+  - id: C3
+    name: true_personality
+    demographics: unspecified
+    personality: measured_ocean
+
+  - id: C4
+    name: shuffled_personality
+    demographics: unspecified
+    personality: shuffled_from_other_user
+
+  - id: C5
+    name: one_trait_counterfactual
+    demographics: unspecified
+    personality: one_ocean_dimension_intervened
+
+  - id: C6
+    name: intersectional
+    demographics: observed_or_counterfactual
+    personality: measured_ocean
+
+metrics:
+  utility_primary:
+    - ndcg
+    - recall
+  utility_secondary:
+    - mrr
+  behavioral_shift:
+    - jaccard
+    - rbo
+  fairness:
+    - counterfactual_utility_gap
+    - group_utility_disparity
+    - counterfactual_exposure_gap
+    - invalid_output_disparity
+  personality:
+    - personality_value_added
+  legacy_sensitivity_only:
+    - pafs_original
+
+statistics:
+  confidence_level: 0.95
+  paired_bootstrap_samples: 10000
+  multiple_comparison_correction: holm
+  primary_unit: user
+  tests:
+    - paired_permutation
+    - wilcoxon_signed_rank
+  report_effect_sizes: true
+  mixed_effects_if_supported: true
+
+output_policy:
+  strict_json: true
+  require_exact_k_unique_ids: true
+  require_candidate_membership: true
+  max_format_repair_attempts: 1
+  keep_persistent_failures: true
+  never_silently_drop_failures: true
+
+analysis_policy:
+  lock_splits_before_api_calls: true
+  lock_prompts_before_main_run: true
+  lock_model_panel_before_main_run: true
+  no_manual_paper_numbers: true
+  generate_tables_from_results: true
+  generate_figures_from_results: true
