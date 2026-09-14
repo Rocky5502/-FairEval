@@ -102,6 +102,20 @@ def _render_demographic_context(
     return "User profile: " + "; ".join(pairs) + "."
 
 
+def _personality_measurement(instance: UserInstance) -> dict[str, str] | str:
+    instrument = instance.instance_metadata.get("personality_instrument")
+    score_view = instance.instance_metadata.get("personality_score_view")
+    raw_scale = instance.instance_metadata.get("personality_raw_scale")
+    if not instrument and not score_view and not raw_scale:
+        return "unspecified"
+    return {
+        "instrument": str(instrument or "unspecified"),
+        "score_view": str(score_view or "normalized_0_1"),
+        "raw_scale": str(raw_scale or "unspecified"),
+        "prompt_score_range": "0_to_1_higher_means_more_of_named_trait",
+    }
+
+
 def build_prompt_payload(
     instance: UserInstance,
     condition: PromptCondition,
@@ -115,8 +129,8 @@ def build_prompt_payload(
 
     Counterfactual pairs must reuse the same ``UserInstance``, template, cue form,
     and candidate-order seed. Thus user history, candidate set/order, task wording,
-    and output contract remain unchanged; only the explicitly intervened context
-    value may differ between paired conditions.
+    personality-measurement metadata, and output contract remain unchanged; only
+    the explicitly intervened context value may differ between paired conditions.
     """
     instance.validate()
     if k <= 0 or k > len(instance.candidates):
@@ -137,6 +151,7 @@ def build_prompt_payload(
         "dataset": instance.dataset,
         "preference_history": [_item_payload(x) for x in instance.history],
         "demographic_context": demographic_context,
+        "personality_measurement": _personality_measurement(instance),
         "personality_ocean": personality,
         "candidate_items": _candidate_payload(instance, candidate_order_seed),
         "output_contract": {
@@ -171,6 +186,7 @@ def build_ranking_prompt(
       * candidate-constrained output to make held-out utility measurable;
       * paired comparisons reuse an identical candidate-order seed;
       * demographic cue form is a named robustness factor, never a hidden edit;
+      * personality instrument/normalization metadata stays fixed within a user;
       * no model-generated rationale or chain-of-thought is requested;
       * fairness coaching appears only in a named mitigation mode.
     """
