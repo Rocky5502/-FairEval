@@ -1,0 +1,88 @@
+datasets:
+  personality2018:
+    track: personality_grounded
+    domain: movies
+    source: https://grouplens.org/datasets/personality-2018/
+    license: verify_upstream_readme_before_use
+    observed_fields:
+      - movie_interactions_or_ratings
+      - measured_personality
+    forbidden_inference:
+      - infer_protected_attributes_from_names_or_text
+    notes: Use the official GroupLens release and preserve raw psychometric scores.
+
+  music_master_bfi2:
+    track: personality_grounded
+    domain: music
+    source: https://figshare.com/articles/dataset/19678962
+    license: CC-BY-4.0
+    observed_fields:
+      - song_ratings
+      - BFI
+      - BFI_2_facets
+      - audio_features
+    notes: 279 participants and 745-song pool reported by the associated paper.
+
+  reasoner:
+    track: personality_grounded
+    domain: short_video
+    source: https://github.com/REASONER2023/reasoner2023.github.io
+    license: verify_upstream_before_use
+    observed_fields:
+      - interactions
+      - user_metadata
+      - video_metadata
+      - CBF_PI_15_responses
+    notes: bigfive.csv stores responses to a 15-item Big Five instrument.
+
+  movielens_1m:
+    track: counterfactual_generalization
+    domain: movies
+    source: https://grouplens.org/datasets/movielens/1m/
+    license: verify_upstream_readme_before_use
+    observed_fields:
+      - ratings
+      - user_profile_fields_from_release
+      - movie_metadata
+    notes: Pin the MovieLens 1M release; do not substitute ml-latest.
+
+  lastfm:
+    track: counterfactual_generalization
+    domain: music
+    candidate_releases:
+      - name: lastfm_1k
+        source: https://github.com/eifuentes/lastfm-dataset-1K
+        notes: Listening events plus profile fields including gender/age/country where present; non-commercial upstream terms.
+      - name: hetrec_lastfm_2k
+        source: https://grouplens.org/datasets/hetrec-2011/
+        notes: 1,892 users and 92,800 artist-listening records; profile-field availability differs.
+    freeze_one_release_before_pilot: true
+    license: verify_selected_release_before_use
+
+  mind:
+    track: counterfactual_generalization
+    domain: news
+    source: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-microsoft-news
+    license: Microsoft-Research-License-Terms
+    observed_fields:
+      - click_history
+      - logged_impressions
+      - news_text_and_categories
+    not_observed:
+      - demographics
+      - personality
+    notes: >-
+      Any demographic/personality manipulation on MIND is a synthetic stress test,
+      not an analysis of observed user identity.
+
+adapter_requirements:
+  - source_version
+  - download_date_utc
+  - source_checksum_if_available
+  - raw_schema
+  - observed_vs_derived_vs_counterfactual_fields
+  - filtering_counts
+  - missingness_by_field
+  - user_split_hash
+  - candidate_generation_hash
+  - license_note
