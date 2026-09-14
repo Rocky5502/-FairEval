@@ -1,9 +1,12 @@
 import math
 
+import pytest
+
 from faireval.metrics import (
     counterfactual_exposure_gap,
     counterfactual_utility_gap,
     discounted_exposure,
+    exposure_metadata_coverage,
     jaccard_at_k,
     mrr_at_k,
     ndcg_at_k,
@@ -43,3 +46,22 @@ def test_exposure_gap():
     gap = counterfactual_exposure_gap(left, right)
     assert 0.0 <= gap <= 1.0
     assert gap > 0.0
+
+
+def test_exposure_requires_complete_primary_metadata():
+    groups = {"a": "g1", "c": "g2"}
+    ranking = ["a", "b", "c"]
+    assert math.isclose(exposure_metadata_coverage(ranking, groups, 3), 2.0 / 3.0)
+    with pytest.raises(ValueError, match="complete top-k"):
+        discounted_exposure(ranking, groups, 3)
+
+
+def test_exploratory_partial_exposure_is_explicit_opt_in():
+    groups = {"a": "g1", "c": "g2"}
+    exposure = discounted_exposure(
+        ["a", "b", "c"],
+        groups,
+        3,
+        require_complete_metadata=False,
+    )
+    assert math.isclose(sum(exposure.values()), 1.0)
