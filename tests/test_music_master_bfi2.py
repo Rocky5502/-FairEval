@@ -8,21 +8,27 @@ from faireval.datasets.music_master_bfi2 import MusicMasterBFI2Adapter
 
 def _write_fixture(path: Path) -> None:
     rows = []
-    # Two users with stable BFI-2 domain scores and enough interactions for a
-    # small deterministic unit-test split. Song metadata is deliberately simple.
+    # Two users have overlapping but non-identical song sets, mimicking the
+    # sparse public matrix and guaranteeing a pool of unseen candidate negatives.
     profiles = {
         "u1": (4.0, 3.0, 2.0, 4.5, 2.5),
         "u2": (2.0, 4.0, 4.5, 3.0, 3.5),
     }
+    song_indices = {
+        "u1": range(0, 12),
+        "u2": range(6, 18),
+    }
     for user_id, profile in profiles.items():
-        for index in range(12):
+        for index in song_indices[user_id]:
             rows.append(
                 {
                     "user_id": user_id,
                     "song_id": f"s{index}",
                     "title": f"Song {index}",
                     "genre": "jazz" if index % 2 == 0 else "rock",
-                    "Q1": 5 if index in {2, 5, 8, 11} else (4 if index % 3 == 0 else 2),
+                    # Keep every held-out row relevant so the deterministic hash
+                    # split cannot accidentally produce a relevance-free test set.
+                    "Q1": 5,
                     "Q2": 4 if index % 2 == 0 else 2,
                     "Q3": 3 if index % 2 == 0 else 1,
                     "Openness": profile[0],
@@ -80,7 +86,7 @@ def test_music_master_builds_deterministic_personality_instances(tmp_path: Path)
     manifest = adapter.preprocessing_manifest()
     assert manifest["primary_rating"] == "Q1"
     assert manifest["users_loaded"] == 2
-    assert manifest["items_loaded"] == 12
+    assert manifest["items_loaded"] == 18
     assert manifest["semantic_item_fields_available"] == ["genre", "title"]
 
 
