@@ -10,6 +10,7 @@ from typing import Any
 from scipy.stats import spearmanr
 
 from .analysis import score_run_log
+from .local_run_audit import audit_local_run_log
 
 
 LOCAL_FAMILIES = {"qwen25_local", "phi35_local"}
@@ -40,12 +41,13 @@ def extract_whitebox_rows(
     plan_dir: Path,
     freeze_root: Path,
 ) -> list[dict[str, Any]]:
-    """Join audited local run rows to deterministic recommendation utility.
+    """Join seed-audited local run rows to deterministic recommendation utility.
 
     The internal score fields are retained as auxiliary diagnostics only. This
     function does not calibrate them, threshold them, or convert them into a
     confidence probability.
     """
+    audit_local_run_log(output_jsonl, plan_dir=plan_dir)
     scored = score_run_log(
         output_jsonl,
         plan_dir=plan_dir,
