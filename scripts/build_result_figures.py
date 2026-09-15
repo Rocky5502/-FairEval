@@ -36,6 +36,15 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _read_json_object(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path} must contain one JSON object")
+    return payload
+
+
 def _configure_pdf_fonts() -> None:
     mpl.rcParams.update(
         {
@@ -49,12 +58,7 @@ def _configure_pdf_fonts() -> None:
 
 
 def build_rq1_quadrant(rq1_pairs: Path, output: Path) -> None:
-    """Plot behavioral shift against preference-conditioned utility consequence.
-
-    X = 1 - RBO@K, computed only for repetitions where both matched conditions
-    produced valid rankings. Y = observed-demographic minus counterfactual nDCG.
-    The zero-utility line is descriptive; no post-hoc harm threshold is invented.
-    """
+    """Plot behavioral shift against preference-conditioned utility consequence."""
     rows = [
         row
         for row in _read_jsonl(rq1_pairs)
@@ -144,12 +148,7 @@ def build_rq2_forest(inference_jsonl: Path, output: Path) -> None:
 
 
 def build_rq3_variance(rq3_summary: Path, output: Path) -> None:
-    """Visualize one-factor-at-a-time reliability variation without pooling it away.
-
-    Each point is one dataset x model x condition summary. The plot deliberately
-    shows the distribution of within-user standard deviations instead of one
-    grand average that could hide domain/model-specific brittleness.
-    """
+    """Visualize one-factor-at-a-time reliability variation without pooling it away."""
     rows = [
         row
         for row in _read_jsonl(rq3_summary)
@@ -195,18 +194,111 @@ def build_rq3_variance(rq3_summary: Path, output: Path) -> None:
     plt.close(fig)
 
 
-def _require_future_artifact(path: Path | None, *, rq: str) -> None:
-    if path is None:
-        return
-    if not path.is_file():
-        raise FileNotFoundError(path)
-    rows = _read_jsonl(path)
-    if not rows:
-        raise ValueError(f"{rq} artifact is empty")
-    raise NotImplementedError(
-        f"{rq} result-figure schema is intentionally not guessed. Freeze the {rq} "
-        "analysis artifact contract first, then implement its renderer."
+def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
+    """Render the validation frontier and frozen test operating point for contextual PAIR.
+
+    The renderer consumes only ``faireval-rq4-pair-artifact-v1``. It cannot select
+    a hyperparameter point itself; the selected point must already be frozen by
+    the validation-only analyzer. Lower absolute CUG is better (y axis); higher
+    end-to-end identity-conditioned nDCG is better (x axis).
+    """
+    artifact = _read_json_object(rq4_artifact)
+    if artifact.get("schema_version") != "faireval-rq4-pair-artifact-v1":
+        raise ValueError("unsupported RQ4 artifact schema")
+    if artifact.get("selection_used_test_outcomes") is not False:
+        raise ValueError("RQ4 artifact indicates test outcomes influenced selection")
+    if artifact.get("per_model_or_dataset_tuning") is not False:
+        raise ValueError("RQ4 artifact indicates per-model/per-dataset tuning")
+
+    frontier = artifact.get("validation_frontier")
+    operating = artifact.get("operating_point")
+    test_summary = artifact.get("test_summary")
+    if not isinstance(frontier, list) or not frontier:
+        raise ValueError("RQ4 artifact has no validation frontier")
+    if not isinstance(operating, dict) or not isinstance(test_summary, dict):
+        raise ValueError("RQ4 artifact lacks frozen operating point/test summary")
+
+    utility_floor = float(operating.get("utility_floor_ratio", 0.95))
+    eligible = [
+        row
+        for row in frontier
+        if row.get("pair_abs_cug_ndcg_on_available") is not None
+        and float(row.get("utility_retention", 0.0)) >= utility_floor
+    ]
+    ineligible = [
+        row
+        for row in frontier
+        if row.get("pair_abs_cug_ndcg_on_available") is not None
+        and float(row.get("utility_retention", 0.0)) < utility_floor
+    ]
+    if not eligible:
+        raise ValueError("RQ4 artifact has no validation point satisfying the frozen utility floor")
+
+    _configure_pdf_fonts()
+    fig, ax = plt.subplots(figsize=(6.9, 4.25))
+    if ineligible:
+        ax.scatter(
+            [float(row["pair_identity_ndcg_mean_system"]) for row in ineligible],
+            [float(row["pair_abs_cug_ndcg_on_available"]) for row in ineligible],
+            marker="x",
+            alpha=0.45,
+            s=30,
+            label=f"Validation: below {utility_floor:.0%} utility floor",
+        )
+    ax.scatter(
+        [float(row["pair_identity_ndcg_mean_system"]) for row in eligible],
+        [float(row["pair_abs_cug_ndcg_on_available"]) for row in eligible],
+        marker="o",
+        alpha=0.65,
+        s=32,
+        label="Validation: eligible grid points",
     )
+
+    chosen_validation = operating.get("validation_summary")
+    if not isinstance(chosen_validation, dict):
+        raise ValueError("RQ4 operating point lacks validation summary")
+    ax.scatter(
+        [float(chosen_validation["pair_identity_ndcg_mean_system"])],
+        [float(chosen_validation["pair_abs_cug_ndcg_on_available"])],
+        marker="*",
+        s=120,
+        label="Frozen validation operating point",
+        zorder=4,
+    )
+
+    test_cug = test_summary.get("pair_abs_cug_ndcg_on_available")
+    if test_cug is None:
+        raise ValueError("RQ4 frozen test point has no available counterfactual pairs")
+    ax.scatter(
+        [float(test_summary["pair_identity_ndcg_mean_system"])],
+        [float(test_cug)],
+        marker="D",
+        s=52,
+        label="Held-out test result at frozen point",
+        zorder=5,
+    )
+
+    alpha = float(operating["alpha"])
+    lam = float(operating["lambda_instability"])
+    ax.set_xlabel("End-to-end identity-conditioned nDCG@10 (higher is better)")
+    ax.set_ylabel("Absolute CUG in nDCG@10 (lower is better)")
+    ax.set_title("RQ4: contextual PAIR utility-fairness frontier", loc="left", fontweight="bold")
+    ax.text(
+        0.99,
+        0.97,
+        f"Frozen on validation only: alpha={alpha:g}, lambda={lam:g}\n"
+        f"utility retention floor={utility_floor:.0%}; test never selects",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=7.2,
+    )
+    ax.grid(axis="both", linewidth=0.35, alpha=0.25)
+    ax.legend(frameon=False, fontsize=7.0, loc="best")
+    fig.tight_layout()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, bbox_inches="tight", pad_inches=0.04)
+    plt.close(fig)
 
 
 def main() -> int:
@@ -216,7 +308,7 @@ def main() -> int:
     parser.add_argument("--rq1-pairs", help="analysis/rq1_pairs.jsonl")
     parser.add_argument("--inference", help="analysis/inference.jsonl")
     parser.add_argument("--rq3-artifact", help="RQ3 variation summary JSONL")
-    parser.add_argument("--rq4-artifact", help="future frozen RQ4 mitigation artifact")
+    parser.add_argument("--rq4-artifact", help="RQ4 contextual PAIR artifact JSON")
     parser.add_argument("--output-dir", default="paper/figures")
     args = parser.parse_args()
 
@@ -234,12 +326,14 @@ def main() -> int:
         path = output_dir / "rq3_variance.pdf"
         build_rq3_variance(Path(args.rq3_artifact), path)
         built.append(str(path))
+    if args.rq4_artifact:
+        path = output_dir / "rq4_pareto.pdf"
+        build_rq4_pareto(Path(args.rq4_artifact), path)
+        built.append(str(path))
 
-    _require_future_artifact(None if args.rq4_artifact is None else Path(args.rq4_artifact), rq="RQ4")
-
-    if not built and not args.rq4_artifact:
+    if not built:
         raise ValueError("supply at least one analysis artifact")
-    print(json.dumps({"schema_version": "faireval-result-figures-v1", "built": built}, indent=2))
+    print(json.dumps({"schema_version": "faireval-result-figures-v2", "built": built}, indent=2))
     return 0
 
 
