@@ -58,6 +58,13 @@ def _stable_subset(
     return {user_id for _, user_id in sorted(scored)[: min(n, len(scored))]}
 
 
+def _primary_candidate_order_seed(dataset: str, user_id: str) -> int:
+    digest = hashlib.sha256(
+        f"faireval-primary-order|{dataset}|{user_id}".encode("utf-8")
+    ).digest()
+    return int.from_bytes(digest[:4], "big", signed=False)
+
+
 def _condition_dict(condition: PromptCondition) -> dict[str, Any]:
     personality = None
     if condition.personality is not None:
@@ -265,7 +272,7 @@ def plan_core_conditions(
 
 
 def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
-    """Load the six-family model panel including executable provider semantics."""
+    """Load the six-family hosted model panel including executable semantics."""
     config = yaml.safe_load(models_yaml.read_text(encoding="utf-8"))
     models = config.get("models") if isinstance(config, Mapping) else None
     if not isinstance(models, list):
@@ -301,7 +308,7 @@ def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
             }
         )
     if len(output) != 6:
-        raise ValueError(f"FairEval core panel requires exactly six enabled families, found {len(output)}")
+        raise ValueError(f"FairEval hosted core requires exactly six enabled families, found {len(output)}")
     return output
 
 
@@ -321,6 +328,7 @@ def expand_core_run_cells(
         raise ValueError("repetitions must be positive")
     rows: list[dict[str, Any]] = []
     for planned in conditions:
+        order_seed = _primary_candidate_order_seed(planned.dataset, planned.user_id)
         for model in model_panel:
             for repetition in range(repetitions):
                 row: dict[str, Any] = {
@@ -338,7 +346,7 @@ def expand_core_run_cells(
                     "template_id": template_id,
                     "prompt_mode": "audit",
                     "cue_id": cue_id,
-                    "candidate_order_seed": None,
+                    "candidate_order_seed": order_seed,
                     "k": int(k),
                     "repetition": int(repetition),
                     "temperature": float(temperature),
@@ -377,7 +385,7 @@ def compile_core_plan(
             demographic_robustness_subset_users=demographic_robustness_subset_users,
         )
         all_conditions.extend(conditions)
-        manifest_path = dataset_dir / "freeze_manifest.json"
+        manifest_path = dataset_dir / "manifest.json"
         dataset_manifests[dataset] = {
             "freeze_manifest_sha256": file_sha256(manifest_path),
             "n_frozen_users": len(instances),
