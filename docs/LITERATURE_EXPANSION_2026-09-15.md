@@ -7,7 +7,9 @@ This file records literature added after the main comparison-table audit. The go
 ### FairWork — SIGIR 2025
 **Yuhan Hu, Ziyu Lyu, Lu Bai, Lixin Cui.** *FairWork: A Generic Framework For Evaluating Fairness In LLM-Based Job Recommender System.* SIGIR 2025, pp. 3964–3968. DOI `10.1145/3726302.3730145`.
 
-Verified against the official SIGIR 2025 program/DOI metadata. FairWork evaluates sensitive-attribute effects in LLM job recommendation from both user and recruiter perspectives and uses an explicitly fairness-oriented evaluation workflow. It is strong evidence that domain-specific, stakeholder-aware LLM recommendation auditing is becoming important. It does **not** establish FairEval's measured-personality controls, repeated-generation protocol, or invalid-output accounting.
+Verified against the official SIGIR 2025 program/DOI metadata. FairWork evaluates sensitive-attribute effects in LLM job recommendation from both user and recruiter perspectives and uses an explicitly fairness-oriented evaluation workflow. Its framework perturbs sensitive attributes while keeping job/candidate evidence fixed, so paired/counterfactual evaluation is explicit. It is strong evidence that domain-specific, stakeholder-aware LLM recommendation auditing is becoming important. It does **not** establish FairEval's measured-personality controls, repeated-generation protocol, or invalid-output accounting.
+
+**Comparison-table coding:** `Fair=Y`, `Pref=P`, `Psy=—`, `Pair=Y`, `Prompt=—`, `Multi=P`, `Mit=—`, `Repeat=—`, `Invalid=—`. `Pref=P` is deliberately conservative because the available evidence establishes qualification/relevance-aware job matching and fairness metrics, not FairEval's held-out preference-conditioned recommendation-utility estimand. `Multi=P` records adjacent evidence of multiple LLM configurations without treating model breadth as the central evaluated contribution.
 
 **Use in FairEval:** related-work narrative and motivation for consequence/stakeholder-aware fairness. Do not code it as evidence for psychometric grounding.
 
