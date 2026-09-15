@@ -18,6 +18,7 @@ FAMILY_LABELS = {
     "qwen": "Qwen",
     "meta": "Llama",
 }
+FACTOR_ORDER = ("prompt", "cue", "candidate_order", "cutoff", "stochasticity")
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -142,6 +143,58 @@ def build_rq2_forest(inference_jsonl: Path, output: Path) -> None:
     plt.close(fig)
 
 
+def build_rq3_variance(rq3_summary: Path, output: Path) -> None:
+    """Visualize one-factor-at-a-time reliability variation without pooling it away.
+
+    Each point is one dataset x model x condition summary. The plot deliberately
+    shows the distribution of within-user standard deviations instead of one
+    grand average that could hide domain/model-specific brittleness.
+    """
+    rows = [
+        row
+        for row in _read_jsonl(rq3_summary)
+        if row.get("schema_version") == "faireval-rq3-variation-summary-v1"
+        and row.get("metric") == "ndcg"
+        and str(row.get("factor")) in FACTOR_ORDER
+    ]
+    if not rows:
+        raise ValueError("RQ3 summary contains no nDCG reliability rows")
+
+    _configure_pdf_fonts()
+    fig, ax = plt.subplots(figsize=(7.0, 4.2))
+    family_marker = dict(zip(FAMILY_ORDER, ("o", "s", "^", "D", "P", "X"), strict=True))
+    factor_x = {factor: idx for idx, factor in enumerate(FACTOR_ORDER)}
+    offsets = {family: (idx - 2.5) * 0.035 for idx, family in enumerate(FAMILY_ORDER)}
+
+    for family in FAMILY_ORDER:
+        family_rows = [row for row in rows if str(row.get("model_family")) == family]
+        if not family_rows:
+            continue
+        x = [factor_x[str(row["factor"])] + offsets[family] for row in family_rows]
+        y = [float(row["mean_within_user_sd"]) for row in family_rows]
+        ax.scatter(
+            x,
+            y,
+            marker=family_marker[family],
+            alpha=0.62,
+            s=26,
+            label=FAMILY_LABELS[family],
+        )
+
+    ax.set_xticks(
+        list(range(len(FACTOR_ORDER))),
+        ["Prompt", "Cue", "Candidate\norder", "K", "Generation"],
+    )
+    ax.set_ylabel("Mean within-user SD of nDCG@10")
+    ax.set_title("RQ3: reliability under one-factor-at-a-time perturbations", loc="left", fontweight="bold")
+    ax.grid(axis="y", linewidth=0.35, alpha=0.25)
+    ax.legend(frameon=False, ncol=3, fontsize=7.2, loc="upper left")
+    fig.tight_layout()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, bbox_inches="tight", pad_inches=0.04)
+    plt.close(fig)
+
+
 def _require_future_artifact(path: Path | None, *, rq: str) -> None:
     if path is None:
         return
@@ -162,7 +215,7 @@ def main() -> int:
     )
     parser.add_argument("--rq1-pairs", help="analysis/rq1_pairs.jsonl")
     parser.add_argument("--inference", help="analysis/inference.jsonl")
-    parser.add_argument("--rq3-artifact", help="future frozen RQ3 robustness artifact")
+    parser.add_argument("--rq3-artifact", help="RQ3 variation summary JSONL")
     parser.add_argument("--rq4-artifact", help="future frozen RQ4 mitigation artifact")
     parser.add_argument("--output-dir", default="paper/figures")
     args = parser.parse_args()
@@ -177,11 +230,14 @@ def main() -> int:
         path = output_dir / "rq2_personality_forest.pdf"
         build_rq2_forest(Path(args.inference), path)
         built.append(str(path))
+    if args.rq3_artifact:
+        path = output_dir / "rq3_variance.pdf"
+        build_rq3_variance(Path(args.rq3_artifact), path)
+        built.append(str(path))
 
-    _require_future_artifact(None if args.rq3_artifact is None else Path(args.rq3_artifact), rq="RQ3")
     _require_future_artifact(None if args.rq4_artifact is None else Path(args.rq4_artifact), rq="RQ4")
 
-    if not built and not args.rq3_artifact and not args.rq4_artifact:
+    if not built and not args.rq4_artifact:
         raise ValueError("supply at least one analysis artifact")
     print(json.dumps({"schema_version": "faireval-result-figures-v1", "built": built}, indent=2))
     return 0
