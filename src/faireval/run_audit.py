@@ -17,9 +17,12 @@ _REQUIRED_RUN_FIELDS = (
     "dataset",
     "user_id",
     "condition_id",
+    "condition_name",
     "prompt_template_id",
     "prompt_mode",
     "cue_id",
+    "candidate_order_seed",
+    "k",
     "repetition",
     "provider",
     "model_family",
@@ -81,16 +84,20 @@ def _check_plan_alignment(
         "dataset": planned.get("dataset"),
         "user_id": planned.get("user_id"),
         "condition_id": condition.get("condition_id"),
+        "condition_name": condition.get("condition_name"),
         "model_family": planned.get("model_family"),
         "requested_model_id": planned.get("model_id"),
         "prompt_template_id": planned.get("template_id"),
         "prompt_mode": planned.get("prompt_mode"),
         "cue_id": planned.get("cue_id"),
+        "candidate_order_seed": planned.get("candidate_order_seed"),
+        "k": planned.get("k"),
         "repetition": planned.get("repetition"),
         "temperature_requested": planned.get("temperature"),
         "top_p_requested": planned.get("top_p"),
         "max_output_tokens": planned.get("max_output_tokens"),
         "reasoning_or_thinking_setting": planned.get("reasoning_or_thinking_setting"),
+        "output_token_parameter": planned.get("output_token_parameter"),
         "sampling_policy_planned": planned.get("sampling_policy"),
     }
     for run_field, expected in comparisons.items():
@@ -118,7 +125,8 @@ def audit_run_log(
 
     This is intentionally a pre-analysis gate. It validates cryptographic response
     hashes, immutable planned-cell linkage, requested generation settings, provider
-    application metadata, and final ranking structure before any aggregation.
+    application metadata, ranking cutoff/order semantics, and final ranking
+    structure before any aggregation.
     """
     rows = _load_rows(output_jsonl)
 
@@ -153,6 +161,9 @@ def audit_run_log(
         if _sha256(str(row["raw_response"])) != row["response_sha256"]:
             raise ValueError(f"line {line_no}: raw response SHA-256 mismatch")
 
+        if not isinstance(row["k"], int) or int(row["k"]) <= 0:
+            raise ValueError(f"line {line_no}: k must be a positive integer")
+
         code_sha = row["code_commit_sha"]
         if not isinstance(code_sha, str) or not code_sha.strip():
             raise ValueError(f"line {line_no}: code_commit_sha is required")
@@ -180,8 +191,12 @@ def audit_run_log(
             if not isinstance(ranking, Sequence) or isinstance(ranking, (str, bytes)):
                 raise ValueError(f"line {line_no}: valid row must contain a ranking list")
             values = [str(value) for value in ranking]
-            if not values or len(values) != len(set(values)):
-                raise ValueError(f"line {line_no}: valid ranking must be nonempty and unique")
+            if len(values) != int(row["k"]):
+                raise ValueError(
+                    f"line {line_no}: valid ranking length {len(values)} does not equal k={row['k']}"
+                )
+            if len(values) != len(set(values)):
+                raise ValueError(f"line {line_no}: valid ranking must contain unique IDs")
         else:
             invalid_count += 1
 
@@ -198,7 +213,7 @@ def audit_run_log(
         )
 
     return {
-        "schema_version": "faireval-run-audit-v1",
+        "schema_version": "faireval-run-audit-v2",
         "rows": len(rows),
         "unique_planned_cells": len(seen_cells),
         "invalid_outputs": invalid_count,
