@@ -1,6 +1,28 @@
 import pytest
 
-from faireval.rq4_analysis import select_operating_point
+from faireval.rq4_analysis import _validation_user_keys, select_operating_point
+
+
+def test_validation_split_is_exact_per_dataset_and_user_level():
+    triplets = []
+    for dataset in ("movielens_1m", "lastfm_1k"):
+        for user_index in range(10):
+            user_id = f"u{user_index:02d}"
+            for repetition in range(3):
+                triplets.append(
+                    {
+                        "observed": {
+                            "dataset": dataset,
+                            "user_id": user_id,
+                            "repetition": repetition,
+                        }
+                    }
+                )
+    selected = _validation_user_keys(triplets, seed=2027, fraction=0.20)
+    assert len(selected) == 4
+    assert sum(dataset == "movielens_1m" for dataset, _ in selected) == 2
+    assert sum(dataset == "lastfm_1k" for dataset, _ in selected) == 2
+    assert selected == _validation_user_keys(triplets, seed=2027, fraction=0.20)
 
 
 def test_select_operating_point_respects_utility_floor_and_minimizes_gap():
