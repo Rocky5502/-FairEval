@@ -23,19 +23,52 @@ def _request(model_id: str, reasoning: str) -> GenerationRequest:
 def test_openai_compatible_factory_freezes_reasoning_controls(monkeypatch):
     openai = build_provider("openai")
     assert openai.extra_request_fields == {"reasoning_effort": "none"}
+    assert openai.output_token_parameter == "max_completion_tokens"
 
     deepseek = build_provider("deepseek")
     assert deepseek.extra_body == {"thinking": {"type": "disabled"}}
+    assert deepseek.output_token_parameter == "max_tokens"
 
     monkeypatch.setenv("QWEN_BASE_URL", "https://example.invalid/compatible-mode/v1")
     qwen = build_provider("qwen")
     assert qwen.extra_body == {"enable_thinking": False}
+    assert qwen.output_token_parameter == "max_tokens"
 
     monkeypatch.setenv("LLAMA_BASE_URL", "https://example.invalid/v1")
     monkeypatch.setenv("LLAMA_PROVIDER_NAME", "frozen_test_host")
     meta = build_provider("meta")
     assert meta.provider_name == "frozen_test_host"
     assert meta.base_url == "https://example.invalid/v1"
+    assert meta.output_token_parameter == "max_tokens"
+
+
+def test_openai_terra_uses_max_completion_tokens(monkeypatch):
+    captured = {}
+
+    def create(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='{"ranked_item_ids":["x"]}'))],
+            model="gpt-5.6-terra",
+            id="chatcmpl_test",
+            created=1,
+            usage=None,
+        )
+
+    fake_openai = types.ModuleType("openai")
+    fake_openai.OpenAI = lambda **kwargs: SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+    )
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    response = build_provider("openai").generate(_request("gpt-5.6-terra", "none"))
+
+    assert captured["max_completion_tokens"] == 64
+    assert "max_tokens" not in captured
+    assert captured["reasoning_effort"] == "none"
+    assert captured["response_format"] == {"type": "json_object"}
+    assert response.provider_metadata["output_token_parameter"] == "max_completion_tokens"
 
 
 def test_claude_sonnet5_disables_thinking_and_omits_sampling(monkeypatch):
