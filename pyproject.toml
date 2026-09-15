@@ -8,10 +8,10 @@ version = "0.2.0.dev0"
 description = "Preference-conditioned fairness evaluation for LLM-based recommendation"
 requires-python = ">=3.10"
 dependencies = [
-  "numpy>=1.26",
-  "pandas>=2.1",
-  "openpyxl>=3.1",
-  "PyYAML>=6.0",
+  "numpy>=1.26,<3",
+  "pandas>=2.1,<4",
+  "openpyxl>=3.1,<4",
+  "PyYAML>=6.0,<7",
 ]
 
 [project.scripts]
@@ -19,18 +19,18 @@ faireval = "faireval.cli:main"
 
 [project.optional-dependencies]
 analysis = [
-  "scipy>=1.11",
-  "statsmodels>=0.14",
-  "matplotlib>=3.8",
+  "scipy>=1.11,<2",
+  "statsmodels>=0.14,<1",
+  "matplotlib>=3.8,<4",
 ]
 dev = [
-  "pytest>=8.0",
-  "ruff>=0.6",
+  "pytest>=8.0,<9",
+  "ruff>=0.6,<1",
 ]
 providers = [
-  "openai>=1.0",
-  "anthropic>=0.40",
-  "google-genai>=1.0",
+  "openai==3.13.0",
+  "anthropic==1.5.0",
+  "google-genai==2.23.0",
 ]
 
 [tool.setuptools.packages.find]
