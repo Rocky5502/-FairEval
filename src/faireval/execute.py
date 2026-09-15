@@ -187,7 +187,8 @@ def execute_plan(
     if at least one pending cell needs that family. A cell counts as completed
     after ``run_one`` has persisted its row, even if the model output is invalid;
     invalidity is an experimental outcome and should not be silently regenerated
-    until it becomes valid.
+    until it becomes valid. Core hosted plans omit ``seed``; local open-weight
+    plans may freeze one and the executor forwards it exactly.
     """
     if not code_commit_sha.strip():
         raise ValueError("code_commit_sha is required for planned execution")
@@ -239,6 +240,7 @@ def execute_plan(
             raise ValueError(
                 f"cell {row['cell_id']} is missing frozen reasoning_or_thinking_setting"
             )
+        planned_seed = None if row.get("seed") is None else int(row["seed"])
 
         run_one(
             instance=instance_index[key],
@@ -259,7 +261,7 @@ def execute_plan(
                 if row.get("candidate_order_seed") is None
                 else int(row["candidate_order_seed"])
             ),
-            seed=None,
+            seed=planned_seed,
             reasoning_or_thinking_setting=reasoning_setting,
             code_commit_sha=code_commit_sha,
             planned_cell_id=str(row["cell_id"]),
