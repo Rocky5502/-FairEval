@@ -41,6 +41,12 @@ ENDPOINT_ENV_VARS = (
     "LLAMA_PROVIDER_NAME",
 )
 
+VALID_OUTPUT_TOKEN_PARAMETERS = {
+    "max_tokens",
+    "max_completion_tokens",
+    "max_output_tokens",
+}
+
 
 def _version(distribution: str) -> str | None:
     try:
@@ -77,14 +83,20 @@ def main() -> int:
         model_id = str(row.get("model_id", "")).strip()
         reasoning = str(row.get("reasoning_or_thinking_setting", "")).strip()
         sampling = str(row.get("sampling_policy", "")).strip()
-        if not all((family, model_id, reasoning, sampling)):
+        token_parameter = str(row.get("output_token_parameter", "")).strip()
+        if not all((family, model_id, reasoning, sampling, token_parameter)):
             model_errors.append(f"incomplete model policy for family={family or '<missing>'}")
+        if token_parameter and token_parameter not in VALID_OUTPUT_TOKEN_PARAMETERS:
+            model_errors.append(
+                f"unrecognized output_token_parameter for {family}: {token_parameter}"
+            )
         model_rows.append(
             {
                 "family": family,
                 "model_id": model_id,
                 "reasoning_or_thinking_setting": reasoning,
                 "sampling_policy": sampling,
+                "output_token_parameter": token_parameter,
             }
         )
 
@@ -104,7 +116,7 @@ def main() -> int:
         blockers.append("LLAMA_PROVIDER_NAME is not frozen")
 
     report = {
-        "schema_version": "faireval-environment-preflight-v1",
+        "schema_version": "faireval-environment-preflight-v2",
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "packages": package_versions,
