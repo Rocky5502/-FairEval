@@ -25,6 +25,17 @@ class PairedPermutationResult:
     permutations: int
 
 
+@dataclass(frozen=True)
+class WilcoxonSensitivityResult:
+    n: int
+    n_nonzero: int
+    statistic: float
+    p_value: float
+    alternative: str
+    rank_biserial: float
+    method: str
+
+
 def _paired_arrays(left: Sequence[float], right: Sequence[float]) -> tuple[np.ndarray, np.ndarray]:
     a = np.asarray(left, dtype=float)
     b = np.asarray(right, dtype=float)
@@ -164,6 +175,64 @@ def paired_permutation_test(
         alternative=alternative,
         method="monte_carlo_sign_flip",
         permutations=samples,
+    )
+
+
+def paired_wilcoxon_sensitivity(
+    left: Sequence[float],
+    right: Sequence[float],
+    *,
+    alternative: Literal["two-sided", "greater", "less"] = "two-sided",
+) -> WilcoxonSensitivityResult:
+    """Preregistered Wilcoxon signed-rank sensitivity analysis.
+
+    The paired permutation test remains the primary inferential test. This helper
+    provides the explicitly preregistered non-parametric sensitivity analysis and
+    a matched-pairs rank-biserial effect size. Zero differences are excluded from
+    signed ranks, matching the standard ``wilcox`` zero method.
+    """
+    if alternative not in {"two-sided", "greater", "less"}:
+        raise ValueError("alternative must be 'two-sided', 'greater', or 'less'")
+    a, b = _paired_arrays(left, right)
+    diff = a - b
+    nonzero = diff[diff != 0.0]
+    if len(nonzero) == 0:
+        return WilcoxonSensitivityResult(
+            n=len(diff),
+            n_nonzero=0,
+            statistic=0.0,
+            p_value=1.0,
+            alternative=alternative,
+            rank_biserial=0.0,
+            method="all_zero",
+        )
+
+    try:
+        from scipy.stats import rankdata, wilcoxon
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError("Install the 'analysis' optional dependency for Wilcoxon tests") from exc
+
+    ranks = rankdata(np.abs(nonzero), method="average")
+    positive = float(ranks[nonzero > 0.0].sum())
+    negative = float(ranks[nonzero < 0.0].sum())
+    denominator = positive + negative
+    rank_biserial = 0.0 if denominator == 0.0 else (positive - negative) / denominator
+
+    result = wilcoxon(
+        diff,
+        zero_method="wilcox",
+        correction=False,
+        alternative=alternative,
+        method="auto",
+    )
+    return WilcoxonSensitivityResult(
+        n=len(diff),
+        n_nonzero=len(nonzero),
+        statistic=float(result.statistic),
+        p_value=float(result.pvalue),
+        alternative=alternative,
+        rank_biserial=float(rank_biserial),
+        method="scipy_wilcoxon_signed_rank",
     )
 
 
