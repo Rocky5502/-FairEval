@@ -33,23 +33,23 @@ A changed list is therefore **not automatically labeled unfair**. List similarit
 ### Demographic/generalization track
 
 - **MovieLens-1M** — movie interactions + dataset-supplied demographic fields
-- **Last.fm-1K** (or a pre-frozen compatible Last.fm release) — music histories + profile fields where available/licensed
-- **MIND** — news click histories + logged impression candidates; no observed-demographic fairness claim is made from MIND
+- **Last.fm-1K** — music histories + dataset-native profile fields where available/licensed
+- **MIND** — news click histories + logged impression candidates; the frozen core plan is preference-only and makes no observed-demographic claim from MIND
 
-Every adapter records which fields are observed, derived, or synthetically counterfactualized. Protected attributes are never inferred from names, text, or embeddings.
+Every adapter records which fields are observed, derived, or synthetically counterfactualized. Protected attributes are never inferred from names, text, ZIP codes, or embeddings.
 
 ## Six LLM families
 
 The pre-run model manifest uses one frozen representative from each family:
 
-- OpenAI — `gpt-5.6-terra`, reasoning `none`
-- Anthropic — `claude-sonnet-5`, thinking disabled
-- Google — `gemini-3.8-flash`, thinking `low`
-- DeepSeek — V4.1 Flash through API model `deepseek-flash`, thinking disabled
-- Alibaba Qwen — `qwen3.8-max-0902`, thinking disabled
-- Meta — `meta-llama/Llama-4-Maverick-17B-128E-Instruct`; serving provider/revision still must be frozen before pilot
+- OpenAI — GPT-5.6 Terra
+- Anthropic — Claude Sonnet 5
+- Google — Gemini 3.8 Flash
+- DeepSeek — V4.1 Flash (`deepseek-flash`)
+- Alibaba — Qwen3.8-Max-0902
+- Meta — Llama 4 Maverick checkpoint; exact serving provider still must be frozen before the pilot
 
-Exact callable IDs, provider revisions/regions, request timestamps, requested and applied decoding controls, prompt hashes, response hashes, and code commit SHA are stored in run manifests. Moving provider aliases must not silently substitute a different backend during the main experiment. FairEval requests low-variance sampling where supported but does **not** claim exact cross-provider decoding equivalence.
+`configs/models.yaml` records each family’s reasoning/thinking policy, sampling policy, and provider-specific output-token request field. Current OpenAI Chat Completions uses `max_completion_tokens`; Anthropic/DeepSeek/Qwen and the provisional OpenAI-compatible Llama host use `max_tokens`; Gemini Interactions uses `max_output_tokens`. Provider adapters log what was actually applied.
 
 ## Prompt design
 
@@ -71,11 +71,11 @@ Executable tests verify that a pure demographic counterfactual changes only the 
 
 The study deliberately avoids a wasteful full Cartesian product. `configs/study_design.yaml` defines:
 
-- **RQ1:** observed-demographic datasets and paired demographic interventions;
+- **RQ1:** MovieLens-1M and Last.fm-1K with paired observed/counterfactual demographic interventions;
 - **RQ2:** the three measured-personality datasets with true, shuffled, and one-trait controls;
 - **RQ3:** pre-registered prompt/cue/order/stochasticity robustness subsets across all six families/datasets;
 - **RQ4:** demographic datasets with instruction baselines and PAIR re-ranking;
-- **MIND:** candidate-constrained domain/reliability evaluation, with any identity condition labeled only as a synthetic stress test.
+- **MIND:** candidate-constrained domain/reliability evaluation in the frozen core plan; any future synthetic identity stress test requires a separately versioned plan.
 
 The sample-size plan uses a variance/invalidity pilot, then freezes confirmatory N without using the pilot treatment-effect mean to chase significance.
 
@@ -83,11 +83,41 @@ The sample-size plan uses a variance/invalidity pilot, then freezes confirmatory
 
 **Recommendation utility:** nDCG@10, Recall@10; MRR as secondary.
 
-**Counterfactual fairness/consequence:** signed and absolute Counterfactual Utility Gap (CUG), Group Utility Disparity when justified, Counterfactual Exposure Gap only when complete auditable top-K group metadata exists, and Invalid Output Disparity.
+**Counterfactual fairness/consequence:** signed and absolute Counterfactual Utility Gap (CUG), Group Utility Disparity when justified, Counterfactual Exposure Gap only when complete auditable item-group metadata exists, and Invalid Output Disparity.
 
-**Personality:** Personality Value Added (PVA), comparing the true measured profile with a deterministic whole-profile derangement, plus pre-registered one-trait observed-value interventions.
+**Personality:** Personality Value Added (PVA), comparing the true measured profile with a matched shuffled-profile control, plus pre-registered one-trait interventions.
 
 **Sensitivity only:** RBO/Jaccard and the old PAFS-style quantity are diagnostics, not primary fairness definitions.
+
+Persistent invalid responses remain outcomes. The frozen primary end-to-end utility policy assigns zero nDCG/Recall/MRR after the one allowed format-only repair fails; valid-only utility is reported only as a sensitivity analysis, while invalid-output disparity is reported separately. This prevents complete-case filtering from making unreliable models look artificially strong.
+
+## Statistical analysis
+
+`configs/analysis.yaml` freezes the inferential policy before results:
+
+- repeated generations are averaged within user-condition before inference;
+- paired permutation is the primary test;
+- user-level paired bootstrap provides confidence intervals;
+- Wilcoxon signed-rank is a sensitivity analysis;
+- matched rank-biserial is reported as an effect size;
+- Holm correction is applied within pre-registered `RQ × metric × contrast` families;
+- effect magnitude and uncertainty are reported alongside p-values.
+
+The raw-to-analysis path is executable rather than manual:
+
+```bash
+python scripts/audit_run_log.py \
+  --output-jsonl results/raw/core-v1.jsonl \
+  --plan-dir results/plans/core-v1
+
+python scripts/analyze_core.py \
+  --output-jsonl results/raw/core-v1.jsonl \
+  --plan-dir results/plans/core-v1 \
+  --freeze-root data/frozen \
+  --output-dir results/analysis/core-v1
+```
+
+The analysis builder audits response hashes and plan linkage, scores frozen held-out relevance, aggregates repetitions at the user level, builds RQ1/RQ2 paired estimands, executes the frozen inference stack, and writes hashes for every generated analysis artifact. Paper numbers are not hand-entered.
 
 ## Mitigation
 
@@ -99,125 +129,53 @@ RQ4 compares the unmitigated audit condition with:
 
 Success requires reducing harmful utility/exposure gaps **without merely forcing rankings to look similar**. Utility--fairness Pareto frontiers are reported instead of selecting a post-hoc operating point.
 
+## Professional paper assets
+
+The repository contains reproducible vector-PDF methodology figures generated by `scripts/build_paper_figures.py`:
+
+- `paper/figures/faireval_framework.pdf`
+- `paper/figures/faireval_conditions.pdf`
+- `paper/figures/faireval_evaluation_pipeline.pdf`
+
+CI regenerates and validates these PDF assets. The 16-row related-work design-coverage table is backed by `docs/LITERATURE_COMPARISON_AUDIT.md`; red checks indicate explicit documented design coverage, gray markers indicate partial/adjacent coverage, and black crosses mean the criterion was not established in the audited source. The table is not an empirical superiority claim.
+
 ## Repository layout
 
 ```text
-configs/          dataset/model/experiment/study manifests
-scripts/          environment, manuscript, and vector-figure preflight/build tools
-src/faireval/     benchmark, adapters, providers, metrics, prompts, runner, mitigation
-tests/            metric, prompt-invariant, runner, adapter, provider, and statistics tests
-docs/             blueprint, literature audit, reviewer traceability, novelty and submission guards
-paper/            anonymous LNCS source, audited comparison table, and vector PDF figures
+configs/          dataset/model/prompt/counterfactual/study/analysis manifests
+src/faireval/     benchmark, adapters, providers, metrics, prompts, runner, audit, analysis, mitigation
+tests/            metrics, prompt invariants, providers, config contracts, runner, analysis, statistics
+scripts/          preflight, figure build, environment provenance, run audit, analysis build
+docs/             blueprint, runbook, literature audit, novelty/reviewer/submission guards
+paper/            anonymous LNCS manuscript scaffold and vector-PDF figures
 results/          generated outputs only; large/raw/sensitive outputs are not committed
 ```
 
-## Reproducible setup
+## Reproducibility path
 
-Python **3.10+** is required; CI currently exercises Python 3.11.
+See `docs/LOCAL_RUNBOOK.md` for Windows PowerShell and WSL commands. The intended order is:
 
-### Option A — standard requirements file
+1. install from `requirements.txt` and editable package;
+2. configure API credentials only in the process environment;
+3. run zero-call config/environment/test/paper preflight;
+4. freeze all six deterministic dataset instances and hashes;
+5. compile the immutable run plan;
+6. inspect `execute-plan` in dry-run mode;
+7. execute only with an exact code commit SHA;
+8. audit the completed raw log against the immutable plan;
+9. generate analysis artifacts from frozen results;
+10. populate paper tables/figures only from those generated artifacts.
 
-```bash
-python -m venv .venv
-# Windows PowerShell: .\.venv\Scripts\Activate.ps1
-# Linux/macOS: source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
+`write_environment_manifest.py` records package versions, config hashes, credential-presence booleans and endpoint fingerprints without writing raw secrets.
 
-`requirements.txt` pins provider SDK versions because provider request/response schemas are part of the experimental apparatus. Core scientific packages use bounded compatible ranges. At every pilot/confirmatory freeze, save the exact environment with `python -m pip freeze` alongside the run manifest.
-
-### Option B — editable research install
-
-```bash
-python -m pip install -e '.[analysis,providers,dev]'
-```
-
-### Provider credentials
-
-```bash
-cp .env.example .env
-```
-
-Never commit `.env` or real API keys. Qwen requires a region-compatible `QWEN_BASE_URL`; Llama requires a frozen provider name/base URL before the pilot. `scripts/check_environment.py` validates the preflight state without making model calls.
-
-```bash
-python scripts/check_environment.py
-```
-
-## Frozen-data and execution workflow
-
-The CLI is intentionally dry-run first.
-
-```bash
-faireval dataset-card --dataset movielens_1m
-faireval prepare --dataset movielens_1m --raw-dir <RAW> --output-dir frozen/movielens_1m
-faireval verify-freeze --output-dir frozen/movielens_1m
-
-# After all six datasets are frozen:
-faireval plan-core --freeze-root frozen --output-dir plans/core
-
-# Inspect pending cells: zero API calls by default.
-faireval execute-plan \
-  --plan-dir plans/core \
-  --freeze-root frozen \
-  --output-jsonl results/core.jsonl
-
-# Actual execution requires explicit opt-in and the exact code commit SHA.
-faireval execute-plan \
-  --plan-dir plans/core \
-  --freeze-root frozen \
-  --output-jsonl results/core.jsonl \
-  --code-commit-sha <GIT_SHA> \
-  --execute
-```
-
-Invalid model responses count as experimental outcomes after persistence; execution does not silently retry a cell until it becomes valid.
-
-## Paper and vector figures
-
-All framework assets are regenerated from source rather than edited manually:
-
-```bash
-python scripts/build_paper_figures.py
-python scripts/check_paper_source.py
-```
-
-Generated vector PDFs:
-
-```text
-paper/figures/faireval_framework.pdf
-paper/figures/faireval_conditions.pdf
-paper/figures/faireval_evaluation_pipeline.pdf
-```
-
-The manuscript imports `paper/related_work_table.tex`, whose 16-row comparison matrix is backed by `docs/LITERATURE_COMPARISON_AUDIT.md`. A red check means explicitly documented coverage, a gray circle means partial/adjacent coverage, and a black cross means the feature was not established by the audited evidence; the symbols are **not** claims of empirical superiority.
-
-The repository intentionally does not vendor an unofficial/modified Springer LNCS class. See `paper/README.md` for the official-template compile step.
-
-## Integrity and reproducibility rules
+## Integrity rules
 
 - No empirical number is invented or hand-entered into the final paper.
 - Pilot and confirmatory outputs are labeled and separated.
 - Invalid generations are retained as observable behavior.
 - No prompt/model/dataset/K/hyperparameter is selected after viewing test outcomes and then presented as confirmatory.
 - Tables and figures are generated from frozen result artifacts and record input hashes + analysis commit.
-- Existing FairEval/author-publication overlap is documented and handled under ECIR double-blind rules.
-- Literature-comparison symbols are backed by an evidence ledger; ambiguous coverage stays partial rather than being upgraded to make FairEval look stronger.
-
-## Continuous integration
-
-The GitHub Actions workflow now checks:
-
-- unit tests;
-- critical Python lint failures;
-- deterministic regeneration of the three vector PDF figures;
-- PDF signatures/minimum-size sanity checks;
-- missing BibTeX citation keys;
-- missing LaTeX inputs/manuscript assets;
-- stale model-panel wording;
-- double-blind author placeholder; and
-- the result-integrity guard in the abstract.
+- Existing FairEval/publication overlap is documented; anonymous submission follows the ECIR double-blind policy.
 
 ## ECIR constraints
 
@@ -232,14 +190,13 @@ See `docs/ECIR2027_SUBMISSION_COMPLIANCE.md` before export.
 ## Current status
 
 - scientific redesign: implemented
-- four RQs + metrics + mitigation formulation: implemented
-- six dataset configurations/adapters: implemented, including Music Master/BFI-2
-- six model-family manifest/provider layer: implemented; final Llama hosting snapshot still must be frozen before pilot
+- four RQs + metrics + PAIR formulation: implemented
+- six dataset configurations/adapters: implemented
+- six-family model/provider layer: implemented; final Llama host still must be frozen before pilot
 - controlled prompt/cue/order machinery: implemented + unit-tested
-- immutable run planning/execution + resume guards: implemented
-- standard `requirements.txt` + environment preflight: implemented
-- academic framework/condition/evaluation vector PDFs + regeneration script: implemented
-- 15-prior-work + FairEval comparison matrix with source audit: implemented
-- manuscript citation/input/asset preflight: implemented
-- result values: intentionally **not populated** until experiments run
-- next execution milestone: validate raw dataset schemas/checksums, run the variance/invalidity pilot, freeze confirmatory N, then execute the locked matrix
+- immutable dataset/run-plan/execution provenance: implemented
+- raw-run provenance audit: implemented
+- RQ1/RQ2 scoring, pairing, bootstrap/permutation/Wilcoxon/Holm analysis pipeline: implemented
+- professional methodology PDF figures + audited 16-row comparison table: implemented
+- empirical result values: intentionally **not populated** until experiments run
+- next execution milestone: validate raw dataset schemas/checksums, freeze the Llama serving endpoint, run the variance/invalidity pilot, freeze confirmatory N, then execute the locked matrix
