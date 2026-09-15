@@ -49,3 +49,12 @@ jobs:
           done
       - name: Manuscript source preflight
         run: python scripts/check_paper_source.py
+      - name: Build anonymous Overleaf bundle
+        run: python scripts/build_overleaf_bundle.py --output dist/FairEval_ECIR2027_Overleaf.zip
+      - name: Upload Overleaf bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: FairEval-ECIR2027-Overleaf
+          path: dist/FairEval_ECIR2027_Overleaf.zip
+          if-no-files-found: error
+          retention-days: 14
