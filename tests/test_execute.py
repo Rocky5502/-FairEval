@@ -2,6 +2,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from faireval.conditions import preference_only
 from faireval.datasets.base import DatasetAdapter, DatasetCard
 from faireval.execute import execute_plan, load_and_verify_plan
@@ -48,6 +50,7 @@ class _OneUserAdapter(DatasetAdapter):
 class _FakeProvider(ProviderAdapter):
     family = "fake"
     provider_name = "fake_provider"
+    output_token_parameter = "max_tokens"
 
     def __init__(self):
         self.calls = 0
@@ -60,11 +63,21 @@ class _FakeProvider(ProviderAdapter):
             text=json.dumps({"ranked_item_ids": ["a", "b"]}),
             requested_model_id=request.model_id,
             resolved_model_version="fake-v1",
-            provider_metadata={"test": True},
+            provider_metadata={
+                "test": True,
+                "output_token_parameter": self.output_token_parameter,
+                "sampling_policy": "test_policy",
+                "sampling_controls_applied": True,
+                "reasoning_or_thinking_applied": request.reasoning_or_thinking_setting,
+            },
         )
 
     def supports_seed(self) -> bool:
         return False
+
+
+class _WrongTokenFieldProvider(_FakeProvider):
+    output_token_parameter = "max_completion_tokens"
 
 
 def _write_one_cell_plan(plan_dir: Path) -> dict:
@@ -83,6 +96,7 @@ def _write_one_cell_plan(plan_dir: Path) -> dict:
                 "model_id": "fake-model",
                 "reasoning_or_thinking_setting": "disabled",
                 "sampling_policy": "test_policy",
+                "output_token_parameter": "max_tokens",
             }
         ],
         repetitions=1,
@@ -107,7 +121,7 @@ def _write_one_cell_plan(plan_dir: Path) -> dict:
     return cells[0]
 
 
-def test_execute_plan_runs_once_then_resumes_without_duplicate(tmp_path: Path):
+def _freeze_one_user(tmp_path: Path) -> Path:
     freeze_root = tmp_path / "freeze"
     freeze_dataset(
         _OneUserAdapter(),
@@ -118,6 +132,11 @@ def test_execute_plan_runs_once_then_resumes_without_duplicate(tmp_path: Path):
         max_history_items=1,
         seed=1,
     )
+    return freeze_root
+
+
+def test_execute_plan_runs_once_then_resumes_without_duplicate(tmp_path: Path):
+    freeze_root = _freeze_one_user(tmp_path)
     plan_dir = tmp_path / "plan"
     planned = _write_one_cell_plan(plan_dir)
     output = tmp_path / "results.jsonl"
@@ -149,7 +168,27 @@ def test_execute_plan_runs_once_then_resumes_without_duplicate(tmp_path: Path):
     assert row["planned_cell_id"] == planned["cell_id"]
     assert row["code_commit_sha"] == "abc123"
     assert row["reasoning_or_thinking_setting"] == "disabled"
+    assert row["output_token_parameter"] == "max_tokens"
     assert row["final_valid"] is True
+
+
+def test_executor_rejects_provider_token_field_drift_before_call(tmp_path: Path):
+    freeze_root = _freeze_one_user(tmp_path)
+    plan_dir = tmp_path / "plan"
+    _write_one_cell_plan(plan_dir)
+    output = tmp_path / "results.jsonl"
+    provider = _WrongTokenFieldProvider()
+
+    with pytest.raises(ValueError, match="output-token field drift"):
+        execute_plan(
+            plan_dir=plan_dir,
+            freeze_root=freeze_root,
+            output_jsonl=output,
+            code_commit_sha="abc123",
+            provider_builder=lambda family: provider,
+        )
+    assert provider.calls == 0
+    assert not output.exists()
 
 
 def test_executor_rejects_tampered_plan(tmp_path: Path):
