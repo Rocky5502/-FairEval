@@ -1,3 +1,7 @@
+# High-level experiment contract. `configs/study_design.yaml` is the authoritative
+# statistical design; this file mirrors executable IDs used by the adapters,
+# prompt builder and frozen core planner.
+
 study:
   name: faireval_ecir2027
   primary_k: 10
@@ -31,33 +35,44 @@ tracks:
     core_conditions: [C0, C3, C4]
     users_per_dataset: 100
     repetitions: 3
+    shuffled_profile_control:
+      method: deterministic_whole_profile_derangement
+      preserves_multivariate_distribution: true
+      preserves_trait_covariance: true
     one_trait_subset:
       condition: C5
       users_per_dataset: 30
       dimensions: [openness, conscientiousness, extraversion, agreeableness, neuroticism]
+      donor_policy: deterministic_distant_observed_value
+      fabricate_scale_extremes: false
       repetitions: 3
 
   demographic_counterfactual:
     datasets:
       - movielens_1m
-      - lastfm
+      - lastfm_1k
     core_conditions: [C0, C1, C2]
     users_per_dataset: 100
     repetitions: 3
-    primary_attributes: dataset_supported_and_pre_registered
+    primary_attributes:
+      movielens_1m: [gender]
+      lastfm_1k: [gender]
+    robustness_attributes:
+      movielens_1m: [age_group]
+      lastfm_1k: [age_group]
     intersectional_subset:
       condition: C6
-      enabled: true
-      users_per_dataset: 30
-      run_only_if_cell_support_is_adequate: true
+      enabled_in_core_plan: false
+      reason: not_generated_by_current_frozen_core_planner
 
-  synthetic_stress_test:
+  generalization_only:
     datasets:
       - mind
     users_per_dataset: 50
-    conditions: [C0, C2]
+    core_conditions: [C0]
     repetitions: 3
     observed_demographic_claims_allowed: false
+    synthetic_identity_in_core_plan: false
 
 conditions:
   - id: C0
@@ -83,17 +98,18 @@ conditions:
   - id: C4
     name: shuffled_personality
     demographics: unspecified
-    personality: shuffled_from_other_user
+    personality: deterministic_whole_profile_derangement
 
   - id: C5
     name: one_trait_counterfactual
     demographics: unspecified
-    personality: one_ocean_dimension_intervened
+    personality: one_observed_ocean_dimension_intervened
 
   - id: C6
-    name: intersectional
-    demographics: observed_or_counterfactual
-    personality: measured_ocean
+    name: intersectional_reserved
+    enabled_in_core_plan: false
+    demographics: reserved_for_separate_versioned_plan
+    personality: unspecified
 
 robustness:
   design: one_factor_at_a_time_on_frozen_subsets
@@ -108,7 +124,7 @@ robustness:
 
   demographic_cue:
     users_per_dataset: 20
-    datasets: [movielens_1m, lastfm]
+    datasets: [movielens_1m, lastfm_1k]
     representative_conditions: [C1, C2]
     cues: [structured_key_value, first_person_explicit, third_person_profile]
     repetitions: 1
@@ -132,15 +148,17 @@ robustness:
     datasets: all_six
     representative_conditions_per_dataset: 2
     repetitions: 10
-    temperature: 0.7
+    temperature_requested_where_supported: 0.7
+    provider_default_where_sampling_controls_deprecated: true
 
 rq4:
-  demographic_datasets: [movielens_1m, lastfm]
+  demographic_datasets: [movielens_1m, lastfm_1k]
   users_per_dataset: 50
   reuse_unmitigated_core_runs: true
   extra_api_modes: [identity_irrelevance]
   extra_repetitions: 3
   postprocessing_methods: [pair_reranker]
+  pair_minimum_identity_rankings: 2
   pair_hyperparameters_selected_on_validation_only: true
   report_pareto_frontier: true
   preserve_personality_value_check_reuses_rq2_runs: true
@@ -157,8 +175,12 @@ metrics:
   fairness:
     - counterfactual_utility_gap
     - group_utility_disparity
-    - counterfactual_exposure_gap
+    - counterfactual_exposure_gap_complete_metadata_only
     - invalid_output_disparity
+  exposure_metadata:
+    require_complete_top_k_for_primary: true
+    report_metadata_coverage: true
+    partial_metadata_analysis_is_exploratory: true
   personality:
     - personality_value_added
   robustness:
@@ -175,8 +197,8 @@ statistics:
   paired_bootstrap_samples: 10000
   multiple_comparison_correction: holm
   primary_unit: user
-  tests:
-    - paired_permutation
+  primary_test: paired_permutation
+  sensitivity_tests:
     - wilcoxon_signed_rank
   report_effect_sizes: true
   mixed_effects_if_supported: true
@@ -193,14 +215,35 @@ output_policy:
   request_explanations: false
   request_chain_of_thought: false
   max_format_repair_attempts: 1
+  format_repair_may_change_ranking: false
   keep_persistent_failures: true
   never_silently_drop_failures: true
+
+provider_policy:
+  requested_main_temperature: 0.2
+  requested_main_top_p: 1.0
+  exact_cross_provider_sampling_equivalence_claimed: false
+  lowest_supported_deliberation:
+    openai: none
+    anthropic: disabled
+    google: low
+    deepseek: disabled
+    qwen: disabled
+    meta: no_added_reasoning_wrapper
+  sampling_controls:
+    anthropic: provider_default_current_api
+    google: provider_default_current_api
+    openai: explicit_where_supported
+    deepseek: explicit_with_thinking_disabled
+    qwen: explicit_with_thinking_disabled
+    meta: provider_specific_freeze_required
 
 analysis_policy:
   lock_splits_before_api_calls: true
   lock_prompts_before_main_run: true
   lock_primary_prompt_before_main_run: true
   lock_model_panel_before_main_run: true
+  lock_provider_endpoints_before_main_run: true
   no_post_hoc_prompt_selection: true
   no_post_hoc_attribute_selection: true
   no_manual_paper_numbers: true
