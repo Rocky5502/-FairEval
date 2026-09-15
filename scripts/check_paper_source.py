@@ -7,7 +7,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAPER = ROOT / "paper"
 MAIN = PAPER / "main.tex"
-BIB = PAPER / "references.bib"
 
 
 def _bib_keys(text: str) -> set[str]:
@@ -31,22 +30,51 @@ def _input_targets(text: str) -> list[Path]:
     return targets
 
 
+def _bibliography_targets(text: str) -> list[Path]:
+    targets: list[Path] = []
+    for group in re.findall(r"\\bibliography\{([^}]+)\}", text):
+        for name in group.split(","):
+            name = name.strip()
+            if not name:
+                continue
+            candidate = PAPER / name
+            if candidate.suffix == "":
+                candidate = candidate.with_suffix(".bib")
+            targets.append(candidate)
+    return targets
+
+
 def main() -> int:
     main_text = MAIN.read_text(encoding="utf-8")
-    bib_text = BIB.read_text(encoding="utf-8")
 
-    missing_cites = sorted(_cite_keys(main_text) - _bib_keys(bib_text))
-    if missing_cites:
-        raise SystemExit(f"missing bibliography keys: {missing_cites}")
+    bib_targets = _bibliography_targets(main_text)
+    if not bib_targets:
+        raise SystemExit("main.tex declares no bibliography")
+    missing_bibs = [str(path.relative_to(ROOT)) for path in bib_targets if not path.is_file()]
+    if missing_bibs:
+        raise SystemExit(f"missing bibliography files: {missing_bibs}")
+    bib_keys: set[str] = set()
+    for path in bib_targets:
+        bib_keys.update(_bib_keys(path.read_text(encoding="utf-8")))
 
-    missing_inputs = [str(path.relative_to(ROOT)) for path in _input_targets(main_text) if not path.is_file()]
+    input_targets = _input_targets(main_text)
+    missing_inputs = [str(path.relative_to(ROOT)) for path in input_targets if not path.is_file()]
     if missing_inputs:
         raise SystemExit(f"missing LaTeX input files: {missing_inputs}")
+
+    input_text = "\n".join(path.read_text(encoding="utf-8") for path in input_targets)
+    cited = _cite_keys(main_text) | _cite_keys(input_text)
+    missing_cites = sorted(cited - bib_keys)
+    if missing_cites:
+        raise SystemExit(f"missing bibliography keys: {missing_cites}")
 
     required_assets = [
         PAPER / "figures" / "faireval_framework.pdf",
         PAPER / "figures" / "faireval_conditions.pdf",
         PAPER / "related_work_table.tex",
+        PAPER / "benchmark_model_table.tex",
+        PAPER / "rq_design_table.tex",
+        PAPER / "results_contract_table.tex",
     ]
     missing_assets = [str(path.relative_to(ROOT)) for path in required_assets if not path.is_file()]
     if missing_assets:
@@ -64,6 +92,8 @@ def main() -> int:
         raise SystemExit("double-blind author placeholder missing")
     if "Numerical findings are intentionally omitted" not in main_text:
         raise SystemExit("result-integrity statement missing from abstract")
+    if "persistent invalid output" not in main_text.lower():
+        raise SystemExit("primary invalid-output policy is missing from manuscript text")
 
     related = (PAPER / "related_work_table.tex").read_text(encoding="utf-8")
     if related.count("\\\\") < 16:
@@ -71,9 +101,14 @@ def main() -> int:
     if "do not imply empirical superiority" not in related:
         raise SystemExit("comparison-table interpretation guard missing")
 
-    print(f"paper preflight: {len(_cite_keys(main_text))} citation keys resolved")
-    print("paper preflight: LaTeX inputs and required vector assets present")
-    print("paper preflight: double-blind and result-integrity guards present")
+    benchmark = (PAPER / "benchmark_model_table.tex").read_text(encoding="utf-8")
+    for token in ("Personality 2018", "MIND", "gpt-5.6-terra", "qwen3.8-max-0902", "Llama-4-Maverick"):
+        if token not in benchmark:
+            raise SystemExit(f"benchmark/model table missing required token: {token}")
+
+    print(f"paper preflight: {len(cited)} citation keys resolved across {len(bib_targets)} bibliography files")
+    print("paper preflight: LaTeX inputs and required vector/table assets present")
+    print("paper preflight: double-blind, result-integrity, and invalid-output guards present")
     return 0
 
 
