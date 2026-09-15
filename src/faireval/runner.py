@@ -53,8 +53,9 @@ def run_one(
 
     ``prompt_mode='audit'`` is mandatory for RQ1--RQ3 unmitigated evaluation.
     RQ4 may additionally run named mitigation modes such as
-    ``identity_irrelevance``. Template, cue representation, and candidate-order
-    seed are logged so presentation choices cannot be hidden from analysis.
+    ``identity_irrelevance``. Template, cue representation, candidate-order seed,
+    and ranking cutoff are logged so presentation/evaluation choices cannot be
+    hidden from analysis.
 
     ``planned_cell_id`` links the persisted response to an immutable run-plan
     row. Resumable execution should always provide it; direct unit/pilot calls may
@@ -130,6 +131,7 @@ def run_one(
         "prompt_mode": prompt_mode,
         "cue_id": cue_id,
         "candidate_order_seed": candidate_order_seed,
+        "k": int(k),
         "repetition": repetition,
         "provider": provider.provider_name,
         "model_family": provider.family,
