@@ -43,3 +43,5 @@ jobs:
           print(f"verified {path}: {len(data)} bytes")
           PY
           done
+      - name: Manuscript source preflight
+        run: python scripts/check_paper_source.py
