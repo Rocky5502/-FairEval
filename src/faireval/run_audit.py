@@ -39,6 +39,8 @@ _REQUIRED_RUN_FIELDS = (
     "request_sha256",
     "raw_response",
     "response_sha256",
+    "initial_valid",
+    "repair",
     "final_valid",
     "code_commit_sha",
 )
@@ -68,6 +70,66 @@ def _load_rows(path: Path) -> list[dict[str, Any]]:
     if not rows:
         raise ValueError("run log is empty")
     return rows
+
+
+def _ranked_ids_from_json(text: str) -> list[str] | None:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, Mapping):
+        return None
+    values = payload.get("ranked_item_ids")
+    if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+        return None
+    return [str(value) for value in values]
+
+
+def _audit_repair(row: Mapping[str, Any], *, line_no: int) -> str:
+    """Validate repair provenance and return the response authoritative for ranking."""
+    initial_valid = row["initial_valid"]
+    final_valid = row["final_valid"]
+    if not isinstance(initial_valid, bool):
+        raise ValueError(f"line {line_no}: initial_valid must be boolean")
+    if not isinstance(final_valid, bool):
+        raise ValueError(f"line {line_no}: final_valid must be boolean")
+
+    repair = row.get("repair")
+    if repair is None:
+        if not initial_valid and final_valid:
+            raise ValueError(
+                f"line {line_no}: invalid initial response cannot become valid without repair"
+            )
+        return str(row["raw_response"])
+
+    if initial_valid:
+        raise ValueError(f"line {line_no}: repair must not be present for an initially valid row")
+    if not isinstance(repair, Mapping):
+        raise ValueError(f"line {line_no}: repair must be an object or null")
+    for field in (
+        "prompt_sha256",
+        "raw_response",
+        "response_sha256",
+        "provider_metadata",
+        "valid",
+        "errors",
+    ):
+        if field not in repair:
+            raise ValueError(f"line {line_no}: repair missing required field {field}")
+    _require_hex64(repair["prompt_sha256"], field="repair.prompt_sha256", line_no=line_no)
+    _require_hex64(repair["response_sha256"], field="repair.response_sha256", line_no=line_no)
+    repair_text = str(repair["raw_response"])
+    if _sha256(repair_text) != repair["response_sha256"]:
+        raise ValueError(f"line {line_no}: repair raw response SHA-256 mismatch")
+    if not isinstance(repair["provider_metadata"], Mapping):
+        raise ValueError(f"line {line_no}: repair provider_metadata must be an object")
+    if not isinstance(repair["valid"], bool):
+        raise ValueError(f"line {line_no}: repair valid flag must be boolean")
+    if bool(repair["valid"]) != final_valid:
+        raise ValueError(
+            f"line {line_no}: repair validity disagrees with final_valid"
+        )
+    return repair_text if bool(repair["valid"]) else str(row["raw_response"])
 
 
 def _check_plan_alignment(
@@ -125,8 +187,8 @@ def audit_run_log(
 
     This is intentionally a pre-analysis gate. It validates cryptographic response
     hashes, immutable planned-cell linkage, requested generation settings, provider
-    application metadata, ranking cutoff/order semantics, and final ranking
-    structure before any aggregation.
+    application metadata, ranking cutoff/order semantics, repair provenance, and
+    final ranking structure before any aggregation.
     """
     rows = _load_rows(output_jsonl)
 
@@ -140,6 +202,7 @@ def audit_run_log(
     commit_shas: set[str] = set()
     model_families: set[str] = set()
     invalid_count = 0
+    repaired_count = 0
 
     for line_no, row in enumerate(rows, start=1):
         missing = [field for field in _REQUIRED_RUN_FIELDS if field not in row]
@@ -183,9 +246,11 @@ def audit_run_log(
                     f"line {line_no}: top-level {field} disagrees with provider metadata"
                 )
 
-        final_valid = row["final_valid"]
-        if not isinstance(final_valid, bool):
-            raise ValueError(f"line {line_no}: final_valid must be boolean")
+        authoritative_response = _audit_repair(row, line_no=line_no)
+        final_valid = bool(row["final_valid"])
+        if row.get("repair") is not None:
+            repaired_count += 1
+
         if final_valid:
             ranking = row.get("ranking")
             if not isinstance(ranking, Sequence) or isinstance(ranking, (str, bytes)):
@@ -197,8 +262,15 @@ def audit_run_log(
                 )
             if len(values) != len(set(values)):
                 raise ValueError(f"line {line_no}: valid ranking must contain unique IDs")
+            authoritative_ids = _ranked_ids_from_json(authoritative_response)
+            if authoritative_ids != values:
+                raise ValueError(
+                    f"line {line_no}: persisted ranking does not match hashed authoritative response"
+                )
         else:
             invalid_count += 1
+            if row.get("ranking") is not None:
+                raise ValueError(f"line {line_no}: invalid row must not persist a ranking")
 
         if plan_by_id is not None:
             planned = plan_by_id.get(cell_id)
@@ -213,10 +285,11 @@ def audit_run_log(
         )
 
     return {
-        "schema_version": "faireval-run-audit-v2",
+        "schema_version": "faireval-run-audit-v3",
         "rows": len(rows),
         "unique_planned_cells": len(seen_cells),
         "invalid_outputs": invalid_count,
+        "rows_with_format_repair": repaired_count,
         "model_families": sorted(model_families),
         "code_commit_sha": next(iter(commit_shas)),
         "plan_sha256": None if plan_manifest is None else plan_manifest.get("plan_sha256"),
