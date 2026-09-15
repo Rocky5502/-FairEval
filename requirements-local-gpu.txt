@@ -1,0 +1,14 @@
+# FairEval local open-weight GPU track
+# Install the CUDA-matched PyTorch wheel for the target workstation FIRST,
+# following the official PyTorch/NVIDIA instructions for that machine.
+# Then install this file.
+-r requirements.txt
+
+transformers>=4.48,<5
+accelerate>=1.2,<2
+safetensors>=0.5,<1
+huggingface-hub>=0.27,<1
+
+# Optional high-throughput serving on Linux/WSL can use vLLM, but the canonical
+# white-box path uses direct Transformers so token-level diagnostics remain
+# available. Keep vLLM out of the mandatory environment to avoid CUDA/OS lock-in.
