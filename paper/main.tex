@@ -49,7 +49,7 @@ Large language models have created a conversational recommendation paradigm in w
 
 Early RecLLM fairness benchmarks measured recommendation sensitivity to protected attributes and exposed important risks \cite{zhang2023fairllm}. Subsequent work makes clear why sensitivity is not a sufficient fairness criterion. CFaiRLLM argues that list discrepancies can arise from genuine preference-aligned personalization \cite{deldjoo2025cfairllm}. Chatbot-recommendation studies show that identity can simultaneously affect recommendation relevance and activate racial stereotypes \cite{kantharuban2025stereotype}, while LLMs can infer demographic information from subtle cues and personalize implicitly in ways that reduce quality for some users \cite{neplenbroek2025reading}. Fairness evaluation must therefore ask not merely \emph{whether} a ranking changed, but \emph{what consequence the change had} and whether the conclusion survives reasonable experimental perturbations.
 
-A second weakness is personality operationalization. Informal labels such as ``introverted,'' ``curious,'' or occupation-demographic composites are not substitutes for measured psychometric traits. Personality-aware recommendation has long used validated Big Five instruments \cite{nguyen2018personality,klec2023bigfive}. FairEval therefore distinguishes psychographics from demographics and uses dataset-native measured Big Five/OCEAN profiles rather than treating personality as another sensitive attribute.
+A second weakness is personality operationalization. Informal labels such as ``introverted,'' ``curious,'' or occupation-demographic composites are not substitutes for measured psychometric traits. Personality-aware recommendation has long used validated Big Five instruments \cite{nguyen2018personality,klec2023bigfive}, while recent LLM work shows that personality can be induced or simulated yet remains sensitive to how traits are represented and evaluated \cite{jiang2024personallm,sorokovikova2024big5,li2025big5chat}. FairEval therefore distinguishes psychographics from demographics and, crucially, distinguishes a user's dataset-native measured Big Five profile from an LLM persona that is merely prompted to sound like one.
 
 A third challenge is evaluation reliability. Persona construction itself can alter measured LLM behavior \cite{lutz2025persona}, and recent large-scale evidence shows that different sociodemographic cue styles can produce different personalization and bias conclusions \cite{weeber2026cues}. More generally, single-prompt evaluation can be brittle \cite{mizrahi2024multiprompt}, although some apparent prompt sensitivity can also be an evaluation artifact \cite{hua2025promptsensitivity}. FairEval consequently freezes a primary prompt before the main run and treats task paraphrases, demographic cue representation, candidate order, ranking cutoff, and repeated generation as pre-registered robustness factors rather than tuning knobs.
 
@@ -77,13 +77,15 @@ Our contributions are therefore not simply a larger model sweep. They are (i) a 
 
 \section{Related Work}
 \subsection{Fairness in LLM-Based Recommendation}
-FaiRLLM established an early benchmark for sensitive-attribute effects in ChatGPT recommendations \cite{zhang2023fairllm}. UP5 studies fairness-aware foundation-model recommendation and proposes counterfactually fair prompting \cite{hua2024up5}. Item-side fairness has also been studied for LLM recommenders with fairness-aware calibration \cite{jiang2024itemfair}, while implicit ranking work shows that even non-sensitive profile cues can induce discriminatory ranking and evaluates fairness-aware augmentation \cite{xu2024implicit}. FairEvalLLM broadens auditing with counterfactual scenarios and extensive prompt/profile construction variants \cite{deldjoo2024fairevalllm}. CFaiRLLM moves evaluation toward consumer utility by warning that ranking differences need not be bias when they reflect true preferences \cite{deldjoo2025cfairllm}. Other recent work studies multi-domain recommendation bias and prompt intervention \cite{sakib2024challenging}, and uses LLMs as fairness recognizers within a utility-aware recommendation pipeline \cite{liu2025fairnessidentification}. FairEval treats these distinctions as prior knowledge rather than claiming them individually as new.
+FaiRLLM established an early benchmark for sensitive-attribute effects in ChatGPT recommendations \cite{zhang2023fairllm}. UP5 studies fairness-aware foundation-model recommendation and proposes counterfactually fair prompting \cite{hua2024up5}. Item-side fairness has also been studied for LLM recommenders with fairness-aware calibration \cite{jiang2024itemfair}, while implicit ranking work shows that even non-sensitive profile cues can induce discriminatory ranking and evaluates fairness-aware augmentation \cite{xu2024implicit}. FairEvalLLM broadens auditing with counterfactual scenarios and extensive prompt/profile construction variants \cite{deldjoo2024fairevalllm}. CFaiRLLM moves evaluation toward consumer utility by warning that ranking differences need not be bias when they reflect true preferences \cite{deldjoo2025cfairllm}. Other recent work studies multi-domain recommendation bias and prompt intervention \cite{sakib2024challenging}, uses LLMs as fairness recognizers inside a utility-aware recommendation pipeline \cite{liu2025fairnessidentification}, and extends LLM fairness auditing to a high-stakes job-recommendation setting with user- and recruiter-side views \cite{hu2025fairwork}. FairEval treats these distinctions as prior knowledge rather than claiming them individually as new.
 
 \subsection{Identity, Persona Cues, and Prompt Reliability}
 Identity-conditioned recommendation is difficult because personalization and stereotyping can produce superficially similar output changes. Kantharuban et al. show that user identity significantly affects chatbot recommendations and that racial stereotypes can appear under explicit and implicit identity cues \cite{kantharuban2025stereotype}. Neplenbroek et al. show that LLMs infer demographic information from subtle cues and that implicit personalization can reduce response quality for minority users \cite{neplenbroek2025reading}. Persona prompting itself is also a source of variation: Lutz et al. systematically study sociodemographic persona construction \cite{lutz2025persona}, while Weeber et al. compare multiple cue forms across several LLMs and find that cue choice can change measured personalization and bias \cite{weeber2026cues}. Multi-prompt evaluation and newer prompt-sensitivity studies further caution against conclusions based on one arbitrary wording \cite{mizrahi2024multiprompt,hua2025promptsensitivity,liu2026promptsensitivity}. These findings motivate FairEval's pre-registered prompt and cue robustness analyses.
 
-\subsection{Personality-Aware Recommendation}
-Personality-aware recommendation predates LLMs. The GroupLens Personality 2018 resource links recommender behavior and satisfaction to measured personality \cite{nguyen2018personality}; music recommendation research provides BFI/BFI-2 profiles, ratings, and lower-order facets \cite{klec2023bigfive}; and REASONER includes short-video interactions with a 15-item Big Five instrument \cite{chen2023reasoner}. PerFairX directly studies the fairness--personality tension in LLM recommendations across movie and music domains \cite{sah2025perfairx}. FairEval differs in requiring dataset-native measured psychometrics, held-out recommendation utility, true-versus-shuffled profiles, and one-trait observed-value controls rather than treating prompted personality context itself as evidence of user-specific value.
+\subsection{Personality-Aware Recommendation and Psychometric Grounding}
+Personality-aware recommendation predates LLMs. The GroupLens Personality 2018 resource links recommender behavior and satisfaction to measured personality \cite{nguyen2018personality}; music recommendation research provides BFI/BFI-2 profiles, ratings, and lower-order facets \cite{klec2023bigfive}; and REASONER includes short-video interactions with a 15-item Big Five instrument \cite{chen2023reasoner}. Personality has also been incorporated directly into conversational recommendation, for example in the prompt-based PPPG-DialoGPT framework \cite{elourajini2023pppg}. PerFairX studies the fairness--personality tension in LLM recommendations across movie and music domains \cite{sah2025perfairx}.
+
+Adjacent LLM-personality work is methodologically important because it shows why personality context requires external grounding. PersonaLLM evaluates whether prompted LLM personas express assigned Big Five traits \cite{jiang2024personallm}; other work studies the stability of simulated Big Five behavior \cite{sorokovikova2024big5}; BIG5-CHAT replaces purely descriptive prompting with human-grounded personality data \cite{li2025big5chat}; and Persona-E2 reports that human-grounded personality information can reduce superficial ``personality illusion'' in downstream responses \cite{yang2026personae2}. These studies do not answer FairEval's recommendation-fairness RQs directly, but they support a key design distinction: \emph{simulated persona expression is not equivalent to measured user psychometrics}. FairEval therefore requires dataset-native measured personality and tests its user-specific value against whole-profile shuffling and one-trait observed-value controls.
 
 \input{related_work_table}
 
@@ -112,28 +114,9 @@ Positive aggregate $\PVA$ indicates that the measured profile provides user-spec
 
 \section{Benchmark and Evaluation Design}
 \subsection{Datasets}
-We use two complementary tracks. The personality-grounded track contains datasets with measured psychometric information; the generalization track broadens domains and supports controlled demographic or synthetic stress tests.
+We use two complementary tracks. The personality-grounded track contains datasets with measured psychometric information; the generalization track broadens domains and supports controlled demographic or reliability stress tests. Exact release identities, terms, hashes, filtering counts, and split/candidate-generation hashes are frozen in repository manifests before a paid pilot; third-party raw files are never substituted silently.
 
-\begin{table}[t]
-\centering
-\caption{Planned six-dataset benchmark. Final post-filter counts and hashes are generated by dataset adapters. ``Observed'' means supplied by the dataset, not inferred by us.}
-\label{tab:datasets}
-\small
-\begin{tabular}{p{2.55cm}p{1.35cm}p{3.15cm}p{3.15cm}}
-\toprule
-Dataset & Domain & Grounding & Primary role \\
-\midrule
-Personality 2018 \cite{nguyen2018personality} & Movies & interactions + measured Big Five & personality-grounded utility \\
-Music Master / BFI-2 \cite{klec2023bigfive} & Music & ratings + BFI/BFI-2 & personality/facet controls \\
-REASONER \cite{chen2023reasoner} & Short video & interactions + CBF-PI-15 & personality generalization \\
-MovieLens-1M & Movies & ratings + release demographics & demographic counterfactuals \\
-Last.fm & Music & listening histories + selected profile fields & demographic/domain generalization \\
-MIND \cite{wu2020mind} & News & clicks + logged impressions & candidate-constrained stress test \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-MIND contains anonymized behavior rather than observed demographic identity. Therefore any identity manipulation on MIND is labeled a \emph{synthetic counterfactual stress test}, not an observed-demographic fairness analysis. Across all datasets, we never infer protected attributes from names, free text, embeddings, ZIP codes, or model guesses. Dataset cards distinguish observed, derived, and counterfactual fields.
+MIND contains anonymized behavior rather than observed demographic identity. Therefore any future identity manipulation on MIND would be labeled a \emph{synthetic counterfactual stress test}, not an observed-demographic fairness analysis. In the frozen core design, MIND contributes candidate-constrained utility and reliability generalization only. Across all datasets, we never infer protected attributes from names, free text, embeddings, ZIP codes, or model guesses. Dataset cards distinguish observed, derived, and counterfactual fields.
 
 \subsection{Candidate-Constrained Tasks}
 Open-ended requests for arbitrary movies, songs, or news confound fairness with model memorization, hallucination, item availability, and popularity. Each benchmark instance instead contains a preference history, an auditable candidate set, and held-out relevant items. Candidates are generated without an LLM and frozen before prompting. The model must return exactly $K$ unique candidate IDs in structured JSON. The primary cutoff is $K=10$, with $K\in\{5,10,20\}$ as a sensitivity analysis.
@@ -162,15 +145,19 @@ We evaluate one frozen model configuration from six independent families: OpenAI
 
 For the direct ranking task we freeze the lowest practical provider-supported deliberation policy: OpenAI reasoning \texttt{none}, Claude thinking disabled, Gemini thinking \texttt{low}, DeepSeek thinking disabled, Qwen thinking disabled, and no added hosted reasoning wrapper for Llama. FairEval requests temperature $0.2$ and top-$p=1.0$ where the current provider API supports those controls. Current Claude Sonnet 5 and Gemini 3.8 Flash use provider-default sampling because their current interfaces reject or deprecate the non-default controls used by other providers. We log whether each requested sampling control was actually applied and make no claim of exact decoding-mechanics equivalence across vendors.
 
-Exact identifiers, provider regions/revisions, request timestamps, requested and applied decoding controls, reasoning/thinking settings, prompt hashes, candidate-order identifiers, and code commit hashes are recorded in a machine-readable manifest. The main evaluation uses three generations per prompt. A frozen 10\% stratified subset receives ten generations at a higher stochasticity setting for RQ3 where such sampling control exists; otherwise repetitions measure variation under the frozen provider-default policy. If a provider does not expose deterministic seed control, we report that fact rather than assuming cross-provider seed equivalence.
+Exact identifiers, provider regions/revisions, request timestamps, requested and applied decoding controls, reasoning/thinking settings, prompt hashes, candidate-order identifiers, output-token request fields, and code commit hashes are recorded in a machine-readable manifest. The main evaluation uses three generations per prompt. A frozen 10\% stratified subset receives ten generations at a higher stochasticity setting for RQ3 where such sampling control exists; otherwise repetitions measure variation under the frozen provider-default policy. If a provider does not expose deterministic seed control, we report that fact rather than assuming cross-provider seed equivalence.
+
+\input{benchmark_model_table}
 
 \subsection{Metrics and Statistical Analysis}
 Recommendation effectiveness is measured primarily by nDCG@10 and Recall@10. RBO and Jaccard quantify behavioral change only. Fairness analyses report paired $\CUG$, $\GUD$, $\CEG$ where item metadata supports a defensible exposure definition, and $\IOD$. Primary $\CEG$ is computed only when every top-$K$ item has auditable group metadata; incomplete coverage is reported explicitly and is not silently renormalized. Exploratory partial-metadata exposure analysis, if used, is labeled separately. Personality analysis reports $\PVA$ and trait-stratified effects. The original PAFS is retained only as a legacy sensitivity diagnostic and is not the headline fairness estimand.
 
-We pre-specify user as the primary unit of inference, paired bootstrap confidence intervals, paired permutation tests as the primary matched-test family, Wilcoxon as a sensitivity analysis where appropriate, Holm correction within RQ families, effect sizes, and mixed-effects or variance-component analysis for RQ3 when identifiable. Prompt, cue, candidate-order, model, dataset, and generation variation are reported rather than collapsed into a single mean when they materially alter the conclusion.
+We pre-specify user as the primary unit of inference. Repeated generations are averaged within a user-condition before pairing. Persistent invalid output after the one permitted format-only repair receives zero nDCG/Recall/MRR in the primary end-to-end system analysis because no usable recommendation was delivered; valid-only utility is reported only as a labeled sensitivity analysis. $\IOD$ is analyzed as its own paired user-level outcome rather than being hidden inside utility. The inference stack uses paired bootstrap confidence intervals, paired sign-flip permutation tests as the primary matched test, Wilcoxon signed-rank sensitivity analysis with matched rank-biserial effect size, and Holm correction within pre-registered RQ$\times$metric$\times$contrast families. Prompt, cue, candidate-order, model, dataset, and generation variation are reported rather than collapsed into a single mean when they materially alter the conclusion.
+
+\input{rq_design_table}
 
 \subsection{Output Validation}
-Every response is parsed against the same schema and checked for exact $K$, uniqueness, and candidate membership. The raw response is always retained. At most one format-only repair is allowed; it may serialize existing choices but may not add, remove, replace, or reorder them. Persistent failures remain outcomes and contribute to $\IOD$. This prevents posterior exclusion of inconvenient model outputs.
+Every response is parsed against the same schema and checked for exact $K$, uniqueness, and frozen candidate membership. The raw response is always retained and cryptographically hashed. At most one format-only repair is allowed; it may serialize existing choices but may not add, remove, replace, or reorder them. If repair succeeds, the authoritative repaired JSON is separately hashed and the final ranking must match it exactly. Persistent failures remain outcomes, receive zero primary system utility, and contribute to $\IOD$; they are never repeatedly regenerated until a valid answer appears. Run-log auditing additionally checks immutable plan linkage, requested versus applied deliberation/sampling semantics, candidate-order/cutoff agreement, code commit, and provider token-field semantics before any statistical analysis.
 
 \section{Mitigation: Preference-Aligned Identity Re-ranking}
 RQ4 compares (i) the unmitigated audit prompt, (ii) an identity-irrelevance/counterfactually fair prompting baseline motivated by prior work \cite{hua2024up5}, and (iii) a lightweight re-ranker, \textbf{PAIR} (Preference-Aligned Identity Re-ranking).
@@ -184,28 +171,11 @@ For item $i$, let $b(i)$ be a normalized rank-support score under the preference
 Candidates are sorted by $\mathrm{PAIR}(i)$. Hyperparameters $\alpha$ and $\lambda$ are selected on validation users only; test users are never used to choose an operating point. PAIR requires at least two identity-conditioned rankings so the counterfactual variance term cannot silently degenerate to zero. We report a utility--fairness Pareto frontier rather than selecting a post-hoc configuration that makes one method look best. A mitigation is considered useful only if it reduces harmful gaps without erasing overall utility or true-versus-shuffled personality value.
 
 \section{Results}
-This development manuscript contains no invented numerical findings. Tables and figures below are output contracts for the frozen analysis pipeline.
+This development manuscript contains no invented numerical findings. The multi-panel table below is an output contract for the frozen analysis pipeline; dataset-level machine-readable artifacts remain the source of record and are generated before any paper-facing summary.
+
+\input{results_contract_table}
 
 \subsection{RQ1: When Is a Demographic-Conditioned Change Helpful, Neutral, or Harmful?}
-\begin{table}[t]
-\centering
-\caption{RQ1 primary result structure. Values will be generated from matched user-level counterfactuals.}
-\label{tab:rq1}
-\small
-\begin{tabular}{lcccc}
-\toprule
-Model family & $\Delta$ nDCG@10 & $|\CUG|$ & $\CEG$ & RBO@10 \\
-\midrule
-OpenAI & \tbd & \tbd & \tbd & \tbd \\
-Anthropic & \tbd & \tbd & \tbd & \tbd \\
-Google & \tbd & \tbd & \tbd & \tbd \\
-DeepSeek & \tbd & \tbd & \tbd & \tbd \\
-Qwen & \tbd & \tbd & \tbd & \tbd \\
-Llama & \tbd & \tbd & \tbd & \tbd \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \resultfigure{figures/rq1_quadrant.pdf}{0.93}{RQ1 planned diagnostic: paired cases positioned by behavioral ranking change and held-out utility consequence. Ranking sensitivity with improved utility is separated from identity-conditioned quality loss.}
 
 \subsection{RQ2: Does Measured Personality Add User-Specific Value?}
@@ -230,6 +200,6 @@ For an IR-for-Good framing, the intended intervention path is concrete: detect p
 FairEval redesigns fairness evaluation for personality-aware LLM recommendation around a central principle: a changed recommendation is not automatically an unfair recommendation. By combining held-out preference utility, controlled demographic counterfactuals, measured Big Five profiles, matched negative controls, repeated generations, prompt/cue/order robustness, and multi-model/domain evaluation, the study is designed to distinguish beneficial personalization, harmless sensitivity, and harmful identity-conditioned disparities. Final empirical conclusions will be inserted only after the frozen pipeline has generated and validated the corresponding evidence.
 
 \bibliographystyle{splncs04}
-\bibliography{references}
+\bibliography{references,references_extra}
 
 \end{document}
