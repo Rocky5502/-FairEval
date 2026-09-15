@@ -3,7 +3,12 @@ import math
 import pytest
 
 from faireval.mitigation import pair_rerank
-from faireval.stats import holm_adjust, paired_bootstrap_difference, paired_permutation_test
+from faireval.stats import (
+    holm_adjust,
+    paired_bootstrap_difference,
+    paired_permutation_test,
+    paired_wilcoxon_sensitivity,
+)
 
 
 def test_pair_returns_unique_candidates():
@@ -116,6 +121,25 @@ def test_monte_carlo_paired_permutation_is_seed_reproducible():
     assert 0.0 < a.p_value <= 1.0
 
 
+def test_wilcoxon_sensitivity_reports_directional_rank_biserial():
+    result = paired_wilcoxon_sensitivity(
+        [0.9, 0.8, 0.7, 0.6, 0.5],
+        [0.3, 0.4, 0.4, 0.2, 0.4],
+    )
+    assert result.n == 5
+    assert result.n_nonzero == 5
+    assert 0.0 <= result.p_value <= 1.0
+    assert result.rank_biserial == pytest.approx(1.0)
+    assert result.method == "scipy_wilcoxon_signed_rank"
+
+
+def test_wilcoxon_all_zero_is_well_defined():
+    result = paired_wilcoxon_sensitivity([1.0, 2.0], [1.0, 2.0])
+    assert result.p_value == 1.0
+    assert result.rank_biserial == 0.0
+    assert result.n_nonzero == 0
+
+
 def test_holm_adjust_is_monotone_and_restores_input_order():
     adjusted = holm_adjust([0.01, 0.04, 0.03])
     assert adjusted == pytest.approx([0.03, 0.06, 0.06])
@@ -127,5 +151,7 @@ def test_stats_reject_nonfinite_values_and_bad_probabilities():
         paired_bootstrap_difference([1.0, math.nan], [0.0, 0.0])
     with pytest.raises(ValueError, match="finite"):
         paired_permutation_test([1.0, math.inf], [0.0, 0.0])
+    with pytest.raises(ValueError, match="finite"):
+        paired_wilcoxon_sensitivity([1.0, math.nan], [0.0, 0.0])
     with pytest.raises(ValueError, match="probabilities"):
         holm_adjust([0.1, 1.2])
