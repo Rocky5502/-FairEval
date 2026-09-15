@@ -15,9 +15,42 @@ from .schema import UserInstance
 RQ4_DATASETS = {"movielens_1m", "lastfm_1k"}
 
 
-def _stable_fraction(dataset: str, user_id: str, *, seed: int) -> float:
-    digest = hashlib.sha256(f"{seed}|rq4|{dataset}|{user_id}".encode("utf-8")).digest()
-    return int.from_bytes(digest[:8], "big") / float(2**64)
+def _stable_user_digest(dataset: str, user_id: str, *, seed: int) -> str:
+    return hashlib.sha256(f"{seed}|rq4|{dataset}|{user_id}".encode("utf-8")).hexdigest()
+
+
+def _validation_user_keys(
+    triplets: Sequence[Mapping[str, Any]],
+    *,
+    seed: int,
+    fraction: float,
+) -> set[tuple[str, str]]:
+    """Select an exact deterministic validation subset independently per dataset.
+
+    Users, not repetitions/models, are the split unit. Every model and repetition
+    for one user therefore remains on the same side of the validation/test wall.
+    Within each dataset we stable-hash users, sort by that hash, and take exactly
+    ``round(fraction * n_users)`` (bounded to leave at least one test user).
+    """
+    if not 0.0 < fraction < 1.0:
+        raise ValueError("validation fraction must be in (0,1)")
+    by_dataset: dict[str, set[str]] = defaultdict(set)
+    for triplet in triplets:
+        observed = triplet["observed"]
+        by_dataset[str(observed["dataset"])].add(str(observed["user_id"]))
+
+    selected: set[tuple[str, str]] = set()
+    for dataset, user_ids in sorted(by_dataset.items()):
+        if len(user_ids) < 2:
+            raise ValueError(f"RQ4 dataset {dataset!r} needs at least two users for validation/test")
+        ordered = sorted(
+            user_ids,
+            key=lambda user_id: (_stable_user_digest(dataset, user_id, seed=seed), user_id),
+        )
+        n_validation = max(1, int(round(len(ordered) * fraction)))
+        n_validation = min(n_validation, len(ordered) - 1)
+        selected.update((dataset, user_id) for user_id in ordered[:n_validation])
+    return selected
 
 
 def _instance_index(freeze_root: Path, datasets: Iterable[str]) -> dict[tuple[str, str], UserInstance]:
@@ -111,6 +144,13 @@ def evaluate_pair_grid_point(
     if not 0.0 < validation_fraction < 1.0:
         raise ValueError("validation_fraction must be in (0,1)")
     triplets = _collect_triplets(scored_rows)
+    if not triplets:
+        raise ValueError("no RQ4 C0/C1/C2 baseline triplets found")
+    validation_users = _validation_user_keys(
+        triplets,
+        seed=split_seed,
+        fraction=validation_fraction,
+    )
     datasets = {str(t["observed"]["dataset"]) for t in triplets}
     instances = _instance_index(freeze_root, datasets)
 
@@ -128,7 +168,11 @@ def evaluate_pair_grid_point(
 
         baseline_utility = (float(observed["ndcg"]) + float(counterfactual["ndcg"])) / 2.0
         baseline_abs_cug = abs(float(observed["ndcg"]) - float(counterfactual["ndcg"]))
-        available = bool(neutral["final_valid"] and observed["final_valid"] and counterfactual["final_valid"])
+        available = bool(
+            neutral["final_valid"]
+            and observed["final_valid"]
+            and counterfactual["final_valid"]
+        )
 
         pair_observed_ndcg: float | None = None
         pair_counterfactual_ndcg: float | None = None
@@ -169,11 +213,7 @@ def evaluate_pair_grid_point(
             pair_abs_cug = abs(pair_observed_ndcg - pair_counterfactual_ndcg)
             pair_system_utility = (pair_observed_ndcg + pair_counterfactual_ndcg) / 2.0
 
-        split = (
-            "validation"
-            if _stable_fraction(dataset, user_id, seed=split_seed) < validation_fraction
-            else "test"
-        )
+        split = "validation" if (dataset, user_id) in validation_users else "test"
         rows.append(
             {
                 "schema_version": "faireval-rq4-pair-run-v1",
@@ -184,6 +224,7 @@ def evaluate_pair_grid_point(
                 "repetition": int(observed["repetition"]),
                 "k": k,
                 "split": split,
+                "split_method": "exact_hash_ranked_per_dataset_user",
                 "alpha": float(alpha),
                 "lambda_instability": float(lambda_instability),
                 "pair_available": available,
@@ -230,6 +271,7 @@ def summarize_grid_point(rows: Sequence[Mapping[str, Any]], *, split: str) -> di
         "alpha": float(first["alpha"]),
         "lambda_instability": float(first["lambda_instability"]),
         "n_repetition_rows": len(chosen),
+        "n_users": len({(str(row["dataset"]), str(row["user_id"])) for row in chosen}),
         "pair_availability": coverage,
         "baseline_identity_ndcg_mean": baseline_utility,
         "pair_identity_ndcg_mean_system": pair_utility,
@@ -293,7 +335,6 @@ def build_rq4_pair_artifact(
     if not alpha_values or not lambda_values:
         raise ValueError("RQ4 alpha/lambda grids cannot be empty")
 
-    all_rows: list[dict[str, Any]] = []
     validation_frontier: list[dict[str, Any]] = []
     by_point: dict[tuple[float, float], list[dict[str, Any]]] = {}
     for alpha in alpha_values:
@@ -307,7 +348,6 @@ def build_rq4_pair_artifact(
                 validation_fraction=validation_fraction,
             )
             by_point[(float(alpha), float(lam))] = rows
-            all_rows.extend(rows)
             validation_frontier.append(summarize_grid_point(rows, split="validation"))
 
     operating_point = select_operating_point(
@@ -319,10 +359,24 @@ def build_rq4_pair_artifact(
     ]
     test_summary = summarize_grid_point(selected_rows, split="test")
 
+    validation_user_keys = {
+        (str(row["dataset"]), str(row["user_id"]))
+        for row in selected_rows
+        if row["split"] == "validation"
+    }
+    test_user_keys = {
+        (str(row["dataset"]), str(row["user_id"]))
+        for row in selected_rows
+        if row["split"] == "test"
+    }
+
     return {
         "schema_version": "faireval-rq4-pair-artifact-v1",
         "split_seed": int(split_seed),
         "validation_fraction": float(validation_fraction),
+        "split_method": "exact_hash_ranked_per_dataset_user",
+        "validation_users": len(validation_user_keys),
+        "test_users": len(test_user_keys),
         "utility_floor_ratio": float(utility_floor_ratio),
         "alpha_grid": [float(value) for value in alpha_values],
         "lambda_grid": [float(value) for value in lambda_values],
