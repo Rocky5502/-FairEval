@@ -280,6 +280,7 @@ def plan_core_conditions(
 
 
 def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
+    """Load the six-family model panel including executable deliberation policy."""
     config = yaml.safe_load(models_yaml.read_text(encoding="utf-8"))
     models = config.get("models") if isinstance(config, Mapping) else None
     if not isinstance(models, list):
@@ -291,12 +292,25 @@ def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
             continue
         family = str(row.get("family", "")).strip()
         model_id = str(row.get("model_id", "")).strip()
+        reasoning = str(row.get("reasoning_or_thinking_setting", "")).strip()
+        sampling_policy = str(row.get("sampling_policy", "")).strip()
         if not family or not model_id:
             raise ValueError("each enabled model needs family and model_id")
+        if not reasoning:
+            raise ValueError(f"enabled model {family!r} needs reasoning_or_thinking_setting")
+        if not sampling_policy:
+            raise ValueError(f"enabled model {family!r} needs sampling_policy")
         if family in families:
             raise ValueError(f"duplicate enabled family {family!r}")
         families.add(family)
-        output.append({"family": family, "model_id": model_id})
+        output.append(
+            {
+                "family": family,
+                "model_id": model_id,
+                "reasoning_or_thinking_setting": reasoning,
+                "sampling_policy": sampling_policy,
+            }
+        )
     if len(output) != 6:
         raise ValueError(f"FairEval core panel requires exactly six enabled families, found {len(output)}")
     return output
@@ -329,6 +343,8 @@ def expand_core_run_cells(
                     "confirmatory": planned.confirmatory,
                     "model_family": str(model["family"]),
                     "model_id": str(model["model_id"]),
+                    "reasoning_or_thinking_setting": str(model["reasoning_or_thinking_setting"]),
+                    "sampling_policy": str(model["sampling_policy"]),
                     "template_id": template_id,
                     "prompt_mode": "audit",
                     "cue_id": cue_id,
