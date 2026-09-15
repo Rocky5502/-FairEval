@@ -1,6 +1,12 @@
 import pytest
 
-from faireval.analysis import aggregate_repetitions, build_rq1_confirmatory_pairs, build_rq2_pairs
+from faireval.analysis import (
+    aggregate_repetitions,
+    build_rq1_confirmatory_pairs,
+    build_rq2_pairs,
+    validate_ranking_against_frozen_instance,
+)
+from faireval.schema import Item, UserInstance
 
 
 def _scored(
@@ -47,6 +53,30 @@ def _scored(
         "valid_only_mrr": valid_only,
         "code_commit_sha": "abc",
     }
+
+
+def _frozen_instance() -> UserInstance:
+    return UserInstance(
+        dataset="movielens_1m",
+        user_id="u1",
+        history=[Item("h", "History")],
+        candidates=[Item("a", "A"), Item("b", "B"), Item("c", "C")],
+        relevant_item_ids=frozenset({"a"}),
+    )
+
+
+def test_analysis_revalidates_frozen_candidate_membership():
+    instance = _frozen_instance()
+    assert validate_ranking_against_frozen_instance(["a", "b"], instance, k=2) == (
+        "a",
+        "b",
+    )
+    with pytest.raises(ValueError, match="outside frozen candidates"):
+        validate_ranking_against_frozen_instance(["a", "x"], instance, k=2)
+    with pytest.raises(ValueError, match="duplicate"):
+        validate_ranking_against_frozen_instance(["a", "a"], instance, k=2)
+    with pytest.raises(ValueError, match="ranking length"):
+        validate_ranking_against_frozen_instance(["a"], instance, k=2)
 
 
 def test_repetition_aggregation_keeps_invalid_zero_in_primary_but_not_valid_only():
