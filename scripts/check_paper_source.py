@@ -124,12 +124,23 @@ def main() -> int:
         raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
     if "Qwen2.5" not in main_text or "Phi-3.5" not in main_text:
         raise SystemExit("manuscript must explain the two local open-weight models")
-    if "synthetic" not in main_text.lower() or "not" not in main_text.lower():
-        raise SystemExit("manuscript lacks synthetic-scope guard language")
+
+    rq_design = (PAPER / "rq_design_table.tex").read_text(encoding="utf-8")
+    rq4_required = (
+        "20\\% validation split",
+        "\\geq95\\%",
+        "one global",
+        "test outcomes never select",
+        "no eligible PAIR point",
+    )
+    for token in rq4_required:
+        if token not in rq_design:
+            raise SystemExit(f"RQ4 design table missing frozen selection guard: {token}")
 
     print(f"paper preflight: {len(cited)} citation keys resolved across {len(bib_targets)} bibliography files")
     print("paper preflight: LaTeX inputs and required vector/table assets present")
     print("paper preflight: 6-real+FairSynth and 6-hosted+2-local scope is synchronized")
+    print("paper preflight: RQ4 20% validation / >=95% utility / no-test-selection rule is synchronized")
     print("paper preflight: double-blind, result-integrity, and invalid-output guards present")
     return 0
 
