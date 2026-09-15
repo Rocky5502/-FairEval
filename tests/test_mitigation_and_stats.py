@@ -1,7 +1,9 @@
+import math
+
 import pytest
 
 from faireval.mitigation import pair_rerank
-from faireval.stats import paired_bootstrap_difference
+from faireval.stats import holm_adjust, paired_bootstrap_difference, paired_permutation_test
 
 
 def test_pair_returns_unique_candidates():
@@ -81,3 +83,49 @@ def test_paired_bootstrap_preserves_positive_effect():
     assert summary.n == 4
     assert summary.mean_difference > 0
     assert summary.ci_low > 0
+
+
+def test_exact_paired_permutation_matches_enumerated_sign_flips():
+    result = paired_permutation_test([2.0, 3.0], [0.0, 0.0])
+    assert result.method == "exact_sign_flip"
+    assert result.permutations == 4
+    assert result.observed_mean_difference == 2.5
+    assert result.p_value == pytest.approx(0.5)
+
+    greater = paired_permutation_test(
+        [2.0, 3.0],
+        [0.0, 0.0],
+        alternative="greater",
+    )
+    assert greater.p_value == pytest.approx(0.25)
+
+
+def test_paired_permutation_all_zero_is_one():
+    result = paired_permutation_test([1.0, 2.0], [1.0, 2.0])
+    assert result.method == "exact_all_zero"
+    assert result.p_value == 1.0
+
+
+def test_monte_carlo_paired_permutation_is_seed_reproducible():
+    left = [float(i % 5) for i in range(25)]
+    right = [float((i + 1) % 5) for i in range(25)]
+    a = paired_permutation_test(left, right, exact_max_n=2, samples=5000, seed=123)
+    b = paired_permutation_test(left, right, exact_max_n=2, samples=5000, seed=123)
+    assert a.method == "monte_carlo_sign_flip"
+    assert a.p_value == b.p_value
+    assert 0.0 < a.p_value <= 1.0
+
+
+def test_holm_adjust_is_monotone_and_restores_input_order():
+    adjusted = holm_adjust([0.01, 0.04, 0.03])
+    assert adjusted == pytest.approx([0.03, 0.06, 0.06])
+    assert all(0.0 <= value <= 1.0 for value in adjusted)
+
+
+def test_stats_reject_nonfinite_values_and_bad_probabilities():
+    with pytest.raises(ValueError, match="finite"):
+        paired_bootstrap_difference([1.0, math.nan], [0.0, 0.0])
+    with pytest.raises(ValueError, match="finite"):
+        paired_permutation_test([1.0, math.inf], [0.0, 0.0])
+    with pytest.raises(ValueError, match="probabilities"):
+        holm_adjust([0.1, 1.2])
