@@ -1,0 +1,38 @@
+% Unified benchmark/model panel. Values mirror configs/datasets.yaml and configs/models.yaml.
+% Do not hand-edit model/runtime semantics without updating the corresponding config.
+\begin{table*}[t]
+\centering
+\caption{Frozen FairEval benchmark and model/API panel. Panel A summarizes the six recommendation datasets; Panel B summarizes the six LLM families under the provider semantics used by the executable configuration. ``Pending'' means the exact upstream release or serving endpoint must still be frozen before the paid pilot; it is not silently treated as resolved.}
+\label{tab:benchmark-model-panel}
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.10}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{2.45cm}p{1.35cm}p{3.15cm}p{2.65cm}p{2.75cm}p{2.55cm}p{2.15cm}}
+\toprule
+\multicolumn{7}{c}{\textbf{Panel A: Dataset benchmark}} \\
+\cmidrule(lr){1-7}
+\textbf{Dataset} & \textbf{Domain} & \textbf{Observed evidence} & \textbf{User context used} & \textbf{Candidate grounding} & \textbf{Primary FairEval role} & \textbf{Release state} \\
+\midrule
+Personality 2018~\cite{nguyen2018personality} & Movies & interactions/ratings + measured Big Five & measured OCEAN only; no inferred identity & held-out positives + frozen negatives & RQ2 personality value; RQ3 & Pending exact upstream lock \\
+Music Master / BFI-2~\cite{klec2023bigfive} & Music & song ratings + BFI/BFI-2 facets + audio features & measured profile/facets & held-out positives + popularity-matched unseen songs & RQ2 personality/facet controls; RQ3 & CC-BY-4.0; exact file hash pending \\
+REASONER~\cite{chen2023reasoner} & Short video & interactions + metadata + CBF-PI-15 responses & measured Big Five instrument responses & deterministic held-out recommendation task & RQ2 personality generalization; RQ3 & Pending exact upstream lock \\
+MovieLens-1M & Movies & ratings + gender + age + occupation + ZIP & gender confirmatory; age robustness; occupation/ZIP excluded from primary identity test & held-out positives + frozen negatives & RQ1 confirmatory; RQ4 mitigation & Pending exact ML-1M release lock \\
+Last.fm-1K & Music & listening events + available gender/age/country & gender confirmatory; age robustness; country excluded from primary test & held-out positives + popularity-matched unseen artists/tracks & RQ1 confirmatory; RQ4; domain generalization & Pending exact noncommercial release lock \\
+MIND~\cite{wu2020mind} & News & click histories + logged impression candidates + news metadata & no observed demographic/personality claim & logged impression candidate sets & RQ3 utility/reliability generalization only & Microsoft terms; exact release hash pending \\
+\midrule
+\multicolumn{7}{c}{\textbf{Panel B: LLM/API panel}} \\
+\cmidrule(lr){1-7}
+\textbf{API family} & \textbf{Frozen model ID} & \textbf{Deliberation policy} & \textbf{Sampling policy} & \textbf{Output-token field} & \textbf{Structured-output path} & \textbf{Endpoint state} \\
+\midrule
+OpenAI & \texttt{gpt-5.6-terra} & reasoning \texttt{none} & $T=0.2$, top-$p=1$ requested/applied & \texttt{max\_completion\_tokens} & JSON object mode & Frozen config \\
+Anthropic & \texttt{claude-sonnet-5} & thinking disabled & provider default; deprecated non-default controls omitted & \texttt{max\_tokens} & schema-validated JSON text & Frozen config \\
+Google & \texttt{gemini-3.8-flash} & thinking \texttt{low} & provider default; deprecated controls omitted & \texttt{max\_output\_tokens} & Interactions API + JSON schema & Frozen config \\
+DeepSeek & \texttt{deepseek-flash} & thinking disabled & $T=0.2$, top-$p=1$ requested/applied & \texttt{max\_tokens} & OpenAI-compatible JSON mode & Frozen alias; backend metadata logged \\
+Alibaba Qwen & \texttt{qwen3.8-max-0902} & thinking disabled & $T=0.2$, top-$p=1$ requested/applied & \texttt{max\_tokens} & Model Studio OpenAI-compatible JSON & Region/endpoint must be frozen locally \\
+Meta Llama & \texttt{Llama-4-Maverick-17B-128E-Instruct} & no added reasoning wrapper & explicit low-variance controls where host supports them & host-specific; must match frozen plan & host-specific OpenAI-compatible path & \textbf{Pending exact host/revision} \\
+\bottomrule
+\end{tabular}}
+\vspace{0.5mm}
+\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} The table describes the pre-run design, not achieved empirical coverage. Dataset checksums/licenses and the exact Llama serving stack are promoted from ``Pending'' only through the repository readiness/freeze workflow; runtime adapter semantics are checked against the immutable run plan before an API call.}
+\end{table*}
