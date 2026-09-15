@@ -75,6 +75,7 @@ class AnthropicAdapter(ProviderAdapter):
                     if is_claude5
                     else "explicit_temperature_and_top_p"
                 ),
+                "output_token_parameter": "max_tokens",
                 "usage": {
                     "input_tokens": getattr(usage, "input_tokens", None),
                     "output_tokens": getattr(usage, "output_tokens", None),
