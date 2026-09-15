@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-from faireval.datasets.factory import DATASET_IDS
+from faireval.datasets.factory import AUXILIARY_DATASET_IDS, DATASET_IDS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,7 +18,7 @@ def _load(name: str):
 def _require_known_datasets(values, *, where: str) -> None:
     unknown = sorted(set(values) - set(DATASET_IDS))
     if unknown:
-        raise SystemExit(f"{where} contains unknown dataset IDs: {unknown}")
+        raise SystemExit(f"{where} contains unknown core dataset IDs: {unknown}")
 
 
 def main() -> int:
@@ -31,6 +31,8 @@ def main() -> int:
     cues = _load("cue_suite.yaml")
     prompts = _load("prompt_suite.yaml")
     models = _load("models.yaml")
+    local_models = _load("local_models.yaml")
+    fairsynth = _load("fairsynth360.yaml")
 
     manifest_ids = set(datasets["datasets"])
     executable_ids = set(DATASET_IDS)
@@ -47,13 +49,13 @@ def main() -> int:
     acquisition_ids = set(acquisition.get("datasets", {}))
     if release_ids != executable_ids:
         raise SystemExit(
-            "dataset_releases.yaml IDs disagree with executable adapters: "
+            "dataset_releases.yaml IDs disagree with executable core adapters: "
             f"release_only={sorted(release_ids - executable_ids)}, "
             f"missing={sorted(executable_ids - release_ids)}"
         )
     if acquisition_ids != executable_ids:
         raise SystemExit(
-            "dataset_acquisition.yaml IDs disagree with executable adapters: "
+            "dataset_acquisition.yaml IDs disagree with executable core adapters: "
             f"acquisition_only={sorted(acquisition_ids - executable_ids)}, "
             f"missing={sorted(executable_ids - acquisition_ids)}"
         )
@@ -84,7 +86,7 @@ def main() -> int:
         experiment_datasets.update(str(value) for value in track["datasets"])
     if experiment_datasets != executable_ids:
         raise SystemExit(
-            "experiment tracks must cover each executable dataset exactly by ID: "
+            "experiment core tracks must cover each core dataset exactly by ID: "
             f"got={sorted(experiment_datasets)} expected={sorted(executable_ids)}"
         )
     _require_known_datasets(experiment["rq4"]["demographic_datasets"], where="experiment.rq4")
@@ -104,7 +106,7 @@ def main() -> int:
 
     c6 = next(row for row in experiment["conditions"] if row["id"] == "C6")
     if c6.get("enabled_in_core_plan") is not False:
-        raise SystemExit("C6 must remain disabled until the executable planner implements it")
+        raise SystemExit("C6 must remain disabled until a separately versioned plan implements it")
 
     cue_rows = cues["cue_suite"]["robustness_subset"]["pre_registered_cues"]
     cue_ids = {row["cue_id"] for row in cue_rows}
@@ -131,13 +133,17 @@ def main() -> int:
         raise SystemExit("experiment primary template disagrees with prompt_suite")
     if primary_template not in prompt_suite["paraphrase_robustness"]["templates"]:
         raise SystemExit("primary template is missing from the registered paraphrase suite")
+    if study["primary_prompt"]["candidate_order"] != "deterministic_per_user_frozen_seed":
+        raise SystemExit("study_design must freeze a deterministic per-user candidate-order seed")
+    if experiment["prompt_design"]["candidate_order_policy"] != "deterministic_per_user_frozen_seed":
+        raise SystemExit("experiment candidate-order policy disagrees with study_design")
 
     enabled_models = [row for row in models["models"] if row.get("enabled", True)]
     if len(enabled_models) != 6:
-        raise SystemExit(f"expected six enabled core model families, found {len(enabled_models)}")
+        raise SystemExit(f"expected six enabled hosted core model families, found {len(enabled_models)}")
     families = {row["family"] for row in enabled_models}
     if len(families) != 6:
-        raise SystemExit("enabled model families must be unique")
+        raise SystemExit("enabled hosted model families must be unique")
     for row in enabled_models:
         family = row["family"]
         if "reasoning_or_thinking_setting" not in row:
@@ -159,6 +165,65 @@ def main() -> int:
     if by_family["google"]["output_token_parameter"] != "max_output_tokens":
         raise SystemExit("Gemini core config must use max_output_tokens")
 
+    # Auxiliary two-model local transparency track. Never fold these rows into
+    # configs/models.yaml because doing so would mutate the hosted confirmatory plan.
+    local_enabled = [row for row in local_models["models"] if row.get("enabled", True)]
+    local_by_family = {str(row["family"]): row for row in local_enabled}
+    if set(local_by_family) != {"qwen25_local", "phi35_local"}:
+        raise SystemExit("local model panel must contain exactly qwen25_local and phi35_local")
+    expected_local_ids = {
+        "qwen25_local": "Qwen/Qwen2.5-7B-Instruct",
+        "phi35_local": "microsoft/Phi-3.5-mini-instruct",
+    }
+    expected_local_licenses = {"qwen25_local": "Apache-2.0", "phi35_local": "MIT"}
+    for family, model_id in expected_local_ids.items():
+        row = local_by_family[family]
+        if row.get("model_id") != model_id:
+            raise SystemExit(f"{family} model ID drifted: {row.get('model_id')!r}")
+        if row.get("license") != expected_local_licenses[family]:
+            raise SystemExit(f"{family} license metadata drifted")
+        if row.get("serving_mode") != "direct_transformers":
+            raise SystemExit(f"{family} must use the direct Transformers white-box path")
+        if row.get("output_token_parameter") != "max_new_tokens":
+            raise SystemExit(f"{family} must use max_new_tokens")
+        if row.get("revision") != "pin_exact_huggingface_commit_before_pilot":
+            raise SystemExit(f"{family} exact revision must remain explicitly pending before freeze")
+
+    hardware = local_models.get("hardware_profile", {}).get("preferred_single_gpu", {})
+    if hardware.get("gpu") != "NVIDIA GeForce RTX 5090" or hardware.get("vram_gb") != 32:
+        raise SystemExit("local hardware profile must describe the official RTX 5090 32GB target")
+
+    # FairSynth is the only executable auxiliary dataset and must remain separate.
+    if set(AUXILIARY_DATASET_IDS) != {"fairsynth360"}:
+        raise SystemExit("unexpected auxiliary dataset registry drift")
+    if fairsynth.get("scope", {}).get("total_users") != 360:
+        raise SystemExit("FairSynth-360 total_users must remain 360 for v1")
+    identity = fairsynth.get("identity_control", {})
+    if identity.get("values") != ["A", "B", "C"] or identity.get("users_per_group") != 120:
+        raise SystemExit("FairSynth-360 identity balance must remain A/B/C = 120 each")
+    if identity.get("generated_independently_of_relevance") is not True:
+        raise SystemExit("FairSynth identity must remain independent of relevance")
+    personality = fairsynth.get("personality_control", {})
+    if personality.get("human_measurement") is not False:
+        raise SystemExit("FairSynth synthetic OCEAN must never be labeled human measurement")
+    if fairsynth.get("reporting", {}).get("report_separately_from_real_data") is not True:
+        raise SystemExit("FairSynth must remain separately reported")
+
+    extensions = experiment.get("extension_tracks", {})
+    if set(extensions) != {"local_open_weight_transparency", "fairsynth360"}:
+        raise SystemExit("experiment extension_tracks must contain local and FairSynth tracks only")
+    if extensions["fairsynth360"].get("never_pool_with_real_demographic_or_psychometric_inference") is not True:
+        raise SystemExit("experiment must prohibit pooling FairSynth with real-world inference")
+    if set(extensions["local_open_weight_transparency"].get("families", [])) != set(local_by_family):
+        raise SystemExit("experiment local families disagree with local_models.yaml")
+
+    if set(study["rq3_reliability"].get("local_open_weight_families", [])) != set(local_by_family):
+        raise SystemExit("study RQ3 local families disagree with local_models.yaml")
+    if study.get("fairsynth360_scope", {}).get("users") != 360:
+        raise SystemExit("study_design FairSynth scope must use all 360 synthetic users")
+    if study["fairsynth360_scope"].get("never_pool_with_observed_demographic_estimates") is not True:
+        raise SystemExit("study_design must prohibit FairSynth/observed-demographic pooling")
+
     primary_generation = study["primary_generation"]
     model_generation = models["generation"]
     if model_generation["top_k"] != study["primary_prompt"]["k"]:
@@ -176,11 +241,12 @@ def main() -> int:
     if set(study["rq4_mitigation"]["datasets"]) != expected_rq1:
         raise SystemExit("RQ4 demographic dataset scope drifted")
 
-    print("config preflight: dataset factory, semantic, release, and acquisition IDs agree")
+    print("config preflight: six core dataset manifests/acquisition contracts agree")
     print("config preflight: RQ1/RQ4/MIND scopes match the executable core plan")
-    print("config preflight: primary prompt/cue IDs agree across YAML manifests")
-    print("config preflight: generation K/repetitions/sampling requests agree")
-    print("config preflight: provider deliberation/sampling/token-limit semantics are frozen")
+    print("config preflight: primary prompt/cue/order IDs agree across manifests")
+    print("config preflight: six hosted provider semantics remain frozen")
+    print("config preflight: two local model IDs/licenses/white-box semantics agree")
+    print("config preflight: FairSynth-360 size/balance/separation guards agree")
     return 0
 
 
