@@ -62,30 +62,29 @@ def test_mind_has_no_identity_cells_in_frozen_core_configs():
 def test_primary_prompt_and_cue_ids_agree_across_configs():
     experiment = _yaml("experiment.yaml")
     study = _yaml("study_design.yaml")
-    prompt_suite = _yaml("prompt_suite.yaml")
-    cue_suite = _yaml("cue_suite.yaml")
+    prompt_suite = _yaml("prompt_suite.yaml")["prompt_suite"]
+    cue_suite = _yaml("cue_suite.yaml")["cue_suite"]
 
     primary_template = experiment["prompt_design"]["primary_template"]
     assert study["primary_prompt"]["template_id"] == primary_template
-
-    registered_templates = {
-        str(row["template_id"])
-        for row in prompt_suite["prompt_suite"]["task_templates"]
-    }
-    assert primary_template in registered_templates
+    assert prompt_suite["primary"]["template_id"] == primary_template
+    assert primary_template in prompt_suite["paraphrase_robustness"]["templates"]
 
     primary_cue = experiment["prompt_design"]["primary_cue"]
     assert study["primary_prompt"]["cue_id"] == primary_cue
-    assert cue_suite["cue_suite"]["primary"]["cue_id"] == primary_cue
+    assert cue_suite["primary"]["cue_id"] == primary_cue
 
 
 def test_primary_generation_contract_is_consistent():
     experiment = _yaml("experiment.yaml")
     study = _yaml("study_design.yaml")
     models = _yaml("models.yaml")
+    prompt_suite = _yaml("prompt_suite.yaml")["prompt_suite"]
 
     assert experiment["study"]["primary_k"] == study["primary_prompt"]["k"]
+    assert prompt_suite["primary"]["k"] == study["primary_prompt"]["k"]
     assert experiment["study"]["main_repetitions"] == study["primary_generation"]["repetitions"]
+    assert prompt_suite["primary"]["repetitions"] == study["primary_generation"]["repetitions"]
     assert models["generation"]["top_k"] == study["primary_prompt"]["k"]
     assert models["generation"]["main_repetitions"] == study["primary_generation"]["repetitions"]
     assert models["generation"]["temperature_main_requested"] == study["primary_generation"]["temperature_requested"]
