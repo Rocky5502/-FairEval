@@ -131,6 +131,13 @@ def test_model_panel_and_run_cells_are_unique(tmp_path: Path):
                 "low" if family == "google" else "not_applicable" if family == "meta" else "disabled"
             ),
             "sampling_policy": "test_policy",
+            "output_token_parameter": (
+                "max_output_tokens"
+                if family == "google"
+                else "max_completion_tokens"
+                if family == "openai"
+                else "max_tokens"
+            ),
         }
         for family in ("openai", "anthropic", "google", "deepseek", "qwen", "meta")
     ]
@@ -140,6 +147,7 @@ def test_model_panel_and_run_cells_are_unique(tmp_path: Path):
     assert len(panel) == 6
     assert all("reasoning_or_thinking_setting" in model for model in panel)
     assert all("sampling_policy" in model for model in panel)
+    assert all("output_token_parameter" in model for model in panel)
 
     user = _base_instance(
         "movielens_1m",
@@ -165,3 +173,4 @@ def test_model_panel_and_run_cells_are_unique(tmp_path: Path):
     assert all(cell["prompt_mode"] == "audit" for cell in cells)
     assert all(cell["sampling_policy"] == "test_policy" for cell in cells)
     assert all(cell["reasoning_or_thinking_setting"] for cell in cells)
+    assert all(cell["output_token_parameter"] for cell in cells)
