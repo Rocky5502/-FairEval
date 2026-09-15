@@ -116,10 +116,25 @@ def main() -> int:
     if len(families) != 6:
         raise SystemExit("enabled model families must be unique")
     for row in enabled_models:
+        family = row["family"]
         if "reasoning_or_thinking_setting" not in row:
-            raise SystemExit(f"model {row['family']} lacks reasoning_or_thinking_setting")
+            raise SystemExit(f"model {family} lacks reasoning_or_thinking_setting")
         if "sampling_policy" not in row:
-            raise SystemExit(f"model {row['family']} lacks sampling_policy")
+            raise SystemExit(f"model {family} lacks sampling_policy")
+        if row.get("output_token_parameter") not in {
+            "max_tokens",
+            "max_completion_tokens",
+            "max_output_tokens",
+        }:
+            raise SystemExit(f"model {family} lacks a recognized output_token_parameter")
+
+    by_family = {row["family"]: row for row in enabled_models}
+    if by_family["openai"]["output_token_parameter"] != "max_completion_tokens":
+        raise SystemExit("OpenAI core config must use current max_completion_tokens")
+    if by_family["anthropic"]["output_token_parameter"] != "max_tokens":
+        raise SystemExit("Anthropic core config must use max_tokens")
+    if by_family["google"]["output_token_parameter"] != "max_output_tokens":
+        raise SystemExit("Gemini core config must use max_output_tokens")
 
     primary_generation = study["primary_generation"]
     model_generation = models["generation"]
@@ -142,7 +157,7 @@ def main() -> int:
     print("config preflight: RQ1/RQ4/MIND scopes match the executable core plan")
     print("config preflight: primary prompt/cue IDs agree across YAML manifests")
     print("config preflight: generation K/repetitions/sampling requests agree")
-    print("config preflight: six model families include frozen deliberation/sampling policies")
+    print("config preflight: provider deliberation/sampling/token-limit semantics are frozen")
     return 0
 
 
