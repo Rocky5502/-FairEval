@@ -6,7 +6,11 @@ import pytest
 
 matplotlib.use("Agg")
 
-from scripts.build_result_figures import build_rq1_quadrant, build_rq2_forest
+from scripts.build_result_figures import (
+    build_rq1_quadrant,
+    build_rq2_forest,
+    build_rq3_variance,
+)
 
 
 def _write_jsonl(path: Path, rows: list[dict]):
@@ -91,6 +95,40 @@ def test_build_rq2_forest_writes_vector_pdf(tmp_path: Path):
     )
     output = tmp_path / "rq2.pdf"
     build_rq2_forest(source, output)
+    data = output.read_bytes()
+    assert data.startswith(b"%PDF-")
+    assert len(data) > 3000
+
+
+def test_build_rq3_variance_writes_vector_pdf(tmp_path: Path):
+    source = tmp_path / "rq3_summary.jsonl"
+    rows = []
+    for factor, value in [
+        ("prompt", 0.04),
+        ("cue", 0.06),
+        ("candidate_order", 0.03),
+        ("cutoff", 0.08),
+        ("stochasticity", 0.02),
+    ]:
+        rows.append(
+            {
+                "schema_version": "faireval-rq3-variation-summary-v1",
+                "factor": factor,
+                "dataset": "movielens_1m",
+                "model_family": "openai",
+                "requested_model_id": "gpt-5.6-terra",
+                "condition_id": "C1",
+                "metric": "ndcg",
+                "n_users": 10,
+                "mean_within_user_sd": value,
+                "median_within_user_sd": value,
+                "mean_within_user_range": value * 2,
+                "median_within_user_range": value * 2,
+            }
+        )
+    _write_jsonl(source, rows)
+    output = tmp_path / "rq3.pdf"
+    build_rq3_variance(source, output)
     data = output.read_bytes()
     assert data.startswith(b"%PDF-")
     assert len(data) > 3000
