@@ -63,6 +63,37 @@ def _row() -> dict:
     }
 
 
+def _repaired_row() -> dict:
+    row = _row()
+    raw = "a, b"
+    repaired = '{"ranked_item_ids":["a","b"]}'
+    row.update(
+        {
+            "raw_response": raw,
+            "response_sha256": _sha(raw),
+            "initial_valid": False,
+            "initial_errors": ["invalid_json"],
+            "repair": {
+                "prompt_sha256": "d" * 64,
+                "raw_response": repaired,
+                "response_sha256": _sha(repaired),
+                "resolved_model_version": "gpt-5.6-terra",
+                "provider_metadata": {
+                    "sampling_controls_applied": True,
+                    "sampling_policy": "explicit_temperature_and_top_p",
+                    "output_token_parameter": "max_completion_tokens",
+                },
+                "valid": True,
+                "errors": [],
+            },
+            "final_valid": True,
+            "final_errors": [],
+            "ranking": ["a", "b"],
+        }
+    )
+    return row
+
+
 def _write(path: Path, rows: list[dict]) -> None:
     path.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
@@ -79,12 +110,38 @@ def test_run_audit_accepts_complete_provenance(tmp_path: Path):
     assert result["invalid_outputs"] == 0
 
 
+def test_run_audit_accepts_hashed_format_repair(tmp_path: Path):
+    path = tmp_path / "runs.jsonl"
+    _write(path, [_repaired_row()])
+    result = audit_run_log(path)
+    assert result["status"] == "pass"
+    assert result["rows_with_format_repair"] == 1
+
+
 def test_run_audit_rejects_tampered_raw_response(tmp_path: Path):
     row = _row()
     row["raw_response"] = "tampered"
     path = tmp_path / "runs.jsonl"
     _write(path, [row])
     with pytest.raises(ValueError, match="response SHA-256 mismatch"):
+        audit_run_log(path)
+
+
+def test_run_audit_rejects_tampered_repair_response(tmp_path: Path):
+    row = _repaired_row()
+    row["repair"]["raw_response"] = '{"ranked_item_ids":["b","a"]}'
+    path = tmp_path / "runs.jsonl"
+    _write(path, [row])
+    with pytest.raises(ValueError, match="repair raw response SHA-256 mismatch"):
+        audit_run_log(path)
+
+
+def test_run_audit_rejects_persisted_ranking_not_grounded_in_response(tmp_path: Path):
+    row = _repaired_row()
+    row["ranking"] = ["b", "a"]
+    path = tmp_path / "runs.jsonl"
+    _write(path, [row])
+    with pytest.raises(ValueError, match="does not match hashed authoritative response"):
         audit_run_log(path)
 
 
