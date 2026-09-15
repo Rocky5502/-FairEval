@@ -4,17 +4,17 @@ import os
 
 from .anthropic_adapter import AnthropicAdapter
 from .google_adapter import GoogleGenAIAdapter
+from .local_transformers import LocalTransformersAdapter
 from .openai_compatible import OpenAICompatibleAdapter
 
 
 def build_provider(family: str):
     """Build a provider adapter from frozen FairEval provider policy.
 
-    The core study uses the lowest practical deliberation mode for a direct
-    ranking task: OpenAI reasoning ``none``; Claude thinking disabled; Gemini
-    thinking ``low`` (its lowest supported 3.8-Flash level); DeepSeek thinking
-    disabled; Qwen thinking disabled; and the base Llama checkpoint without an
-    additional hosted reasoning wrapper. Any change requires a new study config.
+    The hosted core uses the lowest practical deliberation mode for direct
+    ranking. The two local open-weight families are a separate transparency
+    track and run directly through Transformers so internal generation-score
+    diagnostics can be logged without changing the output validator.
     """
     family = family.lower()
     if family == "openai":
@@ -70,5 +70,21 @@ def build_provider(family: str):
             supports_seed_flag=False,
             json_mode=True,
             output_token_parameter="max_tokens",
+        )
+    if family == "qwen25_local":
+        return LocalTransformersAdapter(
+            family="qwen25_local",
+            model_id="Qwen/Qwen2.5-7B-Instruct",
+            revision=os.environ.get("QWEN25_LOCAL_REVISION"),
+            trust_remote_code=False,
+            dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
+        )
+    if family == "phi35_local":
+        return LocalTransformersAdapter(
+            family="phi35_local",
+            model_id="microsoft/Phi-3.5-mini-instruct",
+            revision=os.environ.get("PHI35_LOCAL_REVISION"),
+            trust_remote_code=True,
+            dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
         )
     raise ValueError(f"Unsupported model family: {family}")
