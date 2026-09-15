@@ -1,0 +1,51 @@
+cue_suite:
+  purpose: >-
+    Quantify whether demographic-counterfactual conclusions depend on how the
+    same observed/counterfactual attribute values are expressed. This is a
+    robustness analysis, not a search for the prompt that maximizes an effect.
+
+  primary:
+    cue_id: structured_key_value
+    representation: json_profile_fields
+    use_in_main_rq1: true
+
+  robustness_subset:
+    enabled: true
+    subset_fraction: 0.20
+    pre_registered_cues:
+      - cue_id: structured_key_value
+        representation: json_profile_fields
+        example_template: '{"age_group":"{age_group}","gender":"{gender}"}'
+
+      - cue_id: first_person_explicit
+        representation: deterministic_first_person_sentence
+        example_template: 'I am {age_group} and my gender is {gender}.'
+
+      - cue_id: third_person_profile
+        representation: deterministic_profile_sentence
+        example_template: 'User profile: age group={age_group}; gender={gender}.'
+
+  invariants:
+    attribute_values_identical_across_cue_styles: true
+    no_names_as_identity_proxies: true
+    no_implicit_identity_inference: true
+    no_added_preferences: true
+    no_stereotypical_descriptors: true
+    no_llm_generated_persona_text: true
+    same_history_candidates_and_candidate_order: true
+    same_task_template_within_cue_comparison: true
+    same_generation_settings_within_pair: true
+
+  analysis:
+    report_all_cues: true
+    choose_best_cue_after_results: false
+    primary_estimand: cue_by_counterfactual_interaction_on_utility_shift
+    secondary:
+      - rbo
+      - jaccard
+      - invalid_output_rate
+
+  scope:
+    observed_or_pre_registered_counterfactual_attributes_only: true
+    mind_identity_cues_are_synthetic_stress_test_only: true
+    personality_uses_numeric_measured_instrument_not_this_suite: true

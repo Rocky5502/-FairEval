@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, ecir-2027-redesign]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install
+        run: python -m pip install -e '.[dev,analysis]'
+      - name: Unit tests
+        run: pytest -q
+      - name: Lint critical package errors
+        run: ruff check src tests scripts --select E9,F63,F7,F82
+      - name: Configuration consistency preflight
+        run: python scripts/check_config_consistency.py
+      - name: Pilot-readiness schema preflight
+        run: python scripts/check_pilot_readiness.py
+      - name: Build vector paper figures
+        run: python scripts/build_paper_figures.py
+      - name: Verify vector paper assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            paper/figures/faireval_framework.pdf \
+            paper/figures/faireval_conditions.pdf \
+            paper/figures/faireval_evaluation_pipeline.pdf; do
+            test -s "$f"
+            python - "$f" <<'PY'
+          import pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          data = path.read_bytes()
+          if not data.startswith(b"%PDF-"):
+              raise SystemExit(f"not a PDF: {path}")
+          if len(data) < 5000:
+              raise SystemExit(f"suspiciously small figure: {path} ({len(data)} bytes)")
+          print(f"verified {path}: {len(data)} bytes")
+          PY
+          done
+      - name: Manuscript source preflight
+        run: python scripts/check_paper_source.py
+      - name: Build anonymous Overleaf bundle
+        run: python scripts/build_overleaf_bundle.py --output dist/FairEval_ECIR2027_Overleaf.zip
+      - name: Upload Overleaf bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: FairEval-ECIR2027-Overleaf
+          path: dist/FairEval_ECIR2027_Overleaf.zip
+          if-no-files-found: error
+          retention-days: 14

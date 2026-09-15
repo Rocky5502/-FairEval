@@ -1,0 +1,90 @@
+prompt_suite:
+  freeze_before_main_run: true
+
+  primary:
+    template_id: field_v2_a
+    prompt_mode: audit
+    k: 10
+    repetitions: 3
+    candidate_order:
+      policy: deterministic_per_user
+      paired_conditions_share_order: true
+      seed_namespace: faireval-ecir2027-primary
+
+  paraphrase_robustness:
+    enabled: true
+    subset_fraction: 0.20
+    templates:
+      - field_v2_a
+      - field_v2_b
+      - field_v2_c
+    selection_rule: report_all_no_best_prompt_selection
+
+  candidate_order_robustness:
+    enabled: true
+    subset_fraction: 0.20
+    permutations_per_user: 3
+    paired_conditions_share_each_permutation: true
+    seeds: [1729, 2718, 31415]
+
+  cutoff_robustness:
+    enabled: true
+    subset_fraction: 0.20
+    k_values: [5, 10, 20]
+
+  stochasticity_audit:
+    enabled: true
+    subset_fraction: 0.10
+    repetitions: 10
+    do_not_assume_cross_provider_seed_equivalence: true
+
+  natural_language_external_validity:
+    enabled: false
+    note: >-
+      Enable only after the rendering is frozen and validated not to add new
+      preference or identity information. Structured prompts remain primary.
+
+  personality:
+    representation: measured_numeric_dataset_native
+    infer_from_text_or_demographics: false
+    synthesize_adjectives: false
+    controls:
+      - preference_only
+      - true_measured_profile
+      - shuffled_profile
+      - one_trait_counterfactual
+
+  output:
+    json_only: true
+    request_chain_of_thought: false
+    request_explanations: false
+    exactly_k_unique_ids: true
+    candidate_ids_only: true
+    max_format_only_repairs: 1
+    persist_invalid_outputs: true
+
+  rq4_mitigation:
+    baselines:
+      - audit
+      - identity_irrelevance
+      - pair_reranker
+    never_use_mitigation_mode_for_rq1_to_rq3: true
+
+  provenance:
+    log:
+      - template_id
+      - prompt_mode
+      - prompt_sha256
+      - candidate_order_seed
+      - requested_model_id
+      - resolved_model_version
+      - temperature
+      - top_p
+      - max_output_tokens
+      - seed_requested
+      - seed_supported
+      - request_sha256
+      - response_sha256
+      - repetition
+      - code_commit_sha
+      - timestamp_utc

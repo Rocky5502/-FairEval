@@ -1,0 +1,65 @@
+version: fairsynth360-v1
+status: pre_run
+role: auxiliary_controlled_stress_test
+
+scope:
+  total_users: 360
+  catalog_items: 120
+  dataset_seed: 1729
+  default_history_items: 8
+  default_candidate_set_size: 30
+  relevant_items_per_user: 5
+  generated_in_repository: true
+  external_data_used: false
+
+identity_control:
+  field: synthetic_identity_group
+  values: [A, B, C]
+  users_per_group: 120
+  semantics: semantically_meaningless_labels
+  generated_independently_of_preferences: true
+  generated_independently_of_relevance: true
+  real_world_demographic_claims_allowed: false
+
+personality_control:
+  representation: synthetic_OCEAN_v1
+  human_measurement: false
+  score_range: [0.0, 1.0]
+  partially_informative_about_latent_preferences: true
+  purpose:
+    - sanity_check_personality_value_added
+    - negative_control_with_profile_derangement
+  never_pool_with_measured_personality_datasets: true
+
+execution:
+  local_open_weight_full_dataset:
+    users: 360
+    models: [qwen25_local, phi35_local]
+    repetitions: 3
+  all_eight_model_cross_family_subset:
+    users: 120
+    selection: deterministic_balanced_hash_subset
+    hosted_models: [openai, anthropic, google, deepseek, qwen, meta]
+    local_models: [qwen25_local, phi35_local]
+    repetitions: 1
+
+conditions:
+  - C0_preference_only
+  - C1_synthetic_identity_observed
+  - C2_synthetic_identity_counterfactual
+  - C3_true_synthetic_personality
+  - C4_shuffled_synthetic_personality
+
+primary_sanity_checks:
+  - identity_has_zero_ground_truth_relevance_effect_by_construction
+  - model_identity_conditioning_is_measured_as_spurious_sensitivity_or_harm
+  - true_vs_shuffled_synthetic_personality_tests_personality_signal_use
+  - invalid_output_behavior_is_retained
+  - local_white_box_scores_are_auxiliary_not_calibrated_uncertainty
+
+reporting:
+  paper_label: FairSynth-360
+  report_separately_from_real_world_datasets: true
+  no_meta_pooling_with_rq1_observed_demographics: true
+  no_meta_pooling_with_rq2_measured_psychometrics: true
+  release_license: choose_and_freeze_before_publication

@@ -1,0 +1,79 @@
+# FairEval ECIR 2027 dataset release lock
+#
+# This file is intentionally PRE-FREEZE. Do not invent checksums. Replace each
+# pending value only after the exact raw release has been downloaded locally,
+# inspected, license-reviewed, and hashed. The strict pilot-readiness checker
+# refuses to approve API execution while any row remains pending.
+
+schema_version: faireval-dataset-releases-v1
+status: pre_freeze
+
+requirements:
+  checksum_algorithm: sha256
+  require_exact_release_identity: true
+  require_license_review_before_pilot: true
+  require_local_raw_path_before_pilot: true
+  prohibit_silent_release_substitution: true
+  prohibit_post_result_dataset_replacement: true
+
+datasets:
+  personality2018:
+    source: https://grouplens.org/datasets/personality-2018/
+    release_id: GroupLens_Personality_2018
+    raw_path: data/raw/personality2018
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: pending_upstream_readme_review
+
+  music_master_bfi2:
+    source: https://figshare.com/articles/dataset/19678962
+    release_id: Music_Master_BFI2_figshare_19678962
+    raw_path: data/raw/music_master_bfi2
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: verify_CC-BY-4.0_on_downloaded_release
+
+  reasoner:
+    source: https://github.com/REASONER2023/reasoner2023.github.io
+    release_id: REASONER_2023_release
+    raw_path: data/raw/reasoner
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: pending_upstream_license_review
+
+  movielens_1m:
+    source: https://grouplens.org/datasets/movielens/1m/
+    release_id: MovieLens_1M
+    raw_path: data/raw/movielens_1m
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: pending_upstream_readme_review
+
+  lastfm_1k:
+    source: https://github.com/eifuentes/lastfm-dataset-1K
+    release_id: lastfm_dataset_1k
+    raw_path: data/raw/lastfm_1k
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: verify_noncommercial_terms_before_use
+
+  mind:
+    source: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-microsoft-news
+    release_id: MIND_release_to_be_frozen
+    raw_path: data/raw/mind
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: verify_Microsoft_Research_License_terms_for_selected_release
+
+promotion_rule: >-
+  A dataset may move to release_status=frozen only after raw_path exists locally,
+  raw_sha256 is a 64-character SHA-256 digest of a deterministic raw-release
+  archive or canonical directory manifest, license_reviewed=true, and the exact
+  source/release identity is recorded. A changed release requires a new study
+  version and new frozen instances.

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Secrets
+.env
+*.key
+
+# Raw/derived data and model outputs
+data/raw/
+data/processed/
+results/raw/
+results/cache/
+
+# Keep small manifests/aggregates under version control when intentionally added
+!results/.gitkeep
+
+# Paper build products
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.pdf
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

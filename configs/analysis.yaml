@@ -1,0 +1,81 @@
+version: faireval-analysis-v1
+status: pre_run
+
+unit_of_analysis:
+  primary: user
+  repeated_generations: mean_within_user_condition_before_pairing
+  never_treat_generations_as_independent_users: true
+
+invalid_outputs:
+  primary_system_utility: zero
+  rationale: >-
+    After the single format-only repair, a persistent invalid response provides no
+    usable recommendation list and therefore receives zero nDCG/Recall/MRR in the
+    primary end-to-end system analysis. Invalid-output rate/disparity is reported
+    separately so formatting failure is not hidden inside utility.
+  valid_only_utility_sensitivity: true
+  complete_case_only_primary_analysis: false
+  report_invalid_output_disparity: true
+
+utility:
+  primary_metric: ndcg
+  confirmatory_cutoff: 10
+  additional_metrics:
+    - recall
+  secondary_metrics:
+    - mrr
+  robustness_cutoffs: [5, 10, 20]
+
+rq1:
+  contrast: observed_demographic_minus_counterfactual_demographic
+  confirmatory_only: true
+  primary_estimand: delta_ndcg
+  additional_estimands:
+    - delta_recall
+    - invalid_rate_difference
+  exposure_estimand: only_if_complete_auditable_item_group_metadata
+  behavioral_shift_metrics_are_sensitivity_only: true
+
+rq2:
+  primary_contrast: true_vs_shuffled_personality
+  primary_estimand: delta_ndcg
+  additional_contrast: true_personality_vs_preference_only
+  one_trait_analysis: robustness_not_primary
+
+inference:
+  confidence: 0.95
+  bootstrap_samples: 10000
+  bootstrap_seed: 2027
+  paired_permutation:
+    primary: true
+    exact_max_nonzero_pairs: 18
+    monte_carlo_samples: 100000
+    seed: 2027
+    alternative: two-sided
+  wilcoxon_signed_rank:
+    sensitivity: true
+    alternative: two-sided
+    effect_size: matched_rank_biserial
+  multiple_comparisons:
+    method: holm
+    family: rq_metric_contrast
+    note: >-
+      Apply Holm jointly across the pre-registered dataset x model-family
+      confirmatory hypotheses for one RQ, metric, and named contrast. Do not
+      redefine correction families after inspecting p-values.
+
+reporting:
+  always_report:
+    - n_users
+    - mean_paired_difference
+    - median_paired_difference
+    - bootstrap_ci
+    - paired_permutation_p
+    - holm_adjusted_p
+    - wilcoxon_sensitivity_p
+    - matched_rank_biserial
+    - invalid_output_rate_by_condition
+  no_significance_only_language: true
+  report_effect_magnitude_and_uncertainty: true
+  preserve_dataset_and_model_level_results_before_meta_summary: true
+  no_manual_numbers_in_paper: true

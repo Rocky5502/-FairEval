@@ -1,0 +1,64 @@
+# FairEval ECIR 2027 demographic counterfactual plan
+#
+# The study deliberately separates a small confirmatory demographic contrast
+# from broader robustness analyses. High-cardinality/location fields are not
+# promoted to primary protected-attribute claims simply because a dataset
+# happens to contain them.
+
+version: faireval-counterfactuals-v2
+
+movielens_1m:
+  confirmatory:
+    gender:
+      values: ["female", "male"]
+      scope: all_confirmatory_users_with_observed_value
+      interpretation: >-
+        Historical MovieLens-1M dataset-native binary gender field. This does not
+        represent the full contemporary gender spectrum and is analyzed only as
+        the field provided by the benchmark release.
+  robustness:
+    age_group:
+      values: ["under_18", "18_24", "25_34", "35_44", "45_49", "50_55", "56_plus"]
+      users: 20
+      strategy: all_non_observed_categories
+      interpretation: >-
+        Age-group cue sensitivity on a fixed pre-registered subset. Every
+        non-observed category is evaluated; no post-hoc best/worst alternative
+        is selected.
+  excluded:
+    occupation:
+      reason: >-
+        Occupation may carry direct task-relevant preference information and is
+        therefore not treated as a primary protected-context intervention here.
+    zipcode:
+      reason: intentionally never exposed by the adapter or prompt.
+
+lastfm_1k:
+  confirmatory:
+    gender:
+      values: ["female", "male"]
+      scope: all_confirmatory_users_with_observed_value
+      interpretation: >-
+        Historical Last.fm profile field normalized from dataset-native m/f.
+        Results are limited to this dataset representation.
+  robustness:
+    age_group:
+      values: ["under_18", "18_24", "25_34", "35_44", "45_54", "55_plus"]
+      users: 20
+      strategy: all_non_observed_categories
+  excluded:
+    country:
+      reason: >-
+        Country can encode culturally relevant music preference and is
+        high-cardinality; it is retained as observed metadata but not used as a
+        confirmatory unfairness intervention in this ECIR study.
+
+mind:
+  observed_demographic_claims_allowed: false
+  synthetic_stress_test:
+    enabled_in_core_plan: false
+    reason: >-
+      The frozen ECIR core planner generates preference-only MIND cells. Any
+      synthetic identity stress test requires a separately versioned plan,
+      frozen cue taxonomy, and explicit paper labeling before API calls.
+    never_pool_with_observed_demographic_estimates: true

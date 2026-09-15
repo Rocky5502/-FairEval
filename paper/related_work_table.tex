@@ -1,0 +1,42 @@
+% Audited against docs/LITERATURE_COMPARISON_AUDIT.md and docs/LITERATURE_EXPANSION_2026-09-15.md.
+% Symbols encode documented study-design coverage, NOT empirical superiority.
+\begingroup
+\newcommand{\cyes}{\textcolor{red!75!black}{\ensuremath{\checkmark}}}
+\newcommand{\cpart}{\textcolor{gray!75!black}{\ensuremath{\circ}}}
+\newcommand{\cno}{\textcolor{black}{\ensuremath{\times}}}
+\begin{table*}[t]
+\centering
+\caption{Design coverage in closely related LLM fairness, personalization, and evaluation work. \cyes~= explicitly documented; \cpart~= partial/adjacent coverage; \cno~= not established by our evidence audit. Symbols describe study design only and do not imply empirical superiority. ``Psy'' requires dataset-native measured psychometrics; ``Repeat'' requires repeated independent generations; ``Invalid'' requires explicit invalid-output accounting.}
+\label{tab:related-coverage}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccc}
+\toprule
+Work & Fair & Pref & Psy & Pair & Prompt & Multi & Mit & Repeat & Invalid \\
+\midrule
+FaiRLLM~\cite{zhang2023fairllm}                    & \cyes & \cpart & \cno & \cpart & \cno & \cno & \cno & \cno & \cno \\
+UP5~\cite{hua2024up5}                              & \cyes & \cyes  & \cno & \cyes  & \cno & \cno & \cyes & \cno & \cno \\
+FairEvalLLM~\cite{deldjoo2024fairevalllm}          & \cyes & \cpart & \cno & \cyes  & \cyes & \cno & \cno & \cno & \cno \\
+Item-side Fairness~\cite{jiang2024itemfair}         & \cyes & \cyes  & \cno & \cno   & \cno & \cno & \cyes & \cno & \cno \\
+Implicit Ranking Unfairness~\cite{xu2024implicit}  & \cyes & \cyes  & \cno & \cpart & \cno & \cpart & \cyes & \cno & \cno \\
+Challenging Fairness~\cite{sakib2024challenging}   & \cyes & \cpart & \cno & \cpart & \cpart & \cyes & \cyes & \cno & \cno \\
+Multi-Prompt Evaluation~\cite{mizrahi2024multiprompt} & \cno & \cno & \cno & \cno & \cyes & \cyes & \cno & \cno & \cno \\
+CFaiRLLM~\cite{deldjoo2025cfairllm}                & \cyes & \cyes  & \cno & \cyes  & \cpart & \cpart & \cpart & \cno & \cno \\
+Fairness Identification~\cite{liu2025fairnessidentification} & \cyes & \cyes & \cno & \cno & \cno & \cyes & \cyes & \cno & \cno \\
+FairWork~\cite{hu2025fairwork}                     & \cyes & \cpart & \cno & \cyes & \cno & \cpart & \cno & \cno & \cno \\
+Stereotype or Personalization?~\cite{kantharuban2025stereotype} & \cyes & \cpart & \cno & \cyes & \cyes & \cyes & \cno & \cno & \cno \\
+Reading Between the Prompts~\cite{neplenbroek2025reading} & \cyes & \cpart & \cno & \cyes & \cyes & \cpart & \cyes & \cno & \cno \\
+Prompt Makes the Person(a)~\cite{lutz2025persona}   & \cpart & \cno & \cno & \cpart & \cyes & \cyes & \cno & \cno & \cno \\
+Flaw or Artifact?~\cite{hua2025promptsensitivity}  & \cno & \cno & \cno & \cno & \cyes & \cyes & \cno & \cno & \cno \\
+One Persona, Many Cues~\cite{weeber2026cues}        & \cpart & \cpart & \cno & \cpart & \cyes & \cyes & \cno & \cno & \cno \\
+PerFairX~\cite{sah2025perfairx}                     & \cyes & \cpart & \cpart & \cpart & \cpart & \cyes & \cno & \cno & \cno \\
+\midrule
+\textbf{FairEval (this design)}                    & \cyes & \cyes & \cyes & \cyes & \cyes & \cyes & \cyes & \cyes & \cyes \\
+\bottomrule
+\end{tabular}}
+\vspace{1mm}
+\parbox{0.98\textwidth}{\scriptsize
+\textbf{Columns:} Fair = fairness/bias or identity-disparity evaluation; Pref = preference/utility-grounded consequence; Psy = measured psychometric personality; Pair = paired/counterfactual control; Prompt = prompt/cue reliability factor; Multi = multiple LLM/model configurations; Mit = mitigation; Repeat = repeated generations; Invalid = invalid-output accounting. Conservative symbol assignments and source evidence are recorded in \texttt{docs/LITERATURE\_COMPARISON\_AUDIT.md} and the dated literature-expansion ledger.}
+\end{table*}
+\endgroup
