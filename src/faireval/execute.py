@@ -152,6 +152,25 @@ def pending_cells(
     return output
 
 
+def _verify_provider_contract(row: Mapping[str, Any], provider: ProviderAdapter) -> None:
+    """Reject runtime provider semantics that disagree with the immutable plan."""
+    cell_id = str(row.get("cell_id", "<unknown>"))
+    expected_token_field = str(row.get("output_token_parameter", "")).strip()
+    if not expected_token_field:
+        raise ValueError(f"cell {cell_id} is missing frozen output_token_parameter")
+    actual_token_field = str(getattr(provider, "output_token_parameter", "")).strip()
+    if not actual_token_field:
+        raise ValueError(
+            f"provider {provider.family!r} does not expose output_token_parameter; "
+            "cannot prove runtime/plan API compatibility"
+        )
+    if actual_token_field != expected_token_field:
+        raise ValueError(
+            f"cell {cell_id} output-token field drift: "
+            f"plan={expected_token_field!r}, runtime={actual_token_field!r}"
+        )
+
+
 def execute_plan(
     *,
     plan_dir: Path,
@@ -208,6 +227,7 @@ def execute_plan(
         if provider is None:
             provider = provider_builder(family)
             providers[family] = provider
+        _verify_provider_contract(row, provider)
 
         condition_raw = row["condition"]
         if not isinstance(condition_raw, Mapping):
