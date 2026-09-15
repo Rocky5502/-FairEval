@@ -113,8 +113,6 @@ def completed_cell_ids(output_jsonl: Path) -> set[str]:
             row = json.loads(line)
             cell_id = row.get("planned_cell_id")
             if not cell_id:
-                # Pre-plan pilot rows are valid historical outputs but cannot
-                # satisfy a frozen plan cell.
                 continue
             cell_id = str(cell_id)
             if cell_id in completed:
@@ -216,6 +214,12 @@ def execute_plan(
             raise ValueError(f"cell {row['cell_id']} condition must be an object")
         condition = _condition_from_dict(condition_raw)
 
+        reasoning_setting = str(row.get("reasoning_or_thinking_setting", "")).strip()
+        if not reasoning_setting:
+            raise ValueError(
+                f"cell {row['cell_id']} is missing frozen reasoning_or_thinking_setting"
+            )
+
         run_one(
             instance=instance_index[key],
             condition=condition,
@@ -236,6 +240,7 @@ def execute_plan(
                 else int(row["candidate_order_seed"])
             ),
             seed=None,
+            reasoning_or_thinking_setting=reasoning_setting,
             code_commit_sha=code_commit_sha,
             planned_cell_id=str(row["cell_id"]),
         )
