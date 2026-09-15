@@ -5,7 +5,7 @@
 # promoted to primary protected-attribute claims simply because a dataset
 # happens to contain them.
 
-version: faireval-counterfactuals-v1
+version: faireval-counterfactuals-v2
 
 movielens_1m:
   confirmatory:
@@ -56,10 +56,9 @@ lastfm_1k:
 mind:
   observed_demographic_claims_allowed: false
   synthetic_stress_test:
-    enabled: true
-    users: 20
-    cue_attribute: synthetic_profile_marker
-    values: ["profile_A", "profile_B"]
-    interpretation: >-
-      Pure prompt-sensitivity stress test only. Never pool with observed-group
-      counterfactual estimates or label as demographic fairness evidence.
+    enabled_in_core_plan: false
+    reason: >-
+      The frozen ECIR core planner generates preference-only MIND cells. Any
+      synthetic identity stress test requires a separately versioned plan,
+      frozen cue taxonomy, and explicit paper labeling before API calls.
+    never_pool_with_observed_demographic_estimates: true
