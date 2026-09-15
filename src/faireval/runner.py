@@ -80,6 +80,7 @@ def run_one(
         reasoning_or_thinking_setting=reasoning_or_thinking_setting,
     )
     response = provider.generate(request)
+    provider_metadata = dict(response.provider_metadata)
     validation = validate_ranking_output(response.text, instance, k=k)
 
     repair_record: dict[str, Any] | None = None
@@ -121,7 +122,11 @@ def run_one(
         "user_id": instance.user_id,
         "condition_id": condition.condition_id,
         "condition_name": condition.condition_name,
+        # Keep legacy template_id/temperature/top_p fields for backwards
+        # compatibility while also exposing explicit requested-value names used
+        # by the reproducibility manifest.
         "template_id": template_id,
+        "prompt_template_id": template_id,
         "prompt_mode": prompt_mode,
         "cue_id": cue_id,
         "candidate_order_seed": candidate_order_seed,
@@ -132,16 +137,24 @@ def run_one(
         "resolved_model_version": response.resolved_model_version,
         "request_utc": request_utc,
         "temperature": temperature,
+        "temperature_requested": temperature,
         "top_p": top_p,
+        "top_p_requested": top_p,
         "max_output_tokens": max_output_tokens,
         "reasoning_or_thinking_setting": reasoning_or_thinking_setting,
+        "reasoning_or_thinking_applied": provider_metadata.get(
+            "reasoning_or_thinking_applied"
+        ),
+        "sampling_controls_applied": provider_metadata.get("sampling_controls_applied"),
+        "sampling_policy": provider_metadata.get("sampling_policy"),
+        "output_token_parameter": provider_metadata.get("output_token_parameter"),
         "seed_requested": seed,
         "seed_supported": provider.supports_seed(),
         "prompt_sha256": prompt_sha256(prompt),
         "request_sha256": _sha256(json.dumps(asdict(request), sort_keys=True)),
         "raw_response": response.text,
         "response_sha256": _sha256(response.text),
-        "provider_metadata": dict(response.provider_metadata),
+        "provider_metadata": provider_metadata,
         "initial_valid": validation.valid,
         "initial_errors": list(validation.errors),
         "repair": repair_record,
