@@ -1,21 +1,26 @@
 # FairEval ECIR 2027 factorized study design
-# This file defines the experiment *before* the main API run. It is deliberately
-# factorized so every RQ has a clean estimand without exploding into an
-# uninterpretable Cartesian product.
+# Six real-world datasets + six hosted/API families remain the confirmatory core.
+# Two local open-weight models and FairSynth-360 extend transparency/control scope
+# without being silently pooled with real-world fairness/psychometric claims.
 
-version: faireval-study-v5
+version: faireval-study-v6
 status: pre_run
 
 principles:
   primary_unit: user
   paired_design: true
+  real_world_core_datasets: 6
+  hosted_core_model_families: 6
+  local_open_weight_model_families: 2
+  auxiliary_synthetic_datasets: 1
   freeze_before_main_run:
     - dataset_versions
     - user_splits
     - candidate_sets
     - candidate_order_primary
     - prompt_template_primary
-    - model_panel
+    - hosted_model_panel
+    - local_model_huggingface_revisions
     - provider_endpoints_and_regions
     - decoding_and_deliberation_settings
     - metric_definitions
@@ -27,25 +32,28 @@ principles:
     - change_model_alias_mid_run_without_new_manifest_version
     - use_llm_judge_for_primary_ranking_metrics
     - report_behavioral_list_change_as_fairness_by_itself
+    - pool_fairsynth_with_real_observed_demographic_estimates
+    - describe_synthetic_ocean_as_measured_human_psychometrics
+    - treat_local_generation_scores_as_calibrated_uncertainty_without_validation
 
 sample_size:
   design: variance_pilot_then_freeze
-  pilot_users_per_dataset: 20
-  confirmatory_min_users_per_dataset: 60
-  confirmatory_max_users_per_dataset: 120
-  target_users_per_dataset_if_feasible: 100
+  pilot_users_per_real_dataset: 20
+  confirmatory_min_users_per_real_dataset: 60
+  confirmatory_max_users_per_real_dataset: 120
+  target_users_per_real_dataset_if_feasible: 100
+  fairsynth_total_users: 360
   rule: >-
-    Use the pilot only to estimate variance, invalid-output rate, and runtime/cost.
-    Do not use the pilot treatment-effect mean to choose N. Freeze the final N
-    and split hashes before the confirmatory run. Pilot users are excluded from
-    confirmatory inference unless the analysis plan is explicitly amended before
-    looking at confirmatory outcomes.
+    Use the real-data pilot only to estimate variance, invalid-output rate, and
+    runtime/cost. Do not use the pilot treatment-effect mean to choose N. Freeze
+    final real-data N and split hashes before confirmatory execution. FairSynth-360
+    has a fixed controlled size and is reported separately.
 
 primary_prompt:
   template_id: field_v2_a
   prompt_mode: audit
   cue_id: structured_key_value
-  candidate_order: frozen_adapter_order
+  candidate_order: deterministic_per_user_frozen_seed
   k: 10
 
 primary_generation:
@@ -55,8 +63,8 @@ primary_generation:
   provider_sampling_policy: >-
     Apply requested temperature/top_p only where the frozen provider interface
     supports them. Claude Sonnet 5 and Gemini 3.8 Flash use provider-default
-    sampling under the current APIs; every response logs whether controls were
-    actually applied. No cross-provider decoding equivalence is claimed.
+    sampling under the current APIs. Local Qwen2.5/Phi-3.5 use explicit sampling
+    and local seeds. No cross-provider decoding equivalence is claimed.
   deliberation_policy:
     openai: none
     anthropic: disabled
@@ -64,20 +72,20 @@ primary_generation:
     deepseek: disabled
     qwen: disabled
     meta: no_added_reasoning_wrapper
+    qwen25_local: not_applicable
+    phi35_local: not_applicable
   max_output_tokens: 512
   exact_json_contract: true
   format_repair_attempts: 1
   repair_may_change_ranking: false
 
 rq1_demographic_counterfactual_fairness:
-  claim_scope: observed-demographic datasets only
-  datasets:
-    - movielens_1m
-    - lastfm_1k
-  conditions:
-    - preference_only
-    - observed_demographic
-    - paired_counterfactual_demographic
+  claim_scope: observed-demographic real-world datasets only
+  datasets: [movielens_1m, lastfm_1k]
+  model_reporting:
+    hosted_core: [openai, anthropic, google, deepseek, qwen, meta]
+    local_replication: [qwen25_local, phi35_local]
+  conditions: [preference_only, observed_demographic, paired_counterfactual_demographic]
   primary_attributes:
     movielens_1m: [gender]
     lastfm_1k: [gender]
@@ -102,14 +110,11 @@ rq1_demographic_counterfactual_fairness:
     the pre-registered demographic field changes.
 
 rq2_grounded_personality_value:
-  datasets:
-    - personality2018
-    - music_master_bfi2
-    - reasoner
-  core_conditions:
-    - preference_only
-    - true_measured_personality
-    - shuffled_personality_matched_control
+  datasets: [personality2018, music_master_bfi2, reasoner]
+  model_reporting:
+    hosted_core: [openai, anthropic, google, deepseek, qwen, meta]
+    local_replication: [qwen25_local, phi35_local]
+  core_conditions: [preference_only, true_measured_personality, shuffled_personality_matched_control]
   shuffled_profile_control:
     method: deterministic_whole_profile_derangement
     self_donor_allowed: false
@@ -118,12 +123,7 @@ rq2_grounded_personality_value:
   one_trait_ablation:
     enabled: true
     subset_users_per_dataset: 30
-    traits:
-      - openness
-      - conscientiousness
-      - extraversion
-      - agreeableness
-      - neuroticism
+    traits: [openness, conscientiousness, extraversion, agreeableness, neuroticism]
     intervention: deterministic_distant_observed_value_donor
     fabricated_scale_extremes_allowed: false
     other_four_traits_held_fixed: true
@@ -133,50 +133,29 @@ rq2_grounded_personality_value:
   guardrail: >-
     Personality is psychographic context, not a protected demographic variable.
     The study asks whether measured profiles add user-specific recommendation
-    value and whether that value is stable, not whether 'personality groups' are
-    legally protected classes.
+    value and whether that value is stable.
 
 rq3_reliability:
-  all_six_families: true
-  all_six_datasets: true
+  hosted_six_families: true
+  local_open_weight_families: [qwen25_local, phi35_local]
+  real_world_datasets: [personality2018, music_master_bfi2, reasoner, movielens_1m, lastfm_1k, mind]
+  auxiliary_synthetic_dataset: fairsynth360
   factorization_scope:
     rule: one_factor_at_a_time_on_frozen_subsets
     no_full_cartesian_product: true
-    condition_scope:
-      personality_datasets: [preference_only, true_measured_personality, shuffled_personality_matched_control]
-      demographic_datasets: [preference_only, observed_demographic, paired_confirmatory_demographic]
-      generalization_only_datasets: [preference_only]
-    note: >-
-      Each robustness block changes one registered factor while all other primary
-      settings remain frozen. The design does not cross every prompt x cue x order
-      x K x repetition setting. This prevents a costly, hard-to-interpret Cartesian
-      product and makes each reliability estimand attributable to one factor.
   prompt_robustness:
     subset_users_per_dataset: 20
-    template_ids:
-      - field_v2_a
-      - field_v2_b
-      - field_v2_c
+    template_ids: [field_v2_a, field_v2_b, field_v2_c]
     selection_policy: report_all_pre_registered_templates
   cue_style_robustness:
     subset_users_per_dataset: 20
-    datasets:
-      - movielens_1m
-      - lastfm_1k
-    condition_scope: [observed_demographic, paired_confirmatory_demographic]
-    cue_ids:
-      - structured_key_value
-      - first_person_explicit
-      - third_person_profile
-    note: >-
-      Cue styles express the same explicit attribute values. They are robustness/
-      ecological-validity checks and cannot replace the primary structured causal
-      audit after results are observed.
+    datasets: [movielens_1m, lastfm_1k]
+    cue_ids: [structured_key_value, first_person_explicit, third_person_profile]
   candidate_order_robustness:
     subset_users_per_dataset: 20
     deterministic_permutations: 3
     same_permutations_across_conditions: true
-    primary_order_is_adapter_frozen_order: true
+    primary_order_is_deterministic_per_user_seed: true
   stochasticity_audit:
     subset_fraction: 0.10
     repetitions: 10
@@ -184,6 +163,15 @@ rq3_reliability:
     provider_default_where_sampling_controls_deprecated: true
   cutoff_sensitivity:
     k_values: [5, 10, 20]
+  local_white_box_diagnostics:
+    models: [qwen25_local, phi35_local]
+    outcomes:
+      - mean_generated_token_logprob
+      - generated_token_nll
+      - generated_token_perplexity
+      - mean_top1_top2_logit_margin
+    interpretation: auxiliary_uncalibrated_generation_score_diagnostics
+    compare_directly_to_closed_model_internals: false
   outcomes:
     - between_generation_variance
     - between_prompt_variance
@@ -193,18 +181,17 @@ rq3_reliability:
     - invalid_output_rate
 
 rq4_mitigation:
-  datasets:
-    - movielens_1m
-    - lastfm_1k
+  datasets: [movielens_1m, lastfm_1k]
+  primary_models: [openai, anthropic, google, deepseek, qwen, meta]
+  local_replication_models: [qwen25_local, phi35_local]
   baselines:
     - unmitigated_audit_prompt
     - identity_irrelevance_prompting
-    - pair_reranker
-  prompting_baseline_note: >-
-    The identity-irrelevance instruction is the single prompting mitigation in the
-    executable design. It is motivated by counterfactually fair prompting work but
-    is not labeled as an exact reproduction of UP5 unless the implementation and
-    training assumptions match that method.
+    - contextual_pair_reranker
+  pair_definition:
+    focal_fit: alpha_times_preference_support_plus_one_minus_alpha_times_focal_context_support
+    instability: variance_across_identity_conditioned_rank_support
+    score: focal_fit_minus_lambda_times_instability
   pair_requirements:
     minimum_identity_conditioned_rankings: 2
     reject_duplicate_rankings_or_out_of_candidate_items: true
@@ -228,21 +215,27 @@ rq4_mitigation:
     It must reduce harmful counterfactual utility/exposure gaps while preserving
     recommendation utility within a pre-registered tolerance.
 
+fairsynth360_scope:
+  config: configs/fairsynth360.yaml
+  role: controlled_sanity_and_pipeline_validation
+  users: 360
+  identity_groups: [A, B, C]
+  identity_is_semantically_meaningless: true
+  identity_is_independent_of_relevance: true
+  synthetic_ocean_is_human_measurement: false
+  local_full_run_models: [qwen25_local, phi35_local]
+  report_separately_from_real_data: true
+  never_pool_with_observed_demographic_estimates: true
+  never_pool_with_measured_psychometric_estimates: true
+
 mind_scope:
   role: candidate_constrained_domain_generalization
   observed_identity_claims_allowed: false
-  core_conditions:
-    - preference_only
-  primary_use:
-    - utility_generalization
-    - prompt_and_candidate_order_reliability
+  core_conditions: [preference_only]
+  primary_use: [utility_generalization, prompt_and_candidate_order_reliability]
   synthetic_identity_stress_test:
     enabled_in_core_plan: false
-    reason: >-
-      The executable core planner currently generates preference-only MIND cells.
-      A synthetic identity study requires a separately frozen identity taxonomy,
-      new plan version, and explicit paper label before any API calls.
-    label_if_future_version_enabled: synthetic_counterfactual_stress_test
+    reason: FairSynth-360 now supplies the separately labeled synthetic identity control layer.
     never_pool_with_observed_demographic_estimates: true
 
 statistics:
@@ -254,6 +247,7 @@ statistics:
   effect_sizes: true
   dataset_level_reporting_before_any_meta_summary: true
   model_family_level_reporting: true
+  hosted_vs_local_stratified_reporting: true
   mixed_effects_or_variance_components_for_rq3: true
   missingness:
     invalid_generation_is_outcome: true
@@ -263,6 +257,7 @@ reporting:
   no_manual_numbers_in_latex: true
   tables_generated_from_frozen_results: true
   figures_generated_from_frozen_results: true
+  separate_real_and_synthetic_claims: true
   every_result_artifact_records:
     - input_result_hashes
     - analysis_code_commit
