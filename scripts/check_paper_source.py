@@ -83,10 +83,13 @@ def main() -> int:
     stale_phrases = [
         "DeepSeek V4 Flash, Qwen 3.8 Max",
         "DeepSeek V4 Flash,",
+        "spans six recommendation datasets and six LLM families",
+        "across six datasets, six LLM families",
+        "one frozen model configuration from six independent families",
     ]
     stale = [phrase for phrase in stale_phrases if phrase in main_text]
     if stale:
-        raise SystemExit(f"stale model-panel wording found: {stale}")
+        raise SystemExit(f"stale pre-extension manuscript wording found: {stale}")
 
     if "\\author{Anonymous Authors}" not in main_text:
         raise SystemExit("double-blind author placeholder missing")
@@ -102,12 +105,31 @@ def main() -> int:
         raise SystemExit("comparison-table interpretation guard missing")
 
     benchmark = (PAPER / "benchmark_model_table.tex").read_text(encoding="utf-8")
-    for token in ("Personality 2018", "MIND", "gpt-5.6-terra", "qwen3.8-max-0902", "Llama-4-Maverick"):
+    required_benchmark_tokens = (
+        "Personality 2018",
+        "MIND",
+        "FairSynth-360",
+        "gpt-5.6-terra",
+        "qwen3.8-max-0902",
+        "Llama-4-Maverick",
+        "Qwen/Qwen2.5-7B-Instruct",
+        "microsoft/Phi-3.5-mini-instruct",
+        "generation-score diagnostics",
+    )
+    for token in required_benchmark_tokens:
         if token not in benchmark:
             raise SystemExit(f"benchmark/model table missing required token: {token}")
 
+    if "FairSynth-360" not in main_text:
+        raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
+    if "Qwen2.5" not in main_text or "Phi-3.5" not in main_text:
+        raise SystemExit("manuscript must explain the two local open-weight models")
+    if "synthetic" not in main_text.lower() or "not" not in main_text.lower():
+        raise SystemExit("manuscript lacks synthetic-scope guard language")
+
     print(f"paper preflight: {len(cited)} citation keys resolved across {len(bib_targets)} bibliography files")
     print("paper preflight: LaTeX inputs and required vector/table assets present")
+    print("paper preflight: 6-real+FairSynth and 6-hosted+2-local scope is synchronized")
     print("paper preflight: double-blind, result-integrity, and invalid-output guards present")
     return 0
 
