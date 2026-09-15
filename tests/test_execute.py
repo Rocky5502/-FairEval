@@ -51,9 +51,11 @@ class _FakeProvider(ProviderAdapter):
 
     def __init__(self):
         self.calls = 0
+        self.last_request = None
 
     def generate(self, request: GenerationRequest) -> GenerationResponse:
         self.calls += 1
+        self.last_request = request
         return GenerationResponse(
             text=json.dumps({"ranked_item_ids": ["a", "b"]}),
             requested_model_id=request.model_id,
@@ -75,7 +77,14 @@ def _write_one_cell_plan(plan_dir: Path) -> dict:
     )
     cells = expand_core_run_cells(
         [planned],
-        model_panel=[{"family": "fake", "model_id": "fake-model"}],
+        model_panel=[
+            {
+                "family": "fake",
+                "model_id": "fake-model",
+                "reasoning_or_thinking_setting": "disabled",
+                "sampling_policy": "test_policy",
+            }
+        ],
         repetitions=1,
         k=2,
     )
@@ -124,6 +133,7 @@ def test_execute_plan_runs_once_then_resumes_without_duplicate(tmp_path: Path):
     assert first["executed_cells"] == 1
     assert first["remaining_plan_cells"] == 0
     assert provider.calls == 1
+    assert provider.last_request.reasoning_or_thinking_setting == "disabled"
 
     second = execute_plan(
         plan_dir=plan_dir,
@@ -138,6 +148,7 @@ def test_execute_plan_runs_once_then_resumes_without_duplicate(tmp_path: Path):
     row = json.loads(output.read_text(encoding="utf-8").strip())
     assert row["planned_cell_id"] == planned["cell_id"]
     assert row["code_commit_sha"] == "abc123"
+    assert row["reasoning_or_thinking_setting"] == "disabled"
     assert row["final_valid"] is True
 
 
