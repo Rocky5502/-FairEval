@@ -203,17 +203,32 @@ rq4_mitigation:
     method: validation_only
     grid: [0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6]
     no_test_set_tuning: true
+  operating_point_selection:
+    validation_fraction: 0.20
+    split_seed: 2027
+    global_single_operating_point: true
+    per_model_or_dataset_tuning: false
+    minimum_validation_utility_retention: 0.95
+    objective: minimize_absolute_cug_subject_to_utility_floor
+    deterministic_tie_break: max_utility_then_lower_lambda_then_lower_alpha
+    selection_uses_test_outcomes: false
+    failure_rule: >-
+      If no grid point satisfies the 95% validation utility-retention floor,
+      report that PAIR has no eligible operating point; do not relax the floor
+      after inspecting test outcomes.
   report:
     - ndcg10
     - recall10
     - absolute_counterfactual_utility_gap
     - exposure_gap_if_complete_metadata
     - invalid_output_rate
+    - pair_availability
     - utility_fairness_pareto_frontier
   success_definition: >-
     A mitigation is not successful merely because rankings become more similar.
     It must reduce harmful counterfactual utility/exposure gaps while preserving
-    recommendation utility within a pre-registered tolerance.
+    at least the pre-registered validation utility tolerance and without hiding
+    missing base rankings behind a zero-gap interpretation.
 
 fairsynth360_scope:
   config: configs/fairsynth360.yaml
