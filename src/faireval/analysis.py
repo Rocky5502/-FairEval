@@ -8,7 +8,7 @@ from typing import Any
 
 from .execute import load_and_verify_plan
 from .freeze import load_frozen_instances
-from .metrics import mrr_at_k, ndcg_at_k, recall_at_k
+from .metrics import jaccard_at_k, mrr_at_k, ndcg_at_k, rbo_at_k, recall_at_k
 from .run_audit import audit_run_log
 from .schema import UserInstance
 
@@ -35,13 +35,7 @@ def validate_ranking_against_frozen_instance(
     *,
     k: int,
 ) -> tuple[str, ...]:
-    """Defense-in-depth validation immediately before metric computation.
-
-    The runtime validator and run-log audit already enforce output structure, but
-    analysis additionally checks the ranking against the *frozen* candidate set.
-    This prevents a self-consistent/tampered run log from introducing an item that
-    was never available to that user while still reaching nDCG/Recall/MRR.
-    """
+    """Defense-in-depth validation immediately before metric computation."""
     instance.validate()
     values = tuple(str(value) for value in ranking)
     if len(values) != k:
@@ -70,9 +64,10 @@ def score_run_log(
 
     Primary end-to-end utility uses ``invalid_utility_policy='zero'``: a
     persistent invalid response delivers no usable recommendation and therefore
-    receives zero nDCG/Recall/MRR. We simultaneously retain ``valid_only_*``
-    values as a sensitivity view and an explicit invalid indicator, preventing
-    complete-case-only reporting from hiding model failure.
+    receives zero nDCG/Recall/MRR. The final valid ranking is retained in the
+    scored artifact so matched behavioral diagnostics can be computed without
+    reparsing provider text. Invalid rows retain an empty ranking and are excluded
+    from RBO/Jaccard rather than being assigned an arbitrary similarity score.
     """
     if invalid_utility_policy != "zero":
         raise ValueError("the frozen ECIR primary policy currently supports only invalid_utility_policy='zero'")
@@ -116,6 +111,7 @@ def score_run_log(
             }
             valid_only = dict(utility)
         else:
+            ranking = []
             utility = {metric: 0.0 for metric in UTILITY_METRICS}
             valid_only = {metric: None for metric in UTILITY_METRICS}
 
@@ -148,6 +144,7 @@ def score_run_log(
                 "repetition": int(row["repetition"]),
                 "final_valid": final_valid,
                 "invalid_output": not final_valid,
+                "ranking": ranking,
                 "ndcg": float(utility["ndcg"]),
                 "recall": float(utility["recall"]),
                 "mrr": float(utility["mrr"]),
@@ -161,7 +158,12 @@ def score_run_log(
 
 
 def aggregate_repetitions(scored_rows: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Average repeated generations within a frozen user-condition-model cell."""
+    """Average repeated generations within a frozen user-condition-model cell.
+
+    Rankings remain keyed by repetition so matched conditions can compare the
+    same repetition index. We do not average rankings or treat cross-repetition
+    Cartesian products as independent observations.
+    """
     grouped: dict[tuple[Any, ...], list[Mapping[str, Any]]] = defaultdict(list)
     for row in scored_rows:
         intervention_json = json.dumps(
@@ -209,6 +211,25 @@ def aggregate_repetitions(scored_rows: Iterable[Mapping[str, Any]]) -> list[dict
             code_commit_sha,
             plan_sha256,
         ) = key
+
+        by_repetition: dict[int, Mapping[str, Any]] = {}
+        for row in rows:
+            repetition = int(row["repetition"])
+            if repetition in by_repetition:
+                raise ValueError(
+                    f"duplicate repetition {repetition} for {dataset}/{user_id}/{family}/{condition_id}"
+                )
+            by_repetition[repetition] = row
+
+        ranking_by_repetition = [
+            {
+                "repetition": repetition,
+                "valid": bool(row["final_valid"]),
+                "ranking": list(row.get("ranking", [])) if bool(row["final_valid"]) else [],
+            }
+            for repetition, row in sorted(by_repetition.items())
+        ]
+
         result: dict[str, Any] = {
             "schema_version": "faireval-user-condition-v1",
             "dataset": dataset,
@@ -226,6 +247,7 @@ def aggregate_repetitions(scored_rows: Iterable[Mapping[str, Any]]) -> list[dict
             "candidate_order_seed": candidate_order_seed,
             "k": k,
             "repetitions": len(rows),
+            "ranking_by_repetition": ranking_by_repetition,
             "invalid_rate": sum(bool(row["invalid_output"]) for row in rows) / len(rows),
             "code_commit_sha": code_commit_sha,
             "plan_sha256": plan_sha256,
@@ -269,6 +291,53 @@ def _pairing_key(row: Mapping[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _ranking_map(row: Mapping[str, Any]) -> dict[int, tuple[str, ...]]:
+    output: dict[int, tuple[str, ...]] = {}
+    entries = row.get("ranking_by_repetition", [])
+    if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
+        return output
+    for entry in entries:
+        if not isinstance(entry, Mapping) or not bool(entry.get("valid", False)):
+            continue
+        repetition = int(entry["repetition"])
+        ranking = entry.get("ranking", [])
+        if not isinstance(ranking, Sequence) or isinstance(ranking, (str, bytes)):
+            raise ValueError("ranking_by_repetition contains malformed ranking")
+        if repetition in output:
+            raise ValueError(f"duplicate ranking for repetition {repetition}")
+        output[repetition] = tuple(str(value) for value in ranking)
+    return output
+
+
+def _matched_behavioral_diagnostics(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> dict[str, Any]:
+    left_map = _ranking_map(left)
+    right_map = _ranking_map(right)
+    matched = sorted(set(left_map) & set(right_map))
+    if not matched:
+        return {
+            "behavioral_valid_pair_count": 0,
+            "mean_rbo_at_k": None,
+            "mean_jaccard_at_k": None,
+            "mean_one_minus_rbo": None,
+            "mean_one_minus_jaccard": None,
+        }
+    k = int(left["k"])
+    rbo_values = [rbo_at_k(left_map[rep], right_map[rep], k) for rep in matched]
+    jaccard_values = [jaccard_at_k(left_map[rep], right_map[rep], k) for rep in matched]
+    mean_rbo = sum(rbo_values) / len(rbo_values)
+    mean_jaccard = sum(jaccard_values) / len(jaccard_values)
+    return {
+        "behavioral_valid_pair_count": len(matched),
+        "mean_rbo_at_k": mean_rbo,
+        "mean_jaccard_at_k": mean_jaccard,
+        "mean_one_minus_rbo": 1.0 - mean_rbo,
+        "mean_one_minus_jaccard": 1.0 - mean_jaccard,
+    }
+
+
 def _pair_payload(
     left: Mapping[str, Any],
     right: Mapping[str, Any],
@@ -277,6 +346,8 @@ def _pair_payload(
     contrast: str,
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if int(left["k"]) != int(right["k"]):
+        raise ValueError("paired conditions disagree on k")
     payload: dict[str, Any] = {
         "schema_version": "faireval-paired-estimand-v1",
         "rq": rq,
@@ -297,6 +368,7 @@ def _pair_payload(
         "invalid_rate_difference": left["invalid_rate"] - right["invalid_rate"],
         "code_commit_sha": left["code_commit_sha"],
         "plan_sha256": left.get("plan_sha256"),
+        **_matched_behavioral_diagnostics(left, right),
     }
     for metric in UTILITY_METRICS:
         payload[f"left_{metric}"] = left[metric]
@@ -312,7 +384,7 @@ def _pair_payload(
 def build_rq1_confirmatory_pairs(
     aggregated_rows: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Pair C1 observed-demographic utility with every confirmatory C2 alternative."""
+    """Pair C1 observed-demographic outcomes with each confirmatory C2 alternative."""
     by_key: dict[tuple[Any, ...], list[Mapping[str, Any]]] = defaultdict(list)
     for row in aggregated_rows:
         by_key[_pairing_key(row)].append(row)
