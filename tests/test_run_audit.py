@@ -25,6 +25,7 @@ def _row() -> dict:
         "prompt_mode": "audit",
         "cue_id": "structured_key_value",
         "candidate_order_seed": None,
+        "k": 2,
         "repetition": 0,
         "provider": "openai",
         "model_family": "openai",
@@ -111,4 +112,13 @@ def test_run_audit_rejects_provider_metadata_drift(tmp_path: Path):
     path = tmp_path / "runs.jsonl"
     _write(path, [row])
     with pytest.raises(ValueError, match="output_token_parameter disagrees"):
+        audit_run_log(path)
+
+
+def test_run_audit_rejects_ranking_length_that_disagrees_with_k(tmp_path: Path):
+    row = _row()
+    row["k"] = 3
+    path = tmp_path / "runs.jsonl"
+    _write(path, [row])
+    with pytest.raises(ValueError, match="does not equal k"):
         audit_run_log(path)
