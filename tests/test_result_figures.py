@@ -10,6 +10,7 @@ from scripts.build_result_figures import (
     build_rq1_quadrant,
     build_rq2_forest,
     build_rq3_variance,
+    build_rq4_pareto,
 )
 
 
@@ -132,3 +133,66 @@ def test_build_rq3_variance_writes_vector_pdf(tmp_path: Path):
     data = output.read_bytes()
     assert data.startswith(b"%PDF-")
     assert len(data) > 3000
+
+
+def _rq4_artifact() -> dict:
+    return {
+        "schema_version": "faireval-rq4-pair-artifact-v1",
+        "selection_used_test_outcomes": False,
+        "per_model_or_dataset_tuning": False,
+        "validation_frontier": [
+            {
+                "alpha": 0.25,
+                "lambda_instability": 0.0,
+                "pair_identity_ndcg_mean_system": 0.61,
+                "utility_retention": 0.98,
+                "pair_abs_cug_ndcg_on_available": 0.07,
+            },
+            {
+                "alpha": 0.50,
+                "lambda_instability": 0.20,
+                "pair_identity_ndcg_mean_system": 0.59,
+                "utility_retention": 0.96,
+                "pair_abs_cug_ndcg_on_available": 0.03,
+            },
+            {
+                "alpha": 0.75,
+                "lambda_instability": 0.80,
+                "pair_identity_ndcg_mean_system": 0.55,
+                "utility_retention": 0.90,
+                "pair_abs_cug_ndcg_on_available": 0.015,
+            },
+        ],
+        "operating_point": {
+            "alpha": 0.50,
+            "lambda_instability": 0.20,
+            "utility_floor_ratio": 0.95,
+            "validation_summary": {
+                "pair_identity_ndcg_mean_system": 0.59,
+                "pair_abs_cug_ndcg_on_available": 0.03,
+            },
+        },
+        "test_summary": {
+            "pair_identity_ndcg_mean_system": 0.58,
+            "pair_abs_cug_ndcg_on_available": 0.035,
+        },
+    }
+
+
+def test_build_rq4_pareto_writes_vector_pdf(tmp_path: Path):
+    source = tmp_path / "rq4_pair_artifact.json"
+    source.write_text(json.dumps(_rq4_artifact(), indent=2), encoding="utf-8")
+    output = tmp_path / "rq4.pdf"
+    build_rq4_pareto(source, output)
+    data = output.read_bytes()
+    assert data.startswith(b"%PDF-")
+    assert len(data) > 3000
+
+
+def test_build_rq4_rejects_test_selected_artifact(tmp_path: Path):
+    artifact = _rq4_artifact()
+    artifact["selection_used_test_outcomes"] = True
+    source = tmp_path / "rq4_bad.json"
+    source.write_text(json.dumps(artifact), encoding="utf-8")
+    with pytest.raises(ValueError, match="test outcomes influenced selection"):
+        build_rq4_pareto(source, tmp_path / "rq4.pdf")
