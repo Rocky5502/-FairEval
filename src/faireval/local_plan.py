@@ -15,7 +15,7 @@ from .conditions import (
     shuffled_personality,
     true_personality,
 )
-from .freeze import file_sha256, load_frozen_instances
+from .freeze import canonical_json, file_sha256, load_frozen_instances
 from .plan import (
     DEMOGRAPHIC_DATASETS,
     GENERALIZATION_ONLY_DATASETS,
@@ -66,6 +66,33 @@ def _stable_subset(instances: Sequence[UserInstance], *, n: int, seed: int, labe
         ).hexdigest()
         scored.append((digest, instance))
     return [instance for _, instance in sorted(scored, key=lambda row: row[0])[: min(n, len(scored))]]
+
+
+def _cell_seed(cell: Mapping[str, Any], *, experiment_seed: int) -> int:
+    raw = "|".join(
+        [
+            str(experiment_seed),
+            str(cell["dataset"]),
+            str(cell["user_id"]),
+            str(cell["condition"]["condition_id"]),
+            str(cell["model_family"]),
+            str(cell["repetition"]),
+            str(cell["template_id"]),
+            str(cell["candidate_order_seed"]),
+        ]
+    ).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(raw).digest()[:4], "big", signed=False)
+
+
+def _freeze_local_seeds(cells: Sequence[Mapping[str, Any]], *, experiment_seed: int) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    for source in cells:
+        row = dict(source)
+        row.pop("cell_id", None)
+        row["seed"] = _cell_seed(row, experiment_seed=experiment_seed)
+        row["cell_id"] = hashlib.sha256(canonical_json(row).encode("utf-8")).hexdigest()
+        output.append(row)
+    return output
 
 
 def plan_fairsynth_conditions(
@@ -200,9 +227,11 @@ def compile_local_open_weight_plan(
         top_p=1.0,
         max_output_tokens=512,
     )
+    cells = _freeze_local_seeds(cells, experiment_seed=seed)
     manifest = {
         "schema_version": "faireval-local-open-weight-plan-v1",
         "seed": int(seed),
+        "local_generation_seeds_frozen": True,
         "planned_conditions": len(conditions),
         "planned_api_cells": len(cells),
         "model_families": [row["family"] for row in local_models],
