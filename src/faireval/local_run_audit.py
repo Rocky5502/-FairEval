@@ -6,7 +6,9 @@ from typing import Any
 
 from .execute import load_and_verify_plan
 from .run_audit import audit_run_log
-from .whitebox_analysis import LOCAL_FAMILIES
+
+
+LOCAL_FAMILIES = {"qwen25_local", "phi35_local"}
 
 
 def audit_local_run_log(output_jsonl: Path, *, plan_dir: Path) -> dict[str, Any]:
