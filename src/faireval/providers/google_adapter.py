@@ -8,6 +8,7 @@ from .base import GenerationRequest, GenerationResponse, ProviderAdapter
 class GoogleGenAIAdapter(ProviderAdapter):
     family = "google"
     provider_name = "google_gemini_api"
+    output_token_parameter = "max_output_tokens"
 
     def __init__(self, api_key_env: str = "GEMINI_API_KEY") -> None:
         self.api_key_env = api_key_env
@@ -38,7 +39,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
             input=request.prompt,
             generation_config={
                 "thinking_level": "low",
-                "max_output_tokens": request.max_output_tokens,
+                self.output_token_parameter: request.max_output_tokens,
             },
             response_format={
                 "type": "text",
@@ -83,7 +84,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
                 },
                 "sampling_controls_applied": False,
                 "sampling_policy": "provider_default_sampling_controls_deprecated",
-                "output_token_parameter": "max_output_tokens",
+                "output_token_parameter": self.output_token_parameter,
                 "usage": usage_payload,
             },
         )
