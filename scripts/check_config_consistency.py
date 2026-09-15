@@ -23,6 +23,8 @@ def _require_known_datasets(values, *, where: str) -> None:
 
 def main() -> int:
     datasets = _load("datasets.yaml")
+    releases = _load("dataset_releases.yaml")
+    acquisition = _load("dataset_acquisition.yaml")
     study = _load("study_design.yaml")
     experiment = _load("experiment.yaml")
     counterfactuals = _load("counterfactuals.yaml")
@@ -40,6 +42,27 @@ def main() -> int:
         )
     if "lastfm" in manifest_ids or "lastfm_1k" not in manifest_ids:
         raise SystemExit("Last.fm must use the executable adapter ID lastfm_1k")
+
+    release_ids = set(releases.get("datasets", {}))
+    acquisition_ids = set(acquisition.get("datasets", {}))
+    if release_ids != executable_ids:
+        raise SystemExit(
+            "dataset_releases.yaml IDs disagree with executable adapters: "
+            f"release_only={sorted(release_ids - executable_ids)}, "
+            f"missing={sorted(executable_ids - release_ids)}"
+        )
+    if acquisition_ids != executable_ids:
+        raise SystemExit(
+            "dataset_acquisition.yaml IDs disagree with executable adapters: "
+            f"acquisition_only={sorted(acquisition_ids - executable_ids)}, "
+            f"missing={sorted(executable_ids - acquisition_ids)}"
+        )
+    for dataset_id in sorted(executable_ids):
+        spec = acquisition["datasets"][dataset_id]
+        if not isinstance(spec, dict) or not spec.get("source"):
+            raise SystemExit(f"dataset acquisition spec for {dataset_id} lacks source")
+        if not spec.get("required_all") and not spec.get("required_any_of"):
+            raise SystemExit(f"dataset acquisition spec for {dataset_id} lacks raw-file contract")
 
     _require_known_datasets(
         study["rq1_demographic_counterfactual_fairness"]["datasets"],
@@ -153,7 +176,7 @@ def main() -> int:
     if set(study["rq4_mitigation"]["datasets"]) != expected_rq1:
         raise SystemExit("RQ4 demographic dataset scope drifted")
 
-    print("config preflight: six executable dataset IDs match datasets.yaml")
+    print("config preflight: dataset factory, semantic, release, and acquisition IDs agree")
     print("config preflight: RQ1/RQ4/MIND scopes match the executable core plan")
     print("config preflight: primary prompt/cue IDs agree across YAML manifests")
     print("config preflight: generation K/repetitions/sampling requests agree")
