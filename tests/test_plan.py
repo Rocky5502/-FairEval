@@ -123,13 +123,23 @@ def test_demographic_plan_uses_gender_confirmatory_and_age_robustness():
 
 def test_model_panel_and_run_cells_are_unique(tmp_path: Path):
     model_rows = [
-        {"family": family, "model_id": f"{family}-model", "enabled": True}
+        {
+            "family": family,
+            "model_id": f"{family}-model",
+            "enabled": True,
+            "reasoning_or_thinking_setting": (
+                "low" if family == "google" else "not_applicable" if family == "meta" else "disabled"
+            ),
+            "sampling_policy": "test_policy",
+        }
         for family in ("openai", "anthropic", "google", "deepseek", "qwen", "meta")
     ]
     model_path = tmp_path / "models.yaml"
     model_path.write_text(yaml.safe_dump({"models": model_rows}), encoding="utf-8")
     panel = load_model_panel(model_path)
     assert len(panel) == 6
+    assert all("reasoning_or_thinking_setting" in model for model in panel)
+    assert all("sampling_policy" in model for model in panel)
 
     user = _base_instance(
         "movielens_1m",
@@ -153,3 +163,5 @@ def test_model_panel_and_run_cells_are_unique(tmp_path: Path):
     assert len(cells) == len(conditions) * 6 * 3
     assert len({cell["cell_id"] for cell in cells}) == len(cells)
     assert all(cell["prompt_mode"] == "audit" for cell in cells)
+    assert all(cell["sampling_policy"] == "test_policy" for cell in cells)
+    assert all(cell["reasoning_or_thinking_setting"] for cell in cells)
