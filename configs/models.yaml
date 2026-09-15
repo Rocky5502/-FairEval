@@ -13,11 +13,14 @@ models:
     enabled: true
     reasoning_or_thinking_setting: none
     sampling_policy: explicit_low_variance_where_supported
-    verification: official_openai_models_2026-09-15
+    output_token_parameter: max_completion_tokens
+    verification: official_openai_models_and_chat_api_2026-09-15
     notes: >-
       Cost-balanced GPT-5.6 family model. FairEval requests reasoning_effort=none.
-      Do not replace with Sol/Luna after inspecting results; a model change
-      requires a new experiment version.
+      Current Chat Completions documents max_completion_tokens; the deprecated
+      max_tokens field is not used for the OpenAI core cell. Do not replace with
+      Sol/Luna after inspecting results; a model change requires a new experiment
+      version.
 
   - family: anthropic
     name: claude-sonnet-5
@@ -26,6 +29,7 @@ models:
     enabled: true
     reasoning_or_thinking_setting: disabled
     sampling_policy: provider_default_sampling_controls_deprecated
+    output_token_parameter: max_tokens
     verification: official_anthropic_active_models_2026-09-15
     notes: >-
       Active Claude model. Sonnet 5 defaults to adaptive thinking, so FairEval
@@ -40,6 +44,7 @@ models:
     enabled: true
     reasoning_or_thinking_setting: low
     sampling_policy: provider_default_sampling_controls_deprecated
+    output_token_parameter: max_output_tokens
     verification: official_gemini_models_2026-09-15
     notes: >-
       Stable Gemini API model. Gemini 3.8 Flash supports thinking levels low,
@@ -54,6 +59,7 @@ models:
     enabled: true
     reasoning_or_thinking_setting: disabled
     sampling_policy: explicit_low_variance_where_supported
+    output_token_parameter: max_tokens
     verification: official_deepseek_api_2026-09-15
     notes: >-
       Current DeepSeek API model name for DeepSeek V4.1 Flash. FairEval explicitly
@@ -69,6 +75,7 @@ models:
     enabled: true
     reasoning_or_thinking_setting: disabled
     sampling_policy: explicit_low_variance_where_supported
+    output_token_parameter: max_tokens
     verification: alibaba_model_studio_2026-09-15
     notes: >-
       Immutable dated Qwen3.8-Max snapshot released 2026-09-02. Qwen 3.8 models
@@ -82,13 +89,15 @@ models:
     enabled: true
     reasoning_or_thinking_setting: not_applicable
     sampling_policy: explicit_low_variance_where_supported
+    output_token_parameter: max_tokens
     provider: null
     verification: official_meta_llama_2026-09-15
     notes: >-
       The Meta checkpoint identity is static, but the serving provider is not
       frozen yet. Pin the exact hosted checkpoint/revision and provider endpoint
-      before pilot freeze. Never use an unversioned moving provider alias for the
-      final comparison.
+      before pilot freeze. The output-token field must be re-verified against
+      that host before promotion from pilot to confirmatory. Never use an
+      unversioned moving provider alias for the final comparison.
 
 generation:
   top_k: 10
@@ -126,6 +135,7 @@ reproducibility_required_fields:
   - top_p_requested
   - sampling_controls_applied
   - sampling_policy
+  - output_token_parameter
   - max_output_tokens
   - reasoning_or_thinking_setting
   - seed_requested
