@@ -8,6 +8,7 @@ from .base import GenerationRequest, GenerationResponse, ProviderAdapter
 class AnthropicAdapter(ProviderAdapter):
     family = "anthropic"
     provider_name = "anthropic"
+    output_token_parameter = "max_tokens"
 
     def __init__(self, api_key_env: str = "ANTHROPIC_API_KEY") -> None:
         self.api_key_env = api_key_env
@@ -34,7 +35,7 @@ class AnthropicAdapter(ProviderAdapter):
         is_claude5 = self._is_current_claude5(request.model_id)
         create_kwargs = {
             "model": request.model_id,
-            "max_tokens": request.max_output_tokens,
+            self.output_token_parameter: request.max_output_tokens,
             "messages": [{"role": "user", "content": request.prompt}],
         }
         if is_claude5:
@@ -75,7 +76,7 @@ class AnthropicAdapter(ProviderAdapter):
                     if is_claude5
                     else "explicit_temperature_and_top_p"
                 ),
-                "output_token_parameter": "max_tokens",
+                "output_token_parameter": self.output_token_parameter,
                 "usage": {
                     "input_tokens": getattr(usage, "input_tokens", None),
                     "output_tokens": getattr(usage, "output_tokens", None),
