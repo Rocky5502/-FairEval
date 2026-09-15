@@ -83,6 +83,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
                 },
                 "sampling_controls_applied": False,
                 "sampling_policy": "provider_default_sampling_controls_deprecated",
+                "output_token_parameter": "max_output_tokens",
                 "usage": usage_payload,
             },
         )
