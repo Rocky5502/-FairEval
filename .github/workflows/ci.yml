@@ -16,8 +16,30 @@ jobs:
           python-version: '3.11'
           cache: pip
       - name: Install
-        run: python -m pip install -e '.[dev]'
+        run: python -m pip install -e '.[dev,analysis]'
       - name: Unit tests
         run: pytest -q
       - name: Lint critical package errors
-        run: ruff check src tests --select E9,F63,F7,F82
+        run: ruff check src tests scripts --select E9,F63,F7,F82
+      - name: Build vector paper figures
+        run: python scripts/build_paper_figures.py
+      - name: Verify vector paper assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            paper/figures/faireval_framework.pdf \
+            paper/figures/faireval_conditions.pdf \
+            paper/figures/faireval_evaluation_pipeline.pdf; do
+            test -s "$f"
+            python - "$f" <<'PY'
+          import pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          data = path.read_bytes()
+          if not data.startswith(b"%PDF-"):
+              raise SystemExit(f"not a PDF: {path}")
+          if len(data) < 5000:
+              raise SystemExit(f"suspiciously small figure: {path} ({len(data)} bytes)")
+          print(f"verified {path}: {len(data)} bytes")
+          PY
+          done
