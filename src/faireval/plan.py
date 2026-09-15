@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,51 +19,13 @@ from .conditions import (
     shuffled_personality,
     true_personality,
 )
-from .freeze import canonical_json, load_frozen_instances
+from .freeze import canonical_json, file_sha256, load_frozen_instances
 from .schema import OCEAN_KEYS, PromptCondition, UserInstance
 
 
 PERSONALITY_DATASETS = {"personality2018", "music_master_bfi2", "reasoner"}
 DEMOGRAPHIC_DATASETS = {"movielens_1m", "lastfm_1k"}
 GENERALIZATION_ONLY_DATASETS = {"mind"}
-
-
-def _stable_int(*parts: object) -> int:
-    raw = "|".join(str(part) for part in parts).encode("utf-8")
-    return int.from_bytes(hashlib.sha256(raw).digest()[:8], "big", signed=False)
-
-
-def _sha256_json(row: Mapping[str, Any]) -> str:
-    return hashlib.sha256(canonical_json(row).encode("utf-8")).hexdigest()
-
-
-def _condition_dict(condition: PromptCondition) -> dict[str, Any]:
-    return {
-        "condition_id": condition.condition_id,
-        "condition_name": condition.condition_name,
-        "demographics": None if condition.demographics is None else dict(condition.demographics),
-        "personality": None if condition.personality is None else condition.personality.as_dict(),
-        "intervention": dict(condition.intervention),
-    }
-
-
-def _stable_subset(
-    instances: Sequence[UserInstance],
-    *,
-    n: int,
-    seed: int,
-    label: str,
-) -> set[str]:
-    if n <= 0:
-        return set()
-    ordered = sorted(
-        instances,
-        key=lambda instance: (
-            _stable_int(seed, label, instance.dataset, instance.user_id),
-            str(instance.user_id),
-        ),
-    )
-    return {str(instance.user_id) for instance in ordered[: min(n, len(ordered))]}
 
 
 @dataclass(frozen=True)
@@ -75,41 +36,59 @@ class PlannedCondition:
     analysis_roles: tuple[str, ...]
     confirmatory: bool
 
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "dataset": self.dataset,
-            "user_id": self.user_id,
-            "condition": _condition_dict(self.condition),
-            "analysis_roles": list(self.analysis_roles),
-            "confirmatory": self.confirmatory,
-        }
+
+def _sha256_json(value: Any) -> str:
+    return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _stable_subset(
+    instances: Sequence[UserInstance],
+    *,
+    n: int,
+    seed: int,
+    label: str,
+) -> set[str]:
+    if n < 0:
+        raise ValueError("subset size must be non-negative")
+    scored = []
+    for instance in instances:
+        user_id = str(instance.user_id)
+        digest = hashlib.sha256(f"{seed}|{label}|{instance.dataset}|{user_id}".encode("utf-8")).hexdigest()
+        scored.append((digest, user_id))
+    return {user_id for _, user_id in sorted(scored)[: min(n, len(scored))]}
+
+
+def _condition_dict(condition: PromptCondition) -> dict[str, Any]:
+    personality = None
+    if condition.personality is not None:
+        personality = condition.personality.as_dict()
+    return {
+        "condition_id": condition.condition_id,
+        "condition_name": condition.condition_name,
+        "demographics": condition.demographics,
+        "personality": personality,
+        "intervention": dict(condition.intervention),
+    }
 
 
 def _deduplicate_conditions(rows: Sequence[PlannedCondition]) -> list[PlannedCondition]:
-    """Merge identical run conditions while retaining all analysis roles."""
-    merged: dict[tuple[str, str, str], PlannedCondition] = {}
-    role_sets: dict[tuple[str, str, str], set[str]] = defaultdict(set)
-    confirmatory: dict[tuple[str, str, str], bool] = defaultdict(bool)
+    seen: set[str] = set()
+    output: list[PlannedCondition] = []
     for row in rows:
-        key = (row.dataset, row.user_id, canonical_json(_condition_dict(row.condition)))
-        role_sets[key].update(row.analysis_roles)
-        confirmatory[key] = confirmatory[key] or row.confirmatory
-        merged.setdefault(key, row)
-    output = []
-    for key, original in merged.items():
-        output.append(
-            PlannedCondition(
-                dataset=original.dataset,
-                user_id=original.user_id,
-                condition=original.condition,
-                analysis_roles=tuple(sorted(role_sets[key])),
-                confirmatory=confirmatory[key],
-            )
+        key = _sha256_json(
+            {
+                "dataset": row.dataset,
+                "user_id": row.user_id,
+                "condition": _condition_dict(row.condition),
+                "analysis_roles": row.analysis_roles,
+                "confirmatory": row.confirmatory,
+            }
         )
-    return sorted(
-        output,
-        key=lambda row: (row.dataset, row.user_id, row.condition.condition_id),
-    )
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(row)
+    return output
 
 
 def plan_core_conditions(
@@ -120,45 +99,33 @@ def plan_core_conditions(
     one_trait_subset_users: int = 30,
     demographic_robustness_subset_users: int = 20,
 ) -> list[PlannedCondition]:
-    """Compile condition-level cells for the confirmatory/core experiment.
-
-    The function refuses cross-dataset cohorts. RQ1 and RQ2 are deliberately
-    factorized: demographic conditions are not generated on personality-only
-    datasets, and personality claims are not generated from demographic-only or
-    MIND instances.
-    """
     if not instances:
-        raise ValueError("instances cannot be empty")
+        return []
     datasets = {instance.dataset for instance in instances}
     if len(datasets) != 1:
-        raise ValueError(f"plan one dataset at a time, got {sorted(datasets)!r}")
+        raise ValueError("plan_core_conditions expects one dataset at a time")
     dataset = next(iter(datasets))
-    by_id = {str(instance.user_id): instance for instance in instances}
-    if len(by_id) != len(instances):
-        raise ValueError("user IDs must be unique within a frozen dataset")
+    ids = [str(instance.user_id) for instance in instances]
+    if len(set(ids)) != len(ids):
+        raise ValueError("frozen instances must have unique user IDs")
 
     rows: list[PlannedCondition] = []
-
-    # Preference-only is useful across every dataset and can be reused by more
-    # than one RQ without paying for duplicate API calls.
-    for instance in instances:
-        roles = ["rq3_generalization"]
-        if dataset in PERSONALITY_DATASETS:
-            roles.append("rq2_personality")
-        if dataset in DEMOGRAPHIC_DATASETS:
-            roles.extend(["rq1_demographic", "rq4_mitigation_baseline"])
-        rows.append(
-            PlannedCondition(
-                dataset=dataset,
-                user_id=str(instance.user_id),
-                condition=preference_only(),
-                analysis_roles=tuple(roles),
-                confirmatory=dataset != GENERALIZATION_ONLY_DATASETS,
+    if dataset in GENERALIZATION_ONLY_DATASETS:
+        for instance in instances:
+            rows.append(
+                PlannedCondition(
+                    dataset=dataset,
+                    user_id=str(instance.user_id),
+                    condition=preference_only(),
+                    analysis_roles=("rq3_generalization",),
+                    confirmatory=False,
+                )
             )
-        )
+        return rows
 
     if dataset in PERSONALITY_DATASETS:
         donor_map = build_personality_derangement(instances, seed=seed)
+        by_id = {str(instance.user_id): instance for instance in instances}
         one_trait_users = _stable_subset(
             instances,
             n=one_trait_subset_users,
@@ -171,6 +138,15 @@ def plan_core_conditions(
         }
         for instance in instances:
             user_id = str(instance.user_id)
+            rows.append(
+                PlannedCondition(
+                    dataset=dataset,
+                    user_id=user_id,
+                    condition=preference_only(),
+                    analysis_roles=("rq2_personality",),
+                    confirmatory=True,
+                )
+            )
             rows.append(
                 PlannedCondition(
                     dataset=dataset,
@@ -231,6 +207,15 @@ def plan_core_conditions(
                 PlannedCondition(
                     dataset=dataset,
                     user_id=user_id,
+                    condition=preference_only(),
+                    analysis_roles=("rq1_demographic", "rq4_mitigation_baseline"),
+                    confirmatory=True,
+                )
+            )
+            rows.append(
+                PlannedCondition(
+                    dataset=dataset,
+                    user_id=user_id,
                     condition=observed_demographic(instance),
                     analysis_roles=("rq1_demographic", "rq4_mitigation_baseline"),
                     confirmatory=True,
@@ -280,7 +265,7 @@ def plan_core_conditions(
 
 
 def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
-    """Load the six-family model panel including executable deliberation policy."""
+    """Load the six-family model panel including executable provider semantics."""
     config = yaml.safe_load(models_yaml.read_text(encoding="utf-8"))
     models = config.get("models") if isinstance(config, Mapping) else None
     if not isinstance(models, list):
@@ -294,12 +279,15 @@ def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
         model_id = str(row.get("model_id", "")).strip()
         reasoning = str(row.get("reasoning_or_thinking_setting", "")).strip()
         sampling_policy = str(row.get("sampling_policy", "")).strip()
+        output_token_parameter = str(row.get("output_token_parameter", "")).strip()
         if not family or not model_id:
             raise ValueError("each enabled model needs family and model_id")
         if not reasoning:
             raise ValueError(f"enabled model {family!r} needs reasoning_or_thinking_setting")
         if not sampling_policy:
             raise ValueError(f"enabled model {family!r} needs sampling_policy")
+        if not output_token_parameter:
+            raise ValueError(f"enabled model {family!r} needs output_token_parameter")
         if family in families:
             raise ValueError(f"duplicate enabled family {family!r}")
         families.add(family)
@@ -309,6 +297,7 @@ def load_model_panel(models_yaml: Path) -> list[dict[str, str]]:
                 "model_id": model_id,
                 "reasoning_or_thinking_setting": reasoning,
                 "sampling_policy": sampling_policy,
+                "output_token_parameter": output_token_parameter,
             }
         )
     if len(output) != 6:
@@ -345,6 +334,7 @@ def expand_core_run_cells(
                     "model_id": str(model["model_id"]),
                     "reasoning_or_thinking_setting": str(model["reasoning_or_thinking_setting"]),
                     "sampling_policy": str(model["sampling_policy"]),
+                    "output_token_parameter": str(model["output_token_parameter"]),
                     "template_id": template_id,
                     "prompt_mode": "audit",
                     "cue_id": cue_id,
@@ -378,38 +368,49 @@ def compile_core_plan(
     dataset_manifests: dict[str, Any] = {}
     for dataset in sorted(PERSONALITY_DATASETS | DEMOGRAPHIC_DATASETS | GENERALIZATION_ONLY_DATASETS):
         dataset_dir = freeze_root / dataset
-        if not dataset_dir.is_dir():
-            raise FileNotFoundError(f"missing frozen dataset directory {dataset_dir}")
         instances = load_frozen_instances(dataset_dir)
-        all_conditions.extend(
-            plan_core_conditions(
-                instances,
-                counterfactual_config=counterfactual_cfg,
-                seed=seed,
-                one_trait_subset_users=one_trait_subset_users,
-                demographic_robustness_subset_users=demographic_robustness_subset_users,
-            )
+        conditions = plan_core_conditions(
+            instances,
+            counterfactual_config=counterfactual_cfg,
+            seed=seed,
+            one_trait_subset_users=one_trait_subset_users,
+            demographic_robustness_subset_users=demographic_robustness_subset_users,
         )
-        manifest = json.loads((dataset_dir / "manifest.json").read_text(encoding="utf-8"))
+        all_conditions.extend(conditions)
+        manifest_path = dataset_dir / "freeze_manifest.json"
         dataset_manifests[dataset] = {
-            "instances_sha256": manifest["instances_sha256"],
-            "instance_count": manifest["instance_count"],
+            "freeze_manifest_sha256": file_sha256(manifest_path),
+            "n_frozen_users": len(instances),
+            "n_planned_conditions": len(conditions),
         }
 
     cells = expand_core_run_cells(all_conditions, model_panel=model_panel)
-    ids = [row["cell_id"] for row in cells]
-    if len(set(ids)) != len(ids):
-        raise AssertionError("duplicate run-plan cell IDs detected")
-
     manifest = {
-        "schema_version": "faireval-core-plan-manifest-v1",
-        "seed": int(seed),
-        "datasets": dataset_manifests,
-        "model_panel": model_panel,
-        "planned_condition_rows": len(all_conditions),
+        "schema_version": "faireval-run-plan-manifest-v1",
+        "seed": seed,
+        "planned_conditions": len(all_conditions),
         "planned_api_cells": len(cells),
-        "plan_sha256": hashlib.sha256(
-            "\n".join(canonical_json(row) for row in cells).encode("utf-8")
-        ).hexdigest(),
+        "datasets": dataset_manifests,
+        "models_yaml_sha256": file_sha256(models_yaml),
+        "counterfactuals_yaml_sha256": file_sha256(counterfactuals_yaml),
+        "plan_sha256": _sha256_json(cells),
     }
     return cells, manifest
+
+
+def write_core_plan(
+    *,
+    output_dir: Path,
+    cells: Sequence[Mapping[str, Any]],
+    manifest: Mapping[str, Any],
+) -> dict[str, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plan_path = output_dir / "run_plan.jsonl"
+    manifest_path = output_dir / "plan_manifest.json"
+
+    plan_text = "".join(canonical_json(dict(row)) + "\n" for row in cells)
+    plan_path.write_text(plan_text, encoding="utf-8")
+    payload = dict(manifest)
+    payload["run_plan_file_sha256"] = file_sha256(plan_path)
+    manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {"plan": plan_path, "manifest": manifest_path}
