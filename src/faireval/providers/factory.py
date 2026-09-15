@@ -25,6 +25,7 @@ def build_provider(family: str):
             supports_seed_flag=False,
             json_mode=True,
             extra_request_fields={"reasoning_effort": "none"},
+            output_token_parameter="max_completion_tokens",
         )
     if family == "anthropic":
         return AnthropicAdapter()
@@ -39,6 +40,7 @@ def build_provider(family: str):
             supports_seed_flag=False,
             json_mode=True,
             extra_body={"thinking": {"type": "disabled"}},
+            output_token_parameter="max_tokens",
         )
     if family == "qwen":
         base_url = os.environ.get("QWEN_BASE_URL")
@@ -54,6 +56,7 @@ def build_provider(family: str):
             supports_seed_flag=False,
             json_mode=True,
             extra_body={"enable_thinking": False},
+            output_token_parameter="max_tokens",
         )
     if family == "meta":
         base_url = os.environ.get("LLAMA_BASE_URL")
@@ -66,5 +69,6 @@ def build_provider(family: str):
             base_url=base_url,
             supports_seed_flag=False,
             json_mode=True,
+            output_token_parameter="max_tokens",
         )
     raise ValueError(f"Unsupported model family: {family}")
