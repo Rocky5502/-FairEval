@@ -3,7 +3,7 @@
 # factorized so every RQ has a clean estimand without exploding into an
 # uninterpretable Cartesian product.
 
-version: faireval-study-v3
+version: faireval-study-v4
 status: pre_run
 
 principles:
@@ -16,7 +16,8 @@ principles:
     - candidate_order_primary
     - prompt_template_primary
     - model_panel
-    - decoding_settings
+    - provider_endpoints_and_regions
+    - decoding_and_deliberation_settings
     - metric_definitions
     - analysis_code_commit
   prohibited:
@@ -43,14 +44,26 @@ sample_size:
 primary_prompt:
   template_id: field_v2_a
   prompt_mode: audit
-  cue_style: structured_fields
+  cue_id: structured_key_value
   candidate_order: frozen_instance_permutation
   k: 10
 
 primary_generation:
   repetitions: 3
-  temperature: 0.2
-  top_p: 1.0
+  temperature_requested: 0.2
+  top_p_requested: 1.0
+  provider_sampling_policy: >-
+    Apply requested temperature/top_p only where the frozen provider interface
+    supports them. Claude Sonnet 5 and Gemini 3.8 Flash use provider-default
+    sampling under the current APIs; every response logs whether controls were
+    actually applied. No cross-provider decoding equivalence is claimed.
+  deliberation_policy:
+    openai: none
+    anthropic: disabled
+    google: low
+    deepseek: disabled
+    qwen: disabled
+    meta: no_added_reasoning_wrapper
   max_output_tokens: 512
   exact_json_contract: true
   format_repair_attempts: 1
@@ -60,22 +73,32 @@ rq1_demographic_counterfactual_fairness:
   claim_scope: observed-demographic datasets only
   datasets:
     - movielens_1m
-    - lastfm
+    - lastfm_1k
   conditions:
     - preference_only
     - observed_demographic
     - paired_counterfactual_demographic
+  primary_attributes:
+    movielens_1m: [gender]
+    lastfm_1k: [gender]
+  robustness_attributes:
+    movielens_1m: [age_group]
+    lastfm_1k: [age_group]
   primary_outcomes:
     - counterfactual_utility_gap_ndcg10
     - counterfactual_utility_gap_recall10
     - invalid_output_disparity
   secondary_outcomes:
-    - counterfactual_exposure_gap_if_item_groups_are_valid
+    - counterfactual_exposure_gap_if_complete_item_group_metadata
     - rbo10_behavioral_shift
     - jaccard10_behavioral_shift
+  exposure_guard: >-
+    Primary exposure analysis requires complete auditable top-K item-group
+    metadata. Missing metadata is reported as coverage and is not silently
+    renormalized. Any partial-metadata analysis is exploratory and labeled.
   causal_invariant: >-
     Within a paired counterfactual, history, candidates, candidate order, task
-    wording, output contract, model, and decoding settings are identical; only
+    wording, output contract, model, and generation settings are identical; only
     the pre-registered demographic field changes.
 
 rq2_grounded_personality_value:
@@ -87,6 +110,11 @@ rq2_grounded_personality_value:
     - preference_only
     - true_measured_personality
     - shuffled_personality_matched_control
+  shuffled_profile_control:
+    method: deterministic_whole_profile_derangement
+    self_donor_allowed: false
+    preserves_multivariate_profile_distribution: true
+    preserves_trait_covariance_exactly: true
   one_trait_ablation:
     enabled: true
     subset_users_per_dataset: 30
@@ -96,7 +124,9 @@ rq2_grounded_personality_value:
       - extraversion
       - agreeableness
       - neuroticism
-    intervention: pre_registered_quantile_swap
+    intervention: deterministic_distant_observed_value_donor
+    fabricated_scale_extremes_allowed: false
+    other_four_traits_held_fixed: true
   primary_outcomes:
     - personality_value_added_ndcg10
     - personality_value_added_recall10
@@ -118,13 +148,17 @@ rq3_reliability:
     selection_policy: report_all_pre_registered_templates
   cue_style_robustness:
     subset_users_per_dataset: 20
-    styles:
-      - structured_fields
-      - compact_natural_language_profile
+    datasets:
+      - movielens_1m
+      - lastfm_1k
+    cue_ids:
+      - structured_key_value
+      - first_person_explicit
+      - third_person_profile
     note: >-
-      The natural-language style is a robustness/ecological-validity check; it
-      is not allowed to replace the primary structured causal-audit prompt after
-      results are observed.
+      Cue styles express the same explicit attribute values. They are robustness/
+      ecological-validity checks and cannot replace the primary structured causal
+      audit after results are observed.
   candidate_order_robustness:
     subset_users_per_dataset: 20
     deterministic_permutations: 3
@@ -132,12 +166,14 @@ rq3_reliability:
   stochasticity_audit:
     subset_fraction: 0.10
     repetitions: 10
-    temperature: 0.7
+    temperature_requested_where_supported: 0.7
+    provider_default_where_sampling_controls_deprecated: true
   cutoff_sensitivity:
     k_values: [5, 10, 20]
   outcomes:
     - between_generation_variance
     - between_prompt_variance
+    - between_cue_variance
     - candidate_order_variance
     - rank_correlation_of_model_conclusions
     - invalid_output_rate
@@ -145,12 +181,15 @@ rq3_reliability:
 rq4_mitigation:
   datasets:
     - movielens_1m
-    - lastfm
+    - lastfm_1k
   baselines:
     - unmitigated_audit_prompt
     - identity_irrelevance_instruction
     - counterfactually_fair_prompting_baseline
     - pair_reranker
+  pair_requirements:
+    minimum_identity_conditioned_rankings: 2
+    reject_duplicate_rankings_or_out_of_candidate_items: true
   lambda_selection:
     method: validation_only
     grid: [0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6]
@@ -159,7 +198,7 @@ rq4_mitigation:
     - ndcg10
     - recall10
     - absolute_counterfactual_utility_gap
-    - exposure_gap_if_available
+    - exposure_gap_if_complete_metadata
     - invalid_output_rate
     - utility_fairness_pareto_frontier
   success_definition: >-
@@ -170,13 +209,18 @@ rq4_mitigation:
 mind_scope:
   role: candidate_constrained_domain_generalization
   observed_identity_claims_allowed: false
+  core_conditions:
+    - preference_only
   primary_use:
     - utility_generalization
     - prompt_and_candidate_order_reliability
   synthetic_identity_stress_test:
-    enabled: true
-    subset_users: 20
-    label_in_paper: synthetic_counterfactual_stress_test
+    enabled_in_core_plan: false
+    reason: >-
+      The executable core planner currently generates preference-only MIND cells.
+      A synthetic identity study requires a separately frozen identity taxonomy,
+      new plan version, and explicit paper label before any API calls.
+    label_if_future_version_enabled: synthetic_counterfactual_stress_test
     never_pool_with_observed_demographic_estimates: true
 
 statistics:
