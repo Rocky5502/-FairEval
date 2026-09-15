@@ -1,0 +1,23 @@
+% RQ-to-estimand contract. Keep synchronized with configs/study_design.yaml and configs/analysis.yaml.
+\begin{table*}[t]
+\centering
+\caption{Pre-registered research-question, estimand, and inference contract. The table separates the primary estimand from diagnostics so behavioral list change cannot substitute for consequence-aware fairness.}
+\label{tab:rq-design}
+\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\renewcommand{\arraystretch}{1.12}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{0.75cm}p{3.55cm}p{2.35cm}p{3.00cm}p{3.25cm}p{3.55cm}p{3.35cm}}
+\toprule
+\textbf{RQ} & \textbf{Frozen contrast / intervention} & \textbf{Primary datasets} & \textbf{Primary estimand} & \textbf{Supporting outcomes} & \textbf{Inference / decision rule} & \textbf{Pre-registered robustness} \\
+\midrule
+\textbf{RQ1} & $C_1$ observed demographic vs. matched $C_2$ one-field demographic counterfactual; preference history, candidates, task and prompt structure fixed & MovieLens-1M; Last.fm-1K & signed user-level $\CUG$: $\Delta$ nDCG@10; harmfulness requires consequence evidence & Recall@10; $\IOD$; $\GUD$; $\CEG$ only under complete auditable top-$K$ item-group metadata; RBO/Jaccard diagnostic only & mean repetitions within user-condition; paired bootstrap CI; paired sign-flip permutation primary; Wilcoxon sensitivity + matched rank-biserial; Holm within RQ$\times$metric$\times$contrast & age-group robustness; prompt/cue variants; candidate order; $K\in\{5,10,20\}$; repeated generations \\
+\midrule
+\textbf{RQ2} & $C_3$ true measured personality vs. $C_4$ whole-profile deterministic derangement; secondary $C_3$ vs. $C_0$; $C_5$ one-trait observed-value intervention & Personality 2018; Music Master/BFI-2; REASONER & $\PVA=U(C_3)-U(C_4)$ using nDCG@10; tests user-specific value beyond personality-shaped context & Recall@10; MRR sensitivity; $C_3-C_0$ incremental value; five one-trait robustness effects & same paired user-level inference stack as RQ1; dataset/model results preserved before any meta-summary & trait-by-trait controls; prompt/cue/order; repetitions; dataset/model family generalization \\
+\midrule
+\textbf{RQ3} & Hold semantic task fixed while varying model family, dataset, task paraphrase, cue realization, candidate permutation, cutoff, and repeated generation & all six datasets; all six model families & stability of RQ1/RQ2 sign, magnitude, and uncertainty under registered perturbations & variance/dispersion by factor; invalid-output rate; pairwise rank/utility stability; factor interactions only if identifiable & no best-prompt selection; report factor-level distributions; variance-component/mixed model only when supported by the frozen design & three task paraphrases; three cue forms; three candidate permutations; $K=5/10/20$; ten generations on frozen 10\% subset \\
+\midrule
+\textbf{RQ4} & unmitigated audit vs. identity-irrelevance prompting vs. PAIR re-ranking; tune $\alpha,\lambda$ on validation users only & MovieLens-1M; Last.fm-1K & movement on the utility--fairness frontier: reduce harmful $|\CUG|$/\IOD (and $\CEG$ where valid) without utility collapse & nDCG/Recall; true-vs-shuffled $\PVA$ preservation; counterfactual instability; intervention cost/coverage & no test-set operating-point selection; report Pareto frontier and validation-frozen operating points; success requires gap reduction without material utility/personalization collapse & model/dataset stratification; multiple $\lambda$ validation points; prompt baseline; counterfactual ranking availability \\
+\bottomrule
+\end{tabular}}
+\end{table*}
