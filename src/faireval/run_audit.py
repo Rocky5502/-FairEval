@@ -32,6 +32,7 @@ _REQUIRED_RUN_FIELDS = (
     "top_p_requested",
     "max_output_tokens",
     "reasoning_or_thinking_setting",
+    "reasoning_or_thinking_applied",
     "sampling_controls_applied",
     "sampling_policy",
     "output_token_parameter",
@@ -126,9 +127,7 @@ def _audit_repair(row: Mapping[str, Any], *, line_no: int) -> str:
     if not isinstance(repair["valid"], bool):
         raise ValueError(f"line {line_no}: repair valid flag must be boolean")
     if bool(repair["valid"]) != final_valid:
-        raise ValueError(
-            f"line {line_no}: repair validity disagrees with final_valid"
-        )
+        raise ValueError(f"line {line_no}: repair validity disagrees with final_valid")
     return repair_text if bool(repair["valid"]) else str(row["raw_response"])
 
 
@@ -176,6 +175,14 @@ def _check_plan_alignment(
                 f"line {line_no}: {run_field} disagrees with immutable plan: "
                 f"run={actual!r}, plan={expected!r}"
             )
+
+    requested_reasoning = str(planned.get("reasoning_or_thinking_setting") or "")
+    applied_reasoning = str(row.get("reasoning_or_thinking_applied") or "")
+    if applied_reasoning != requested_reasoning:
+        raise ValueError(
+            f"line {line_no}: applied reasoning/thinking mode drift: "
+            f"requested={requested_reasoning!r}, applied={applied_reasoning!r}"
+        )
 
 
 def audit_run_log(
@@ -237,6 +244,7 @@ def audit_run_log(
         if not isinstance(provider_metadata, Mapping):
             raise ValueError(f"line {line_no}: provider_metadata must be an object")
         for field in (
+            "reasoning_or_thinking_applied",
             "sampling_controls_applied",
             "sampling_policy",
             "output_token_parameter",
@@ -285,7 +293,7 @@ def audit_run_log(
         )
 
     return {
-        "schema_version": "faireval-run-audit-v3",
+        "schema_version": "faireval-run-audit-v4",
         "rows": len(rows),
         "unique_planned_cells": len(seen_cells),
         "invalid_outputs": invalid_count,
