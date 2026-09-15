@@ -68,6 +68,9 @@ def main() -> int:
         raise ValueError(
             "analysis code and frozen policy disagree: primary invalid-output utility must be zero"
         )
+    if config["invalid_outputs"].get("report_invalid_output_disparity") is not True:
+        raise ValueError("frozen RQ1 analysis requires invalid-output disparity reporting")
+
     inference = config["inference"]
     if inference["multiple_comparisons"]["method"] != "holm":
         raise ValueError("current frozen analysis supports Holm correction only")
@@ -83,21 +86,44 @@ def main() -> int:
     aggregated = aggregate_repetitions(scored)
     rq1_pairs = build_rq1_confirmatory_pairs(aggregated)
     rq2_pairs = build_rq2_pairs(aggregated)
-    all_pairs = rq1_pairs + rq2_pairs
 
-    metrics = [config["utility"]["primary_metric"]] + list(
+    utility_metrics = [config["utility"]["primary_metric"]] + list(
         config["utility"].get("additional_metrics", [])
     )
     permutation_cfg = inference["paired_permutation"]
-    summaries = summarize_paired_estimands(
-        all_pairs,
-        metrics=metrics,
-        bootstrap_samples=int(inference["bootstrap_samples"]),
-        bootstrap_seed=int(inference["bootstrap_seed"]),
-        permutation_exact_max_n=int(permutation_cfg["exact_max_nonzero_pairs"]),
-        permutation_samples=int(permutation_cfg["monte_carlo_samples"]),
-        permutation_seed=int(permutation_cfg["seed"]),
-        confidence=float(inference["confidence"]),
+    common_inference_kwargs = {
+        "bootstrap_samples": int(inference["bootstrap_samples"]),
+        "bootstrap_seed": int(inference["bootstrap_seed"]),
+        "permutation_exact_max_n": int(permutation_cfg["exact_max_nonzero_pairs"]),
+        "permutation_samples": int(permutation_cfg["monte_carlo_samples"]),
+        "permutation_seed": int(permutation_cfg["seed"]),
+        "confidence": float(inference["confidence"]),
+    }
+
+    # Invalid-output disparity is a primary RQ1 consequence, not merely a
+    # descriptive side statistic. Because repetitions were already averaged at
+    # the user-condition level, invalid_rate is a paired user-level outcome just
+    # like utility and receives the same bootstrap/permutation/Holm treatment.
+    rq1_summaries = summarize_paired_estimands(
+        rq1_pairs,
+        metrics=tuple(utility_metrics) + ("invalid_rate",),
+        **common_inference_kwargs,
+    )
+    rq2_summaries = summarize_paired_estimands(
+        rq2_pairs,
+        metrics=tuple(utility_metrics),
+        **common_inference_kwargs,
+    )
+    summaries = sorted(
+        rq1_summaries + rq2_summaries,
+        key=lambda row: (
+            row["rq"],
+            row["contrast"],
+            row["metric"],
+            row["dataset"],
+            row["model_family"],
+            "" if row["attribute"] is None else row["attribute"],
+        ),
     )
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -131,6 +157,8 @@ def main() -> int:
         "plan_manifest_sha256": file_sha256(plan_manifest_path),
         "analysis_config_sha256": file_sha256(config_path),
         "invalid_output_primary_utility_policy": invalid_policy,
+        "inferred_rq1_metrics": list(utility_metrics) + ["invalid_rate"],
+        "inferred_rq2_metrics": list(utility_metrics),
         "row_counts": {
             "scored_runs": len(scored),
             "user_condition": len(aggregated),
