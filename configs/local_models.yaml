@@ -1,0 +1,100 @@
+# FairEval local open-weight / white-box analysis track
+# Verified against the official Hugging Face model repositories on 2026-09-15.
+# This track is complementary to the six hosted/API families in configs/models.yaml.
+# It is NOT pooled with the hosted-model confirmatory panel when discussing vendor effects.
+
+version: faireval-local-models-v1
+track_name: local_open_weight_transparency
+purpose:
+  - reproducible_local_inference
+  - token_level_white_box_diagnostics
+  - hardware_controlled_robustness
+  - synthetic_stress_test_validation
+
+models:
+  - family: qwen25_local
+    organization: Qwen
+    name: Qwen2.5-7B-Instruct
+    model_id: Qwen/Qwen2.5-7B-Instruct
+    revision: pin_exact_huggingface_commit_before_pilot
+    license: Apache-2.0
+    parameters: 7615600000
+    architecture: qwen2
+    serving_mode: direct_transformers
+    enabled: true
+    trust_remote_code: false
+    reasoning_or_thinking_setting: not_applicable
+    sampling_policy: explicit_temperature_and_top_p
+    output_token_parameter: max_new_tokens
+    dtype_preference: bfloat16
+    white_box_diagnostics:
+      enabled: true
+      fields:
+        - mean_generated_token_logprob
+        - generated_token_nll
+        - generated_token_perplexity
+        - mean_top1_top2_logit_margin
+    notes: >-
+      Open-weight local comparison model. Use exact revision/commit after the
+      pilot freeze. The transparency diagnostics are model-internal auxiliary
+      signals and are not treated as calibrated uncertainty by default.
+
+  - family: phi35_local
+    organization: Microsoft
+    name: Phi-3.5-mini-instruct
+    model_id: microsoft/Phi-3.5-mini-instruct
+    revision: pin_exact_huggingface_commit_before_pilot
+    license: MIT
+    parameters: 3821100000
+    architecture: phi3
+    serving_mode: direct_transformers
+    enabled: true
+    trust_remote_code: true
+    reasoning_or_thinking_setting: not_applicable
+    sampling_policy: explicit_temperature_and_top_p
+    output_token_parameter: max_new_tokens
+    dtype_preference: bfloat16
+    white_box_diagnostics:
+      enabled: true
+      fields:
+        - mean_generated_token_logprob
+        - generated_token_nll
+        - generated_token_perplexity
+        - mean_top1_top2_logit_margin
+    notes: >-
+      Compact Microsoft open-weight comparison model. Freeze exact Hugging Face
+      revision before execution because repository contents can change over time.
+
+hardware_profile:
+  preferred_single_gpu:
+    gpu: NVIDIA GeForce RTX 5090
+    vram_gb: 32
+    precision: bfloat16
+    rationale: >-
+      Both selected checkpoints fit comfortably for sequential single-model
+      inference on a 32 GB RTX 5090-class GPU in BF16. Models are loaded one at
+      a time. Do not claim a nonexistent official RTX 5090 Ti configuration.
+  acceptable_alternatives:
+    - NVIDIA RTX 6000 Ada 48GB
+    - NVIDIA L40S 48GB
+    - NVIDIA A100 40GB_or_80GB
+    - NVIDIA H100 80GB
+  execution_policy:
+    concurrent_model_loading: false
+    one_model_at_a_time: true
+    record_gpu_name: true
+    record_vram_total: true
+    record_driver_version: true
+    record_cuda_version: true
+    record_torch_version: true
+
+reporting_policy:
+  label: local_open_weight
+  headline_model_count: 8_total_6_hosted_plus_2_local
+  do_not_claim_exact_equivalence_with_hosted_apis: true
+  do_not_pool_white_box_confidence_with_api_models: true
+  primary_use:
+    - RQ3 reliability and reproducibility
+    - FairSynth-360 controlled stress test
+  secondary_use:
+    - replicate selected RQ1/RQ2 cells on real datasets
