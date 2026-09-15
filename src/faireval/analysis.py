@@ -10,6 +10,7 @@ from .execute import load_and_verify_plan
 from .freeze import load_frozen_instances
 from .metrics import mrr_at_k, ndcg_at_k, recall_at_k
 from .run_audit import audit_run_log
+from .schema import UserInstance
 
 
 UTILITY_METRICS = ("ndcg", "recall", "mrr")
@@ -26,6 +27,36 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
                 raise ValueError(f"{path}:{line_no}: expected a JSON object")
             rows.append(row)
     return rows
+
+
+def validate_ranking_against_frozen_instance(
+    ranking: Sequence[str],
+    instance: UserInstance,
+    *,
+    k: int,
+) -> tuple[str, ...]:
+    """Defense-in-depth validation immediately before metric computation.
+
+    The runtime validator and run-log audit already enforce output structure, but
+    analysis additionally checks the ranking against the *frozen* candidate set.
+    This prevents a self-consistent/tampered run log from introducing an item that
+    was never available to that user while still reaching nDCG/Recall/MRR.
+    """
+    instance.validate()
+    values = tuple(str(value) for value in ranking)
+    if len(values) != k:
+        raise ValueError(
+            f"{instance.dataset}/{instance.user_id}: ranking length {len(values)} != frozen k={k}"
+        )
+    if len(set(values)) != len(values):
+        raise ValueError(f"{instance.dataset}/{instance.user_id}: ranking contains duplicate IDs")
+    candidate_ids = set(instance.candidate_ids())
+    unknown = sorted(set(values) - candidate_ids)
+    if unknown:
+        raise ValueError(
+            f"{instance.dataset}/{instance.user_id}: ranking contains IDs outside frozen candidates: {unknown}"
+        )
+    return values
 
 
 def score_run_log(
@@ -52,9 +83,10 @@ def score_run_log(
     run_rows = _read_jsonl(output_jsonl)
 
     datasets = sorted({str(row["dataset"]) for row in run_rows})
-    instance_index: dict[tuple[str, str], Any] = {}
+    instance_index: dict[tuple[str, str], UserInstance] = {}
     for dataset in datasets:
         for instance in load_frozen_instances(freeze_root / dataset):
+            instance.validate()
             key = (dataset, str(instance.user_id))
             if key in instance_index:
                 raise ValueError(f"duplicate frozen instance {key!r}")
@@ -76,6 +108,7 @@ def score_run_log(
         relevant = instance.relevant_item_ids
 
         if final_valid:
+            ranking = list(validate_ranking_against_frozen_instance(ranking, instance, k=k))
             utility = {
                 "ndcg": ndcg_at_k(ranking, relevant, k),
                 "recall": recall_at_k(ranking, relevant, k),
