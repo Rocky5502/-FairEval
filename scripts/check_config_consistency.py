@@ -165,8 +165,6 @@ def main() -> int:
     if by_family["google"]["output_token_parameter"] != "max_output_tokens":
         raise SystemExit("Gemini core config must use max_output_tokens")
 
-    # Auxiliary two-model local transparency track. Never fold these rows into
-    # configs/models.yaml because doing so would mutate the hosted confirmatory plan.
     local_enabled = [row for row in local_models["models"] if row.get("enabled", True)]
     local_by_family = {str(row["family"]): row for row in local_enabled}
     if set(local_by_family) != {"qwen25_local", "phi35_local"}:
@@ -193,7 +191,6 @@ def main() -> int:
     if hardware.get("gpu") != "NVIDIA GeForce RTX 5090" or hardware.get("vram_gb") != 32:
         raise SystemExit("local hardware profile must describe the official RTX 5090 32GB target")
 
-    # FairSynth is the only executable auxiliary dataset and must remain separate.
     if set(AUXILIARY_DATASET_IDS) != {"fairsynth360"}:
         raise SystemExit("unexpected auxiliary dataset registry drift")
     if fairsynth.get("scope", {}).get("total_users") != 360:
@@ -206,8 +203,13 @@ def main() -> int:
     personality = fairsynth.get("personality_control", {})
     if personality.get("human_measurement") is not False:
         raise SystemExit("FairSynth synthetic OCEAN must never be labeled human measurement")
-    if fairsynth.get("reporting", {}).get("report_separately_from_real_data") is not True:
+    reporting = fairsynth.get("reporting", {})
+    if reporting.get("report_separately_from_real_world_datasets") is not True:
         raise SystemExit("FairSynth must remain separately reported")
+    if reporting.get("no_meta_pooling_with_rq1_observed_demographics") is not True:
+        raise SystemExit("FairSynth must never enter RQ1 observed-demographic meta-analysis")
+    if reporting.get("no_meta_pooling_with_rq2_measured_psychometrics") is not True:
+        raise SystemExit("FairSynth must never enter RQ2 measured-psychometric meta-analysis")
 
     extensions = experiment.get("extension_tracks", {})
     if set(extensions) != {"local_open_weight_transparency", "fairsynth360"}:
@@ -223,6 +225,16 @@ def main() -> int:
         raise SystemExit("study_design FairSynth scope must use all 360 synthetic users")
     if study["fairsynth360_scope"].get("never_pool_with_observed_demographic_estimates") is not True:
         raise SystemExit("study_design must prohibit FairSynth/observed-demographic pooling")
+
+    rq4_selection = study["rq4_mitigation"].get("operating_point_selection", {})
+    if rq4_selection.get("minimum_validation_utility_retention") != 0.95:
+        raise SystemExit("RQ4 PAIR validation utility-retention floor must remain 0.95")
+    if rq4_selection.get("global_single_operating_point") is not True:
+        raise SystemExit("RQ4 must freeze one global PAIR operating point")
+    if rq4_selection.get("per_model_or_dataset_tuning") is not False:
+        raise SystemExit("RQ4 must prohibit per-model/per-dataset test tuning")
+    if rq4_selection.get("selection_uses_test_outcomes") is not False:
+        raise SystemExit("RQ4 PAIR selection must not use test outcomes")
 
     primary_generation = study["primary_generation"]
     model_generation = models["generation"]
@@ -247,6 +259,7 @@ def main() -> int:
     print("config preflight: six hosted provider semantics remain frozen")
     print("config preflight: two local model IDs/licenses/white-box semantics agree")
     print("config preflight: FairSynth-360 size/balance/separation guards agree")
+    print("config preflight: contextual PAIR validation-only selection contract agrees")
     return 0
 
 
