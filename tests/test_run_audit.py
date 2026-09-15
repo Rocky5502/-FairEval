@@ -11,6 +11,15 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _provider_metadata() -> dict:
+    return {
+        "reasoning_or_thinking_applied": "none",
+        "sampling_controls_applied": True,
+        "sampling_policy": "explicit_temperature_and_top_p",
+        "output_token_parameter": "max_completion_tokens",
+    }
+
+
 def _row() -> dict:
     raw = '{"ranked_item_ids":["a","b"]}'
     return {
@@ -48,11 +57,7 @@ def _row() -> dict:
         "request_sha256": "c" * 64,
         "raw_response": raw,
         "response_sha256": _sha(raw),
-        "provider_metadata": {
-            "sampling_controls_applied": True,
-            "sampling_policy": "explicit_temperature_and_top_p",
-            "output_token_parameter": "max_completion_tokens",
-        },
+        "provider_metadata": _provider_metadata(),
         "initial_valid": True,
         "initial_errors": [],
         "repair": None,
@@ -78,11 +83,7 @@ def _repaired_row() -> dict:
                 "raw_response": repaired,
                 "response_sha256": _sha(repaired),
                 "resolved_model_version": "gpt-5.6-terra",
-                "provider_metadata": {
-                    "sampling_controls_applied": True,
-                    "sampling_policy": "explicit_temperature_and_top_p",
-                    "output_token_parameter": "max_completion_tokens",
-                },
+                "provider_metadata": _provider_metadata(),
                 "valid": True,
                 "errors": [],
             },
@@ -169,6 +170,15 @@ def test_run_audit_rejects_provider_metadata_drift(tmp_path: Path):
     path = tmp_path / "runs.jsonl"
     _write(path, [row])
     with pytest.raises(ValueError, match="output_token_parameter disagrees"):
+        audit_run_log(path)
+
+
+def test_run_audit_rejects_reasoning_metadata_drift(tmp_path: Path):
+    row = _row()
+    row["provider_metadata"]["reasoning_or_thinking_applied"] = "high"
+    path = tmp_path / "runs.jsonl"
+    _write(path, [row])
+    with pytest.raises(ValueError, match="reasoning_or_thinking_applied disagrees"):
         audit_run_log(path)
 
 
