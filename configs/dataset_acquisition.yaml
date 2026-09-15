@@ -1,0 +1,90 @@
+version: faireval-dataset-acquisition-v1
+status: pre_run
+
+policy:
+  raw_data_committed_to_git: false
+  rationale: >-
+    FairEval commits acquisition metadata, adapter contracts, hashes, and derived
+    manifests, but does not redistribute third-party raw datasets unless their
+    exact release terms explicitly permit it and redistribution is scientifically
+    necessary. This avoids silently violating click-through, attribution,
+    non-commercial, or redistribution restrictions.
+  release_identity_source: configs/dataset_releases.yaml
+
+# `required_any_of` means at least one listed filename must exist.
+# `required_all` means every filename must exist in data/raw/<dataset_id>/.
+datasets:
+  personality2018:
+    source: https://grouplens.org/datasets/personality-2018/
+    acquisition: official_manual_download
+    required_all:
+      - ratings.csv
+      - personality-data.csv
+      - movies.csv
+    notes: >-
+      The adapter requires the official personality ratings/profile files plus a
+      separately pinned MovieLens movies.csv companion. Freeze both source
+      identities and the combined local raw-directory hash before use.
+
+  music_master_bfi2:
+    source: https://figshare.com/articles/dataset/19678962
+    acquisition: official_figshare_download
+    required_any_of:
+      - music_master.xlsx
+      - MusicMaster.xlsx
+      - music_master_bfi2.xlsx
+      - music_master.csv
+      - MusicMaster.csv
+      - music_master_bfi2.csv
+    allow_single_spreadsheet_fallback: true
+    notes: >-
+      The adapter accepts the original workbook or one CSV export. Q1 remains the
+      primary preference signal; do not substitute Q2/Q3 silently.
+
+  reasoner:
+    source: https://github.com/REASONER2023/reasoner2023.github.io
+    acquisition: official_project_release
+    required_all:
+      - interaction.csv
+      - user.csv
+      - video.csv
+      - bigfive.csv
+    notes: >-
+      Preserve the official tab-separated file contents even though the upstream
+      filenames use .csv extensions. bigfive.csv contains CBF-PI-15 responses.
+
+  movielens_1m:
+    source: https://grouplens.org/datasets/movielens/1m/
+    acquisition: official_manual_download
+    required_all:
+      - users.dat
+      - movies.dat
+      - ratings.dat
+    forbidden_substitutions:
+      - ml-latest
+      - ml-20m
+      - ml-25m
+    notes: Use the MovieLens-1M release only; ZIP code is never exposed to the LLM.
+
+  lastfm_1k:
+    source: https://github.com/eifuentes/lastfm-dataset-1K
+    acquisition: upstream_release_or_archived_original
+    required_all:
+      - userid-timestamp-artid-artname-traid-traname.tsv
+      - userid-profile.tsv
+    forbidden_substitutions:
+      - hetrec-lastfm
+      - lfm-1b
+    notes: >-
+      Original Last.fm 1K release is for non-commercial research. FairEval ranks
+      artists and requires observed gender/age for the confirmatory demographic track.
+
+  mind:
+    source: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-microsoft-news
+    acquisition: official_mind_release
+    required_all:
+      - news.tsv
+      - behaviors.tsv
+    notes: >-
+      Freeze the exact MIND split/release used. The core FairEval design uses MIND
+      only for preference-grounded utility/reliability generalization.
