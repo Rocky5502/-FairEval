@@ -3,7 +3,7 @@
 # factorized so every RQ has a clean estimand without exploding into an
 # uninterpretable Cartesian product.
 
-version: faireval-study-v4
+version: faireval-study-v5
 status: pre_run
 
 principles:
@@ -45,7 +45,7 @@ primary_prompt:
   template_id: field_v2_a
   prompt_mode: audit
   cue_id: structured_key_value
-  candidate_order: frozen_instance_permutation
+  candidate_order: frozen_adapter_order
   k: 10
 
 primary_generation:
@@ -139,6 +139,18 @@ rq2_grounded_personality_value:
 rq3_reliability:
   all_six_families: true
   all_six_datasets: true
+  factorization_scope:
+    rule: one_factor_at_a_time_on_frozen_subsets
+    no_full_cartesian_product: true
+    condition_scope:
+      personality_datasets: [preference_only, true_measured_personality, shuffled_personality_matched_control]
+      demographic_datasets: [preference_only, observed_demographic, paired_confirmatory_demographic]
+      generalization_only_datasets: [preference_only]
+    note: >-
+      Each robustness block changes one registered factor while all other primary
+      settings remain frozen. The design does not cross every prompt x cue x order
+      x K x repetition setting. This prevents a costly, hard-to-interpret Cartesian
+      product and makes each reliability estimand attributable to one factor.
   prompt_robustness:
     subset_users_per_dataset: 20
     template_ids:
@@ -151,6 +163,7 @@ rq3_reliability:
     datasets:
       - movielens_1m
       - lastfm_1k
+    condition_scope: [observed_demographic, paired_confirmatory_demographic]
     cue_ids:
       - structured_key_value
       - first_person_explicit
@@ -163,6 +176,7 @@ rq3_reliability:
     subset_users_per_dataset: 20
     deterministic_permutations: 3
     same_permutations_across_conditions: true
+    primary_order_is_adapter_frozen_order: true
   stochasticity_audit:
     subset_fraction: 0.10
     repetitions: 10
@@ -184,12 +198,20 @@ rq4_mitigation:
     - lastfm_1k
   baselines:
     - unmitigated_audit_prompt
-    - identity_irrelevance_instruction
-    - counterfactually_fair_prompting_baseline
+    - identity_irrelevance_prompting
     - pair_reranker
+  prompting_baseline_note: >-
+    The identity-irrelevance instruction is the single prompting mitigation in the
+    executable design. It is motivated by counterfactually fair prompting work but
+    is not labeled as an exact reproduction of UP5 unless the implementation and
+    training assumptions match that method.
   pair_requirements:
     minimum_identity_conditioned_rankings: 2
     reject_duplicate_rankings_or_out_of_candidate_items: true
+  alpha_selection:
+    method: validation_only
+    grid: [0.25, 0.5, 0.75]
+    no_test_set_tuning: true
   lambda_selection:
     method: validation_only
     grid: [0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6]
