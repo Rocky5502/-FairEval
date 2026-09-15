@@ -48,9 +48,9 @@ FairSynth identity & A/B/C labels with relevance invariant by construction & spu
 FairSynth personality & true synthetic OCEAN vs. deranged profile & controlled synthetic PVA & \tbd & \tbd & \tbd \\
 Local white-box & Qwen2.5-7B / Phi-3.5-mini & token log-prob/NLL/logit-margin vs. failures/instability & \tbd & auxiliary only & \tbd \\
 RQ4 prompting & audit vs. identity-irrelevance instruction & paired frontier movement & \tbd & \tbd & \tbd \\
-RQ4 contextual PAIR & validation-frozen $\alpha,\lambda$ vs. unmitigated & Pareto movement & \tbd & \tbd & \tbd \\
+RQ4 contextual PAIR & one global point from 20\% validation: retain $\geq95\%$ baseline nDCG, then minimize $|\CUG|$ & frozen-point test Pareto movement & \tbd & \tbd & \tbd \\
 \bottomrule
 \end{tabular}}
 \vspace{0.5mm}
-\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} RBO/Jaccard quantify behavioral sensitivity only. FairSynth-360 and local internal-score diagnostics are controlled auxiliary analyses and are never pooled with real-world observed-demographic or measured-psychometric claims. White-box score diagnostics are not assumed calibrated uncertainty.}
+\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} RBO/Jaccard quantify behavioral sensitivity only. FairSynth-360 and local internal-score diagnostics are controlled auxiliary analyses and are never pooled with real-world observed-demographic or measured-psychometric claims. White-box score diagnostics are not assumed calibrated uncertainty. The RQ4 operating point is selected on validation users only; test outcomes never choose or relax the $95\%$ utility-retention rule.}
 \end{table*}
