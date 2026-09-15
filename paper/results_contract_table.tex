@@ -1,11 +1,11 @@
 % Multi-panel results contract. Numerical cells MUST be generated from frozen artifacts.
 \begin{table*}[t]
 \centering
-\caption{Primary results contract for RQ1--RQ4. Every numerical cell is intentionally \tbd{} in the development manuscript and is populated only from hashed analysis artifacts. Dataset-level tables remain the source of record; these compact panels are the paper-facing summaries.}
+\caption{Primary results contract for RQ1--RQ4 plus the separately reported FairSynth-360/local-white-box sanity analysis. Every numerical cell is intentionally \tbd{} in the development manuscript and is populated only from hashed analysis artifacts.}
 \label{tab:results-contract}
 \scriptsize
-\setlength{\tabcolsep}{2.8pt}
-\renewcommand{\arraystretch}{1.10}
+\setlength{\tabcolsep}{2.7pt}
+\renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
@@ -17,8 +17,10 @@ OpenAI    & \tbd & \tbd & \tbd & \tbd & \tbd \\
 Anthropic & \tbd & \tbd & \tbd & \tbd & \tbd \\
 Google    & \tbd & \tbd & \tbd & \tbd & \tbd \\
 DeepSeek  & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Qwen      & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Qwen API  & \tbd & \tbd & \tbd & \tbd & \tbd \\
 Llama     & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Qwen2.5-7B local & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Phi-3.5-mini local & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \midrule
 \multicolumn{6}{c}{\textbf{Panel B: RQ2 --- value of measured personality}} \\
 \cmidrule(lr){1-6}
@@ -28,10 +30,12 @@ OpenAI    & \tbd & \tbd & \tbd & \tbd & \tbd \\
 Anthropic & \tbd & \tbd & \tbd & \tbd & \tbd \\
 Google    & \tbd & \tbd & \tbd & \tbd & \tbd \\
 DeepSeek  & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Qwen      & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Qwen API  & \tbd & \tbd & \tbd & \tbd & \tbd \\
 Llama     & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Qwen2.5-7B local & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Phi-3.5-mini local & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \midrule
-\multicolumn{6}{c}{\textbf{Panel C: RQ3 reliability and RQ4 personalization-preserving mitigation}} \\
+\multicolumn{6}{c}{\textbf{Panel C: RQ3 reliability, FairSynth sanity checks, and RQ4 mitigation}} \\
 \cmidrule(lr){1-6}
 \textbf{Analysis block} & \textbf{Frozen comparison} & \textbf{Headline statistic} & \textbf{Utility consequence} & \textbf{Fairness/personality consequence} & \textbf{Decision output} \\
 \midrule
@@ -39,11 +43,14 @@ RQ3 task wording & field\_v2\_a/b/c & between-template dispersion & \tbd & \tbd 
 RQ3 cue realization & structured / first-person / profile sentence & between-cue dispersion & \tbd & \tbd & \tbd \\
 RQ3 candidate order & three frozen permutations & order sensitivity & \tbd & \tbd & \tbd \\
 RQ3 cutoff & $K=5,10,20$ & estimand stability & \tbd & \tbd & \tbd \\
-RQ3 stochasticity & 3 main reps; 10 reps on frozen 10\% subset & within-cell variation & \tbd & \tbd & \tbd \\
+RQ3 stochasticity & 3 main reps; 10 reps on frozen subset & within-cell variation & \tbd & \tbd & \tbd \\
+FairSynth identity & A/B/C labels with relevance invariant by construction & spurious identity-conditioned gap & \tbd & \tbd & \tbd \\
+FairSynth personality & true synthetic OCEAN vs. deranged profile & controlled synthetic PVA & \tbd & \tbd & \tbd \\
+Local white-box & Qwen2.5-7B / Phi-3.5-mini & token log-prob/NLL/logit-margin vs. failures/instability & \tbd & auxiliary only & \tbd \\
 RQ4 prompting & audit vs. identity-irrelevance instruction & paired frontier movement & \tbd & \tbd & \tbd \\
-RQ4 PAIR & validation-frozen $\alpha,\lambda$ vs. unmitigated & Pareto movement & \tbd & \tbd & \tbd \\
+RQ4 contextual PAIR & validation-frozen $\alpha,\lambda$ vs. unmitigated & Pareto movement & \tbd & \tbd & \tbd \\
 \bottomrule
 \end{tabular}}
 \vspace{0.5mm}
-\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} RBO/Jaccard quantify behavioral sensitivity only. A fairness claim is based on consequence-aware paired utility/failure/exposure estimands under the eligibility rules in Table~\ref{tab:rq-design}; personality benefit is interpreted through true-versus-shuffled $\PVA$, not through an LLM's self-description of personality.}
+\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} RBO/Jaccard quantify behavioral sensitivity only. FairSynth-360 and local internal-score diagnostics are controlled auxiliary analyses and are never pooled with real-world observed-demographic or measured-psychometric claims. White-box score diagnostics are not assumed calibrated uncertainty.}
 \end{table*}
