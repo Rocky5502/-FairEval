@@ -1,0 +1,10 @@
+# FairEval ECIR 2027 - one-week experiment environment
+#
+# This is the convenience entrypoint for the local execution week. It includes
+# the canonical hosted/analysis/test environment plus the non-PyTorch local-model
+# dependencies. Install the CUDA-matched PyTorch build for your GPU FIRST, then:
+#
+#   python -m pip install -r requirements-week1.txt
+#
+# For CPU/hosted/paper-only work, requirements.txt is sufficient.
+-r requirements-local-gpu.txt
