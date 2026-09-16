@@ -20,12 +20,17 @@ def _hash_row(row: Mapping[str, Any]) -> str:
 def build_identity_irrelevance_plan(
     source_cells: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Derive an immutable RQ4 prompting plan without mutating the audit plan.
+    """Derive an executor-compatible immutable RQ4 prompting plan.
 
     Only observed C1 and primary confirmatory gender C2 cells are copied. The
     semantic recommendation task, candidate order, model, decoding settings, and
     repetition stay frozen; only ``prompt_mode`` changes from ``audit`` to
     ``identity_irrelevance``. The original cell ID is retained for provenance.
+
+    The derived rows deliberately retain the shared ``faireval-run-plan-v1``
+    schema so the ordinary executor/auditor remains authoritative. The named
+    ``plan_track`` and ``rq4_intervention`` fields identify this intervention
+    without introducing a second execution protocol.
     """
     output: list[dict[str, Any]] = []
     for cell in source_cells:
@@ -34,6 +39,8 @@ def build_identity_irrelevance_plan(
         roles = {str(value) for value in cell.get("analysis_roles", [])}
         if "rq4_mitigation_baseline" not in roles:
             continue
+        if str(cell.get("schema_version")) != "faireval-run-plan-v1":
+            raise ValueError("RQ4 prompting source cells must use faireval-run-plan-v1")
         if str(cell.get("prompt_mode")) != "audit":
             raise ValueError("RQ4 prompting source cells must come from the neutral audit plan")
         condition = cell.get("condition")
@@ -55,8 +62,9 @@ def build_identity_irrelevance_plan(
 
         row = dict(cell)
         source_cell_id = str(row.pop("cell_id"))
-        row["schema_version"] = "faireval-rq4-prompt-plan-v1"
+        row["schema_version"] = "faireval-run-plan-v1"
         row["source_audit_cell_id"] = source_cell_id
+        row["plan_track"] = "rq4_identity_irrelevance_prompting"
         row["prompt_mode"] = "identity_irrelevance"
         row["confirmatory"] = False
         row["analysis_roles"] = sorted(roles | {"rq4_identity_irrelevance_prompting"})
@@ -165,6 +173,8 @@ def summarize_prompting_pairs(pairs: Sequence[Mapping[str, Any]]) -> dict[str, A
             }
         )
 
+    if not strata:
+        raise ValueError("no RQ4 prompting strata to summarize")
     return {
         "schema_version": "faireval-rq4-prompting-summary-v1",
         "intervention": "identity_irrelevance_prompting",
