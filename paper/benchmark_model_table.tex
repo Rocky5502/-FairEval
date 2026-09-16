@@ -2,7 +2,7 @@
 % local open-weight semantics mirror configs/local_models.yaml.
 \begin{table*}[t]
 \centering
-\caption{FairEval benchmark and model panel. Panel A separates the six real-world datasets from the project-generated FairSynth-360 stress test; Panel B separates six hosted/API families from two local open-weight models. ``Pending'' means the exact upstream release, model revision, or serving endpoint must still be frozen before execution.}
+\caption{FairEval benchmark and model panel. Panel A separates the six real-world datasets from the project-generated FairSynth-360 stress test; Panel B separates six hosted/API families from two local open-weight models. ``Pending'' means the exact upstream release or serving endpoint must still be frozen before execution.}
 \label{tab:benchmark-model-panel}
 \scriptsize
 \setlength{\tabcolsep}{2.2pt}
@@ -34,10 +34,10 @@ DeepSeek & \texttt{deepseek-flash} & thinking disabled & explicit low-variance c
 Alibaba Qwen & \texttt{qwen3.8-max-0902} & thinking disabled & explicit low-variance controls & \texttt{max\_tokens} & Model Studio OpenAI-compatible JSON & Region/endpoint pending local freeze \\
 Meta Llama & \texttt{Llama-4-Maverick-17B-128E-Instruct} & no added reasoning wrapper & host-dependent explicit controls & host-specific & hosted OpenAI-compatible path & \textbf{Pending exact host/revision} \\
 \addlinespace[1pt]
-Qwen local~\cite{qwen25tech} & \texttt{Qwen/Qwen2.5-7B-Instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Exact HF commit pending pilot freeze \\
-Microsoft local~\cite{phi3tech} & \texttt{microsoft/Phi-3.5-mini-instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Exact HF commit pending pilot freeze \\
+Qwen local~\cite{qwen25tech} & \texttt{Qwen/Qwen2.5-7B-Instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Frozen HF commit \texttt{a09a3545...} \\
+Microsoft local~\cite{phi3tech} & \texttt{microsoft/Phi-3.5-mini-instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Frozen HF commit \texttt{2fe19245...} \\
 \bottomrule
 \end{tabular}}
 \vspace{0.5mm}
-\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} FairSynth-360 is an auxiliary synthetic control and is not pooled with observed-demographic or measured-psychometric claims. The two local models form a transparency/reproducibility track; their internal score diagnostics are auxiliary and are not assumed calibrated or directly comparable with unavailable internals from hosted APIs. The hosted six remain the primary cross-vendor panel.}
+\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} FairSynth-360 is an auxiliary synthetic control and is not pooled with observed-demographic or measured-psychometric claims. The two local models form a transparency/reproducibility track; their exact repository commits are frozen in \texttt{configs/local\_models.yaml}. Their internal score diagnostics are auxiliary and are not assumed calibrated or directly comparable with unavailable internals from hosted APIs. The hosted six remain the primary cross-vendor panel.}
 \end{table*}
