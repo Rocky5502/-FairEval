@@ -1,6 +1,6 @@
 % RQ-to-estimand contract. Keep synchronized with configs/study_design.yaml,
 % configs/local_models.yaml, configs/fairsynth360.yaml, and configs/analysis.yaml.
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Pre-registered research-question, estimand, and inference contract. The six real-world datasets remain the basis for real-world fairness/personality claims; FairSynth-360 is a separately reported controlled stress test.}
 \label{tab:rq-design}
@@ -21,4 +21,4 @@
 \textbf{RQ4} & unmitigated audit vs. identity-irrelevance prompting vs. contextual PAIR re-ranking & MovieLens-1M; Last.fm-1K; local-model replication secondary & utility--fairness frontier: reduce harmful $|\CUG|/\IOD$ (and $\CEG$ where valid) without utility collapse & nDCG/Recall; PAIR availability; $\PVA$ preservation; counterfactual instability; intervention cost/coverage & deterministic 20\% validation split (seed 2027); one global $(\alpha,\lambda)$; require $\geq95\%$ unmitigated validation nDCG, then minimize $|\CUG|$; tie-break by higher utility, lower $\lambda$, lower $\alpha$; test outcomes never select the point & full pre-registered $\alpha\in\{.25,.5,.75\}$ and $\lambda\in\{0,.05,.1,.2,.4,.8,1.6\}$ frontier; model/dataset stratification; if no point meets 95\% floor, report no eligible PAIR point rather than relax post hoc \\
 \bottomrule
 \end{tabular}}
-\end{table*}
+\end{table}
