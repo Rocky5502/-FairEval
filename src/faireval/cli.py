@@ -6,7 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Sequence
 
-from .datasets.factory import DATASET_IDS, build_dataset_adapter
+from .datasets.factory import ALL_DATASET_IDS, DATASET_IDS, build_dataset_adapter
 from .execute import completed_cell_ids, execute_plan, load_and_verify_plan, pending_cells
 from .freeze import file_sha256, freeze_dataset, verify_freeze
 from .plan import compile_core_plan
@@ -127,14 +127,14 @@ def build_parser() -> argparse.ArgumentParser:
         "prepare",
         help="materialize a deterministic dataset split and cryptographic manifest",
     )
-    prepare.add_argument("--dataset", required=True, choices=DATASET_IDS)
+    prepare.add_argument("--dataset", required=True, choices=ALL_DATASET_IDS)
     prepare.add_argument("--raw-dir", required=True)
     prepare.add_argument("--output-dir", required=True)
     prepare.add_argument(
         "--users",
         type=int,
         default=20,
-        help="pilot default; freeze before confirmatory run",
+        help="pilot default for real datasets; FairSynth may use up to its registered 360 users",
     )
     prepare.add_argument("--candidate-set-size", type=int, default=50)
     prepare.add_argument("--max-history-items", type=int, default=20)
@@ -149,12 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
     verify.set_defaults(func=_verify)
 
     card = subparsers.add_parser("dataset-card", help="print the adapter's dataset card")
-    card.add_argument("--dataset", required=True, choices=DATASET_IDS)
+    card.add_argument("--dataset", required=True, choices=ALL_DATASET_IDS)
     card.set_defaults(func=_card)
 
     plan = subparsers.add_parser(
         "plan-core",
-        help="compile six frozen datasets into immutable core API run cells",
+        help="compile six frozen real-world datasets into immutable hosted-core API run cells",
     )
     plan.add_argument("--freeze-root", required=True)
     plan.add_argument("--output-dir", required=True)
