@@ -8,6 +8,10 @@ from .local_transformers import LocalTransformersAdapter
 from .openai_compatible import OpenAICompatibleAdapter
 
 
+QWEN25_LOCAL_REVISION = "a09a35458c702b33eeacc393d103063234e8bc28"
+PHI35_LOCAL_REVISION = "2fe192450127e6a83f7441aef6e3ca586c338b77"
+
+
 def build_provider(family: str):
     """Build a provider adapter from frozen FairEval provider policy.
 
@@ -75,7 +79,7 @@ def build_provider(family: str):
         return LocalTransformersAdapter(
             family="qwen25_local",
             model_id="Qwen/Qwen2.5-7B-Instruct",
-            revision=os.environ.get("QWEN25_LOCAL_REVISION"),
+            revision=QWEN25_LOCAL_REVISION,
             trust_remote_code=False,
             dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
         )
@@ -83,7 +87,7 @@ def build_provider(family: str):
         return LocalTransformersAdapter(
             family="phi35_local",
             model_id="microsoft/Phi-3.5-mini-instruct",
-            revision=os.environ.get("PHI35_LOCAL_REVISION"),
+            revision=PHI35_LOCAL_REVISION,
             trust_remote_code=True,
             dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
         )
