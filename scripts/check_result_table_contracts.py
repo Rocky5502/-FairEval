@@ -61,7 +61,7 @@ def main() -> int:
         _require_tokens(TABLE_DIR / name, tokens, label=name)
 
     # LNCS is a single-column layout. Main result contracts must not regress to
-    # table* merely because the renderer once used a two-column-style float.
+    # table* merely because the original renderer used a two-column-style float.
     for name in ("rq12_main_table.tex", "rq34_main_table.tex"):
         text = (TABLE_DIR / name).read_text(encoding="utf-8")
         if r"\begin{table*}" in text or r"\end{table*}" in text:
@@ -94,6 +94,19 @@ def main() -> int:
         label="result-table renderer",
     )
 
+    # Real-result generation must go through the LNCS wrapper so a future
+    # renderer invocation cannot recreate table* in the single-column paper.
+    _require_tokens(
+        ROOT / "scripts" / "render_result_tables_lncs.py",
+        (
+            "render_result_tables.py",
+            "MAIN_TABLES",
+            "\\\\begin{table*}",
+            "LNCS result-table normalization: PASS",
+        ),
+        label="LNCS result-table wrapper",
+    )
+
     _require_tokens(
         ROOT / "src" / "faireval" / "trait_analysis.py",
         ("true_vs_one_trait_counterfactual", "robustness_only"),
@@ -122,6 +135,7 @@ def main() -> int:
 
     print("result-table preflight: 2 main + 4 compact contracts present")
     print("result-table preflight: main result contracts use ordinary LNCS table floats")
+    print("result-table preflight: canonical real-result rendering uses the LNCS wrapper")
     print("result-table preflight: C5 trait analysis is wired")
     print("result-table preflight: all three RQ4 methods have executable evidence paths")
     return 0
