@@ -101,7 +101,7 @@ def main() -> int:
         (
             "render_result_tables.py",
             "MAIN_TABLES",
-            "\\\\begin{table*}",
+            "table*",
             "LNCS result-table normalization: PASS",
         ),
         label="LNCS result-table wrapper",
