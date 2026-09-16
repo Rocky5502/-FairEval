@@ -1,5 +1,5 @@
 # FairEval local open-weight / white-box analysis track
-# Verified against the official Hugging Face model repositories on 2026-09-15.
+# Exact model commits frozen from the official Hugging Face repositories on 2026-09-16.
 # This track is complementary to the six hosted/API families in configs/models.yaml.
 # It is NOT pooled with the hosted-model confirmatory panel when discussing vendor effects.
 
@@ -16,7 +16,9 @@ models:
     organization: Qwen
     name: Qwen2.5-7B-Instruct
     model_id: Qwen/Qwen2.5-7B-Instruct
-    revision: pin_exact_huggingface_commit_before_pilot
+    revision: a09a35458c702b33eeacc393d103063234e8bc28
+    revision_frozen_utc: 2026-09-16
+    revision_source: official_huggingface_model_api
     license: Apache-2.0
     parameters: 7615600000
     architecture: qwen2
@@ -35,15 +37,17 @@ models:
         - generated_token_perplexity
         - mean_top1_top2_logit_margin
     notes: >-
-      Open-weight local comparison model. Use exact revision/commit after the
-      pilot freeze. The transparency diagnostics are model-internal auxiliary
-      signals and are not treated as calibrated uncertainty by default.
+      Open-weight local comparison model frozen to an exact Hugging Face commit.
+      The transparency diagnostics are model-internal auxiliary signals and are
+      not treated as calibrated uncertainty by default.
 
   - family: phi35_local
     organization: Microsoft
     name: Phi-3.5-mini-instruct
     model_id: microsoft/Phi-3.5-mini-instruct
-    revision: pin_exact_huggingface_commit_before_pilot
+    revision: 2fe192450127e6a83f7441aef6e3ca586c338b77
+    revision_frozen_utc: 2026-09-16
+    revision_source: official_huggingface_commit_history
     license: MIT
     parameters: 3821100000
     architecture: phi3
@@ -62,8 +66,9 @@ models:
         - generated_token_perplexity
         - mean_top1_top2_logit_margin
     notes: >-
-      Compact Microsoft open-weight comparison model. Freeze exact Hugging Face
-      revision before execution because repository contents can change over time.
+      Compact Microsoft open-weight comparison model frozen to an exact Hugging
+      Face commit. Repository-main drift after this freeze does not change the
+      experiment checkpoint.
 
 hardware_profile:
   preferred_single_gpu:
