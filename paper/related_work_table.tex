@@ -4,7 +4,7 @@
 \newcommand{\cyes}{\textcolor{red!75!black}{\ensuremath{\checkmark}}}
 \newcommand{\cpart}{\textcolor{gray!75!black}{\ensuremath{\circ}}}
 \newcommand{\cno}{\textcolor{black}{\ensuremath{\times}}}
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Design coverage in closely related LLM fairness, personalization, and evaluation work. \cyes~= explicitly documented; \cpart~= partial/adjacent coverage; \cno~= not established by our evidence audit. Symbols describe study design only and do not imply empirical superiority. ``Psy'' requires dataset-native measured psychometrics; ``Repeat'' requires repeated independent generations; ``Invalid'' requires explicit invalid-output accounting.}
 \label{tab:related-coverage}
@@ -38,5 +38,5 @@ PerFairX~\cite{sah2025perfairx}                     & \cyes & \cpart & \cpart & 
 \vspace{1mm}
 \parbox{0.98\textwidth}{\scriptsize
 \textbf{Columns:} Fair = fairness/bias or identity-disparity evaluation; Pref = preference/utility-grounded consequence; Psy = measured psychometric personality; Pair = paired/counterfactual control; Prompt = prompt/cue reliability factor; Multi = multiple LLM/model configurations; Mit = mitigation; Repeat = repeated generations; Invalid = invalid-output accounting. Conservative symbol assignments and source evidence are recorded in \texttt{docs/LITERATURE\_COMPARISON\_AUDIT.md} and the dated literature-expansion ledger.}
-\end{table*}
+\end{table}
 \endgroup
