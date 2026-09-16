@@ -1,6 +1,6 @@
 % Unified benchmark/model panel. Hosted semantics mirror configs/models.yaml;
 % local open-weight semantics mirror configs/local_models.yaml.
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{FairEval benchmark and model panel. Panel A separates the six real-world datasets from the project-generated FairSynth-360 stress test; Panel B separates six hosted/API families from two local open-weight models. ``Pending'' means the exact upstream release or serving endpoint must still be frozen before execution.}
 \label{tab:benchmark-model-panel}
@@ -40,4 +40,4 @@ Microsoft local~\cite{phi3tech} & \texttt{microsoft/Phi-3.5-mini-instruct} & no 
 \end{tabular}}
 \vspace{0.5mm}
 \parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} FairSynth-360 is an auxiliary synthetic control and is not pooled with observed-demographic or measured-psychometric claims. The two local models form a transparency/reproducibility track; their exact repository commits are frozen in \texttt{configs/local\_models.yaml}. Their internal score diagnostics are auxiliary and are not assumed calibrated or directly comparable with unavailable internals from hosted APIs. The hosted six remain the primary cross-vendor panel.}
-\end{table*}
+\end{table}
