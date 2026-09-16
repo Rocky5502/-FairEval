@@ -29,6 +29,8 @@ jobs:
         run: python scripts/export_fairsynth360.py --output-dir data/generated/fairsynth360-v1
       - name: Run FairSynth oracle sanity experiment
         run: python scripts/run_fairsynth_oracle.py --output results/smoke/fairsynth_oracle_v1.json
+      - name: Validate Week-1 zero-call bootstrap
+        run: python scripts/week1_bootstrap.py --skip-tests --output results/bootstrap/week1_ci_status.json
       - name: Upload FairSynth dataset and oracle artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -36,6 +38,7 @@ jobs:
           path: |
             data/generated/fairsynth360-v1
             results/smoke/fairsynth_oracle_v1.json
+            results/bootstrap/week1_ci_status.json
           if-no-files-found: error
           retention-days: 14
       - name: Build vector paper figures
