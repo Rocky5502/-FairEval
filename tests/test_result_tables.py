@@ -91,4 +91,4 @@ def test_rq34_refuses_test_selected_pair_artifact():
         "selection_used_test_outcomes": True,
     }
     with pytest.raises(ValueError, match="test outcomes"):
-        render_rq34_main([], bad)
+        render_rq34_main(None, bad)
