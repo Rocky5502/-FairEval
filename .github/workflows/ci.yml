@@ -25,6 +25,15 @@ jobs:
         run: python scripts/check_config_consistency.py
       - name: Pilot-readiness schema preflight
         run: python scripts/check_pilot_readiness.py
+      - name: Run FairSynth oracle sanity experiment
+        run: python scripts/run_fairsynth_oracle.py --output results/smoke/fairsynth_oracle_v1.json
+      - name: Upload FairSynth oracle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FairEval-FairSynth-Oracle
+          path: results/smoke/fairsynth_oracle_v1.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Build vector paper figures
         run: python scripts/build_paper_figures.py
       - name: Verify vector paper assets
