@@ -11,6 +11,15 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 PAPER = ROOT / "paper"
 
+RESULT_TABLE_FILES = (
+    "result_tables/rq12_main_table.tex",
+    "result_tables/rq34_main_table.tex",
+    "result_tables/coverage_table.tex",
+    "result_tables/trait_ablation_table.tex",
+    "result_tables/fairsynth_table.tex",
+    "result_tables/whitebox_table.tex",
+)
+
 REQUIRED_FILES = (
     "main.tex",
     "benchmark_model_table.tex",
@@ -23,6 +32,7 @@ REQUIRED_FILES = (
     "figures/faireval_framework.pdf",
     "figures/faireval_conditions.pdf",
     "figures/faireval_evaluation_pipeline.pdf",
+    *RESULT_TABLE_FILES,
 )
 
 OPTIONAL_RESULT_FILES = (
@@ -52,7 +62,9 @@ def build_overleaf_bundle(
     The ZIP deliberately excludes repository code, raw datasets, run logs, secrets,
     and author-identifying metadata. Result PDFs are included only when they already
     exist as generated artifacts; the manuscript otherwise compiles its registered
-    result placeholders via ``\\IfFileExists``.
+    result placeholders via ``\\IfFileExists``. The two main and four compact result
+    table contracts are always shipped so later frozen-artifact rendering can replace
+    them without restructuring the Overleaf project.
     """
     missing = [name for name in REQUIRED_FILES if not (paper_dir / name).is_file()]
     if missing:
@@ -67,6 +79,14 @@ def build_overleaf_bundle(
         if token not in main_text:
             raise ValueError(f"double-blind Overleaf bundle guard missing: {token}")
 
+    results_entrypoint = (paper_dir / "results_contract_table.tex").read_text(encoding="utf-8")
+    for token in (
+        r"\input{result_tables/rq12_main_table}",
+        r"\input{result_tables/rq34_main_table}",
+    ):
+        if token not in results_entrypoint:
+            raise ValueError(f"results entrypoint missing main table contract: {token}")
+
     selected = list(REQUIRED_FILES)
     if include_available_results:
         selected.extend(name for name in OPTIONAL_RESULT_FILES if (paper_dir / name).is_file())
@@ -80,11 +100,18 @@ def build_overleaf_bundle(
         for name in selected
     }
     manifest = {
-        "schema_version": "faireval-overleaf-bundle-v1",
+        "schema_version": "faireval-overleaf-bundle-v2",
         "entrypoint": "main.tex",
         "double_blind": True,
         "canonical_source": "paper/ on ecir-2027-redesign",
         "empirical_numbers_manually_entered": False,
+        "result_table_contract": {
+            "main_tables": [
+                "result_tables/rq12_main_table.tex",
+                "result_tables/rq34_main_table.tex",
+            ],
+            "compact_supporting_tables": list(RESULT_TABLE_FILES[2:]),
+        },
         "files": manifest_files,
     }
 
@@ -98,10 +125,11 @@ def build_overleaf_bundle(
         )
 
     return {
-        "schema_version": "faireval-overleaf-bundle-build-v1",
+        "schema_version": "faireval-overleaf-bundle-build-v2",
         "output": str(output_zip),
         "files": len(selected),
         "zip_sha256": _sha256(output_zip),
+        "included_result_table_contracts": list(RESULT_TABLE_FILES),
         "included_optional_result_figures": sorted(
             name for name in OPTIONAL_RESULT_FILES if name in selected
         ),
