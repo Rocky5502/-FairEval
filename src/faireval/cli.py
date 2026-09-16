@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
 from typing import Sequence
 
-from .datasets.factory import ALL_DATASET_IDS, DATASET_IDS, build_dataset_adapter
+from .datasets.factory import ALL_DATASET_IDS, build_dataset_adapter
 from .execute import completed_cell_ids, execute_plan, load_and_verify_plan, pending_cells
-from .freeze import file_sha256, freeze_dataset, verify_freeze
+from .freeze import canonical_json, file_sha256, freeze_dataset, verify_freeze
+from .local_plan import compile_local_open_weight_plan
 from .plan import compile_core_plan
 
 
@@ -39,13 +41,35 @@ def _card(args: argparse.Namespace) -> int:
     return 0
 
 
+def _write_plan(
+    *,
+    cells: list[dict[str, object]],
+    manifest: dict[str, object],
+    output_dir: Path,
+) -> dict[str, object]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plan_path = output_dir / "run_plan.jsonl"
+    plan_path.write_text(
+        "".join(canonical_json(row) + "\n" for row in cells),
+        encoding="utf-8",
+        newline="\n",
+    )
+    payload = {
+        **manifest,
+        "plan_sha256": hashlib.sha256(canonical_json(cells).encode("utf-8")).hexdigest(),
+        "run_plan_file_sha256": file_sha256(plan_path),
+    }
+    (output_dir / "plan_manifest.json").write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return payload
+
+
 def _plan_core(args: argparse.Namespace) -> int:
     freeze_root = Path(args.freeze_root)
     counterfactuals = Path(args.counterfactuals)
     models = Path(args.models)
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     cells, manifest = compile_core_plan(
         freeze_root=freeze_root,
         counterfactuals_yaml=counterfactuals,
@@ -54,26 +78,37 @@ def _plan_core(args: argparse.Namespace) -> int:
         one_trait_subset_users=args.one_trait_subset_users,
         demographic_robustness_subset_users=args.demographic_robustness_subset_users,
     )
-    manifest = {
-        **manifest,
-        "source_config_sha256": {
-            "counterfactuals": file_sha256(counterfactuals),
-            "models": file_sha256(models),
+    payload = _write_plan(
+        cells=cells,
+        manifest={
+            **manifest,
+            "source_config_sha256": {
+                "counterfactuals": file_sha256(counterfactuals),
+                "models": file_sha256(models),
+            },
         },
-    }
-
-    plan_path = output_dir / "run_plan.jsonl"
-    with plan_path.open("w", encoding="utf-8", newline="\n") as handle:
-        for row in cells:
-            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
-    manifest["run_plan_file_sha256"] = file_sha256(plan_path)
-
-    manifest_path = output_dir / "plan_manifest.json"
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
-        encoding="utf-8",
+        output_dir=Path(args.output_dir),
     )
-    print(json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True))
+    print(json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def _plan_local(args: argparse.Namespace) -> int:
+    cells, manifest = compile_local_open_weight_plan(
+        freeze_root=Path(args.freeze_root),
+        counterfactuals_yaml=Path(args.counterfactuals),
+        local_models_yaml=Path(args.models),
+        seed=args.seed,
+        include_real_world=not args.no_real_world,
+        fairsynth_users=args.fairsynth_users,
+        repetitions=args.repetitions,
+    )
+    payload = _write_plan(
+        cells=cells,
+        manifest=dict(manifest),
+        output_dir=Path(args.output_dir),
+    )
+    print(json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True))
     return 0
 
 
@@ -97,7 +132,7 @@ def _execute(args: argparse.Namespace) -> int:
             "family_filter": None if family_filter is None else sorted(family_filter),
             "max_cells": args.max_cells,
             "api_calls_made": 0,
-            "instruction": "Re-run with --execute after reviewing this summary and API credentials.",
+            "instruction": "Re-run with --execute only after reviewing the plan and local/provider readiness.",
         }
         print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
         return 0
@@ -130,12 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--dataset", required=True, choices=ALL_DATASET_IDS)
     prepare.add_argument("--raw-dir", required=True)
     prepare.add_argument("--output-dir", required=True)
-    prepare.add_argument(
-        "--users",
-        type=int,
-        default=20,
-        help="pilot default for real datasets; FairSynth may use up to its registered 360 users",
-    )
+    prepare.add_argument("--users", type=int, default=20)
     prepare.add_argument("--candidate-set-size", type=int, default=50)
     prepare.add_argument("--max-history-items", type=int, default=20)
     prepare.add_argument("--seed", type=int, default=1729)
@@ -148,13 +178,13 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--output-dir", required=True)
     verify.set_defaults(func=_verify)
 
-    card = subparsers.add_parser("dataset-card", help="print the adapter's dataset card")
+    card = subparsers.add_parser("dataset-card", help="print a dataset card")
     card.add_argument("--dataset", required=True, choices=ALL_DATASET_IDS)
     card.set_defaults(func=_card)
 
     plan = subparsers.add_parser(
         "plan-core",
-        help="compile six frozen real-world datasets into immutable hosted-core API run cells",
+        help="compile six frozen real-world datasets into immutable hosted-core run cells",
     )
     plan.add_argument("--freeze-root", required=True)
     plan.add_argument("--output-dir", required=True)
@@ -165,6 +195,24 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--demographic-robustness-subset-users", type=int, default=20)
     plan.set_defaults(func=_plan_core)
 
+    local = subparsers.add_parser(
+        "plan-local",
+        help="compile the Qwen2.5/Phi-3.5 local open-weight immutable plan",
+    )
+    local.add_argument("--freeze-root", default="data/frozen")
+    local.add_argument("--output-dir", default="results/plans/local-open-weight-v1")
+    local.add_argument("--counterfactuals", default="configs/counterfactuals.yaml")
+    local.add_argument("--models", default="configs/local_models.yaml")
+    local.add_argument("--seed", type=int, default=1729)
+    local.add_argument("--fairsynth-users", type=int, default=360)
+    local.add_argument("--repetitions", type=int, default=3)
+    local.add_argument(
+        "--no-real-world",
+        action="store_true",
+        help="build a FairSynth-only local plan before third-party dataset freezes exist",
+    )
+    local.set_defaults(func=_plan_local)
+
     execute = subparsers.add_parser(
         "execute-plan",
         help="inspect or execute pending immutable run-plan cells; dry-run by default",
@@ -172,17 +220,13 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--plan-dir", required=True)
     execute.add_argument("--freeze-root", required=True)
     execute.add_argument("--output-jsonl", required=True)
-    execute.add_argument(
-        "--family",
-        action="append",
-        help="optional model-family filter; repeat for multiple families",
-    )
+    execute.add_argument("--family", action="append")
     execute.add_argument("--max-cells", type=int)
     execute.add_argument("--code-commit-sha")
     execute.add_argument(
         "--execute",
         action="store_true",
-        help="actually call providers; omit this flag for a zero-call dry run",
+        help="actually run providers/models; omit for a zero-call dry run",
     )
     execute.set_defaults(func=_execute)
 
