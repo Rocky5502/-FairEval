@@ -60,6 +60,13 @@ def main() -> int:
     for name, tokens in REQUIRED.items():
         _require_tokens(TABLE_DIR / name, tokens, label=name)
 
+    # LNCS is a single-column layout. Main result contracts must not regress to
+    # table* merely because the renderer once used a two-column-style float.
+    for name in ("rq12_main_table.tex", "rq34_main_table.tex"):
+        text = (TABLE_DIR / name).read_text(encoding="utf-8")
+        if r"\begin{table*}" in text or r"\end{table*}" in text:
+            raise SystemExit(f"{name} must use ordinary LNCS table floats, not table*")
+
     entrypoint = PAPER / "results_contract_table.tex"
     _require_tokens(
         entrypoint,
@@ -114,7 +121,7 @@ def main() -> int:
     )
 
     print("result-table preflight: 2 main + 4 compact contracts present")
-    print("result-table preflight: main manuscript entrypoint uses the two main tables")
+    print("result-table preflight: main result contracts use ordinary LNCS table floats")
     print("result-table preflight: C5 trait analysis is wired")
     print("result-table preflight: all three RQ4 methods have executable evidence paths")
     return 0
