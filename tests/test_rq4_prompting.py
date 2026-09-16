@@ -87,6 +87,8 @@ def test_prompt_plan_changes_only_named_intervention_mode_and_keeps_source_link(
         ]
     )
     assert len(rows) == 2
+    assert all(row["schema_version"] == "faireval-run-plan-v1" for row in rows)
+    assert all(row["plan_track"] == "rq4_identity_irrelevance_prompting" for row in rows)
     assert all(row["prompt_mode"] == "identity_irrelevance" for row in rows)
     assert all(row["rq4_intervention"] == "identity_irrelevance_prompting" for row in rows)
     assert all(row["source_audit_cell_id"].startswith("source-") for row in rows)
