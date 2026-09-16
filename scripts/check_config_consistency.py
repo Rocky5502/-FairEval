@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 
 from faireval.datasets.factory import AUXILIARY_DATASET_IDS, DATASET_IDS
+from faireval.providers.factory import PHI35_LOCAL_REVISION, QWEN25_LOCAL_REVISION
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,12 +68,10 @@ def main() -> int:
             raise SystemExit(f"dataset acquisition spec for {dataset_id} lacks raw-file contract")
 
     _require_known_datasets(
-        study["rq1_demographic_counterfactual_fairness"]["datasets"],
-        where="study_design.rq1",
+        study["rq1_demographic_counterfactual_fairness"]["datasets"], where="study_design.rq1"
     )
     _require_known_datasets(
-        study["rq2_grounded_personality_value"]["datasets"],
-        where="study_design.rq2",
+        study["rq2_grounded_personality_value"]["datasets"], where="study_design.rq2"
     )
     _require_known_datasets(
         study["rq3_reliability"]["cue_style_robustness"]["datasets"],
@@ -174,6 +173,10 @@ def main() -> int:
         "phi35_local": "microsoft/Phi-3.5-mini-instruct",
     }
     expected_local_licenses = {"qwen25_local": "Apache-2.0", "phi35_local": "MIT"}
+    expected_local_revisions = {
+        "qwen25_local": QWEN25_LOCAL_REVISION,
+        "phi35_local": PHI35_LOCAL_REVISION,
+    }
     for family, model_id in expected_local_ids.items():
         row = local_by_family[family]
         if row.get("model_id") != model_id:
@@ -184,8 +187,16 @@ def main() -> int:
             raise SystemExit(f"{family} must use the direct Transformers white-box path")
         if row.get("output_token_parameter") != "max_new_tokens":
             raise SystemExit(f"{family} must use max_new_tokens")
-        if row.get("revision") != "pin_exact_huggingface_commit_before_pilot":
-            raise SystemExit(f"{family} exact revision must remain explicitly pending before freeze")
+        if row.get("revision") != expected_local_revisions[family]:
+            raise SystemExit(
+                f"{family} revision drifted: config={row.get('revision')!r}, "
+                f"provider={expected_local_revisions[family]!r}"
+            )
+        if row.get("revision_source") not in {
+            "official_huggingface_model_api",
+            "official_huggingface_commit_history",
+        }:
+            raise SystemExit(f"{family} lacks an auditable revision_source")
 
     hardware = local_models.get("hardware_profile", {}).get("preferred_single_gpu", {})
     if hardware.get("gpu") != "NVIDIA GeForce RTX 5090" or hardware.get("vram_gb") != 32:
@@ -257,7 +268,7 @@ def main() -> int:
     print("config preflight: RQ1/RQ4/MIND scopes match the executable core plan")
     print("config preflight: primary prompt/cue/order IDs agree across manifests")
     print("config preflight: six hosted provider semantics remain frozen")
-    print("config preflight: two local model IDs/licenses/white-box semantics agree")
+    print("config preflight: two local model IDs/licenses/revisions/white-box semantics agree")
     print("config preflight: FairSynth-360 size/balance/separation guards agree")
     print("config preflight: contextual PAIR validation-only selection contract agrees")
     return 0
