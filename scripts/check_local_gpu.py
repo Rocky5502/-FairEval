@@ -2,9 +2,26 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import platform
+from pathlib import Path
 from typing import Any
+
+import yaml
+
+from faireval.providers.factory import PHI35_LOCAL_REVISION, QWEN25_LOCAL_REVISION
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_revisions() -> dict[str, str]:
+    payload = yaml.safe_load((ROOT / "configs" / "local_models.yaml").read_text(encoding="utf-8"))
+    rows = payload.get("models", []) if isinstance(payload, dict) else []
+    return {
+        str(row.get("family")): str(row.get("revision", ""))
+        for row in rows
+        if isinstance(row, dict) and row.get("enabled", True)
+    }
 
 
 def main() -> int:
@@ -14,17 +31,23 @@ def main() -> int:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="exit nonzero unless CUDA and both exact local model revisions are frozen",
+        help="exit nonzero unless CUDA is available and frozen revisions match the provider factory",
     )
     args = parser.parse_args()
 
+    revisions = _load_revisions()
+    revision_checks = {
+        "qwen25_local": revisions.get("qwen25_local") == QWEN25_LOCAL_REVISION,
+        "phi35_local": revisions.get("phi35_local") == PHI35_LOCAL_REVISION,
+    }
     report: dict[str, Any] = {
-        "schema_version": "faireval-local-gpu-preflight-v1",
+        "schema_version": "faireval-local-gpu-preflight-v2",
         "platform": platform.platform(),
         "canonical_target": "NVIDIA GeForce RTX 5090 32GB or larger compatible CUDA GPU",
-        "qwen25_revision_frozen": bool(os.environ.get("QWEN25_LOCAL_REVISION")),
-        "phi35_revision_frozen": bool(os.environ.get("PHI35_LOCAL_REVISION")),
-        "local_dtype": os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
+        "qwen25_revision": revisions.get("qwen25_local"),
+        "phi35_revision": revisions.get("phi35_local"),
+        "revision_contract_ok": all(revision_checks.values()),
+        "local_dtype": "bfloat16",
         "cuda_available": False,
         "gpu": None,
         "warnings": [],
@@ -57,15 +80,13 @@ def main() -> int:
         else:
             report["warnings"].append("CUDA is not available to PyTorch.")
 
-    if not report["qwen25_revision_frozen"]:
-        report["warnings"].append("QWEN25_LOCAL_REVISION is not frozen yet.")
-    if not report["phi35_revision_frozen"]:
-        report["warnings"].append("PHI35_LOCAL_REVISION is not frozen yet.")
+    if not report["revision_contract_ok"]:
+        report["warnings"].append(
+            "Frozen local-model revisions disagree between configs/local_models.yaml and provider factory."
+        )
 
     report["ready_for_local_pilot"] = bool(
-        report["cuda_available"]
-        and report["qwen25_revision_frozen"]
-        and report["phi35_revision_frozen"]
+        report["cuda_available"] and report["revision_contract_ok"]
     )
     print(json.dumps(report, indent=2, sort_keys=True))
 
