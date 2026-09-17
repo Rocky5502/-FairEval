@@ -1,126 +1,119 @@
-# FairEval — local execution start here
+# FairEval — Start Here Before Real Execution
 
-This is the shortest safe path from a fresh `ecir-2027-redesign` checkout to the first real local-model calls. Commands before the final `--execute` example make **zero provider API calls**.
+This is the shortest safe path from `G:\ECIR2027` to the first hosted or GPU canary. Everything through the pre-execution seal is zero-generation work: no hosted model call and no local model weight loading.
 
-## 1. Environment
-
-Windows PowerShell:
+## 1. Pull the branch and keep it clean
 
 ```powershell
+cd G:\ECIR2027
+git fetch origin
 git checkout ecir-2027-redesign
-git pull
+git pull --ff-only origin ecir-2027-redesign
+$SHA = (git rev-parse HEAD).Trim()
+git status --short
+```
+
+Do not continue to a scientific seal if tracked prompts/configs/code/tests/paper contracts are dirty.
+
+## 2. Install the zero-call environment
+
+```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+python -m pip install -U pip
+python -m pip install -e ".[dev,analysis,providers]"
 ```
 
-Install the CUDA-matched PyTorch wheel appropriate for the workstation first. Then install the complete Week-1 environment:
+For the later AI Galaxy white-box run, install the CUDA-matched PyTorch environment plus `requirements-local-gpu.txt` on the GPU machine.
+
+## 3. Build the canonical pre-execution seal
 
 ```powershell
-python -m pip install -r requirements-week1.txt
-python -m pip install -e .
+python scripts\build_preexecution_seal.py `
+  --output-dir results\preexecution\seal-v1
 ```
 
-Run the zero-call repository bootstrap:
+This one zero-call command builds/verifies the canonical 360-user FairSynth freeze, the 12,960-cell local white-box plan, the 12,960-cell hosted FairSynth plan, result contracts, paper figures, pre-result Overleaf ZIP, scientific source hashes, and unresolved real-dataset blockers.
 
-```powershell
-python scripts/week1_bootstrap.py
-python scripts/check_local_gpu.py
+The seal must state:
+
+```text
+hosted_api_generation_calls_made = 0
+local_model_weights_loaded = false
+empirical_results_seen_or_inserted = false
+whitebox_core planned_cells = 12960
+hosted_fairsynth planned_cells = 12960
+scientific_worktree_clean = true
 ```
 
-Do not begin local inference until `check_local_gpu.py --strict` passes. The exact Qwen2.5 and Phi-3.5 repository commits are already frozen in `configs/local_models.yaml`.
+Real hosted/GPU launchers verify the seal again, including the exact Git SHA, scientific source hashes, plan hash, and planned-cell count.
 
-## 2. Freeze the full project-owned FairSynth benchmark
+## 4. Hosted gateway preflight
 
-FairSynth does not require third-party raw files; `--raw-dir .` is an explicit unused placeholder for the shared freeze interface.
+Keep the real key only in local `.env`:
 
-```powershell
-faireval prepare `
-  --dataset fairsynth360 `
-  --raw-dir . `
-  --output-dir data/frozen/fairsynth360 `
-  --users 360 `
-  --candidate-set-size 30 `
-  --max-history-items 8 `
-  --seed 1729
-
-faireval verify-freeze --output-dir data/frozen/fairsynth360
+```dotenv
+FAIREVAL_HOSTED_GATEWAY=zhizengzeng
+ZZZ_BASE_URL=https://api.zhizengzeng.com/v1
+ZZZ_API_KEY=<secret>
 ```
 
-For a tiny pipeline smoke, substitute `--users 12` and use a separate output directory such as `data/frozen-smoke/fairsynth360`; never overwrite the full freeze with a smoke freeze.
-
-## 3. Compile the immutable Qwen/Phi plan
-
-Before the six third-party datasets exist, compile a FairSynth-only plan:
+Then:
 
 ```powershell
-faireval plan-local `
-  --freeze-root data/frozen `
-  --output-dir results/plans/local-fairsynth-v1 `
-  --fairsynth-users 360 `
-  --repetitions 3 `
-  --no-real-world
+python scripts\check_zhizengzeng_gateway.py --env-file .env --strict
 ```
 
-Review `results/plans/local-fairsynth-v1/plan_manifest.json`. Do not edit the JSONL or manifest by hand after compilation.
+This makes no generation call. All six exact frozen model IDs from `configs/models.yaml` must be available before paid execution. There is no remaining separate Llama-host configuration in the current gateway design.
 
-## 4. Prove the execution path without loading a model
+Hosted spend uses a 200 RMB normal stop, a 250 RMB client-side emergency stop threshold, and a 2 RMB reserve with gateway balance reconciliation. The 250 RMB value is not claimed as an atomic provider-side spending cap.
 
-```powershell
-faireval execute-plan `
-  --plan-dir results/plans/local-fairsynth-v1 `
-  --freeze-root data/frozen `
-  --output-jsonl results/raw/local-fairsynth-v1.jsonl `
-  --family phi35_local `
+## 5. White-box GPU preflight
+
+On AI Galaxy/Linux after cloning the exact sealed revision:
+
+```bash
+pip install -r requirements-local-gpu.txt
+pip install -e .
+nvidia-smi
+python scripts/check_local_gpu.py --strict
+```
+
+The exact Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct revisions are already frozen in `configs/local_models.yaml`.
+
+Dry-run two Qwen cells without loading model weights:
+
+```bash
+python scripts/run_whitebox_family.py \
+  --plan-dir results/plans/whitebox-full-v1/core \
+  --freeze-root data/frozen \
+  --family qwen25_local \
+  --output-jsonl results/runs/whitebox-qwen25-v1.jsonl \
   --max-cells 2
 ```
 
-The summary must report `api_calls_made: 0`. This dry run does not construct the Transformers provider or load weights.
+Only after reviewing that summary should the same command receive the seal path, exact Git SHA, and `--execute`.
 
-You can also run the CI-equivalent end-to-end smoke locally:
+## 6. Keep smoke data separate
 
-```powershell
-python scripts/zero_call_local_smoke.py --output results/smoke/local_zero_call_v1.json
+A tiny 12-user smoke must use a separate path such as:
+
+```text
+data/frozen-smoke/fairsynth360
 ```
 
-## 5. First real GPU smoke
+Never overwrite `data/frozen/fairsynth360`, which is reserved for the canonical 360-user execution freeze. CI enforces this separation.
 
-Only after the GPU preflight and dry run are green, capture the exact code SHA and execute **two Phi cells only**:
+## 7. Real-world data remains a hard gate
 
-```powershell
-$sha = git rev-parse HEAD
-faireval execute-plan `
-  --plan-dir results/plans/local-fairsynth-v1 `
-  --freeze-root data/frozen `
-  --output-jsonl results/raw/local-fairsynth-v1.jsonl `
-  --family phi35_local `
-  --max-cells 2 `
-  --code-commit-sha $sha `
-  --execute
-```
+Use `configs/dataset_acquisition.yaml`, `configs/dataset_releases.yaml`, `scripts/check_raw_dataset_layout.py`, and `scripts/hash_raw_release.py` to acquire/license-review/hash the exact six third-party releases. Do not invent checksums or silently substitute releases.
 
-Audit those rows before expanding the run. Then repeat the same tiny smoke for `qwen25_local`. Do not delete malformed outputs; persistent invalidity is an experimental outcome.
+The project-owned FairSynth hosted/local campaigns can proceed before those real-world freezes. Real-world RQ1–RQ4 cannot.
 
-## 6. External-data / hosted track
+## 8. Paper updates are artifact-only
 
-In parallel, use `configs/dataset_acquisition.yaml` and `configs/dataset_releases.yaml` to download, license-review, hash, and freeze the exact six real-world releases. The hosted core does not start until:
+Hosted FairSynth uses `scripts/finalize_hosted_fairsynth.py`. Completed two-model white-box evidence uses `scripts/finalize_whitebox.py`. These paths audit the frozen outputs and generate paper artifacts automatically.
 
-```powershell
-python scripts/check_pilot_readiness.py --strict
-```
+If evidence is not available, the paper remains pending. Do not manually type empirical numbers into `paper/main.tex` or result tables.
 
-passes. The remaining hosted-specific blocker is the exact Llama host/endpoint/served revision plus provider credentials.
-
-## 7. Daily checkpoint
-
-At the end of every work session keep these immutable artifacts:
-
-- `git rev-parse HEAD`;
-- environment manifest / `pip freeze`;
-- dataset freeze manifests;
-- run-plan manifest(s);
-- raw JSONL without manual edits;
-- audit/analyzer manifests;
-- generated paper tables/figures only from frozen artifacts.
-
-The longer Day-1-to-Day-7 schedule is in `docs/WEEK_ONE_EXECUTION.md`.
+For the full operational procedure, use `docs/EXECUTION_RUNBOOK_2026-09-17.md`.
