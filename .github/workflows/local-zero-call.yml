@@ -63,6 +63,11 @@ jobs:
           assert s['hosted_api_generation_calls_made'] == 0
           assert s['local_model_weights_loaded'] is False
           assert s['empirical_results_seen_or_inserted'] is False
+          assert s['scientific_worktree_clean'] is True
+          assert s['scientific_spec_file_count'] > 0
+          assert len(s['scientific_spec_sha256']) == 64
+          assert s['fairsynth_freeze']['dataset_id'] == 'fairsynth360'
+          assert s['fairsynth_freeze']['instances'] == 360
           assert s['plans']['whitebox_core']['planned_cells'] == 12960
           assert s['plans']['hosted_fairsynth']['planned_cells'] == 12960
           print('pre-execution seal invariants: PASS')
