@@ -1,5 +1,14 @@
-% Results entrypoint. The two main-paper tables are generated/contract files.
-% Compact supporting tables live under paper/result_tables/ and are promoted
-% selectively after real results are available and the 12-page budget is audited.
-\input{result_tables/rq12_main_table}
-\input{result_tables/rq34_main_table}
+% Results entrypoint. Generated audited artifacts take precedence automatically.
+% If a generated artifact is absent, the pre-registered TBD contract remains visible.
+% Do not type empirical values into these LaTeX files by hand.
+\IfFileExists{generated/rq12_inference_table.tex}{%
+  \input{generated/rq12_inference_table}%
+}{%
+  \input{result_tables/rq12_main_table}%
+}
+
+\IfFileExists{generated/rq34_results_table.tex}{%
+  \input{generated/rq34_results_table}%
+}{%
+  \input{result_tables/rq34_main_table}%
+}
