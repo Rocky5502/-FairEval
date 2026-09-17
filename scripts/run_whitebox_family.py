@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from faireval.execute import execute_plan
+from faireval.preexecution import verify_preexecution_seal
 
 
 LOCAL_FAMILIES = {"qwen25_local", "phi35_local"}
@@ -39,6 +40,10 @@ def main() -> int:
     parser.add_argument("--output-jsonl", required=True)
     parser.add_argument("--max-cells", type=int, default=250)
     parser.add_argument("--code-commit-sha")
+    parser.add_argument(
+        "--preexecution-seal",
+        default="results/preexecution/seal-v1/PREEXECUTION_SEAL.json",
+    )
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
@@ -52,6 +57,7 @@ def main() -> int:
         completed = completed_cell_ids(Path(args.output_jsonl))
         selected = pending_cells(cells, completed=completed, families={args.family})
         selected = selected[: args.max_cells]
+        seal_path = Path(args.preexecution_seal)
         print(
             json.dumps(
                 {
@@ -63,7 +69,12 @@ def main() -> int:
                     "max_cells": args.max_cells,
                     "model_weights_loaded": False,
                     "hosted_api_calls_made": 0,
-                    "instruction": "Add --execute and --code-commit-sha after reviewing this batch.",
+                    "preexecution_seal_path": str(seal_path),
+                    "preexecution_seal_exists": seal_path.is_file(),
+                    "instruction": (
+                        "Build/verify the zero-call pre-execution seal, then add --execute "
+                        "and --code-commit-sha after reviewing this batch."
+                    ),
                 },
                 indent=2,
                 sort_keys=True,
@@ -81,6 +92,13 @@ def main() -> int:
             "Do not mix code revisions inside a frozen run log."
         )
 
+    seal_verification = verify_preexecution_seal(
+        Path(args.preexecution_seal),
+        expected_commit_sha=checked_out_sha,
+        plan_dir=Path(args.plan_dir),
+        plan_key="whitebox_core",
+    )
+
     summary = execute_plan(
         plan_dir=Path(args.plan_dir),
         freeze_root=Path(args.freeze_root),
@@ -92,6 +110,7 @@ def main() -> int:
     summary["whitebox_family_sequential_execution"] = True
     summary["family"] = args.family
     summary["checked_out_code_commit_sha"] = checked_out_sha
+    summary["preexecution_seal"] = seal_verification
     print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
     return 0
 
