@@ -62,14 +62,27 @@ def _write_plan(tmp_path: Path) -> tuple[Path, str]:
     return plan_dir, plan_sha
 
 
-def _write_seal(tmp_path: Path, *, commit: str, plan_sha: str) -> Path:
+def _json_digest(value: object) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _write_seal(tmp_path: Path, *, commit: str, plan_sha: str) -> tuple[Path, Path]:
+    spec = tmp_path / "spec.txt"
+    spec.write_text("frozen-scientific-spec\n", encoding="utf-8")
+    spec_digest = hashlib.sha256(spec.read_bytes()).hexdigest()
+    spec_files = {"spec.txt": spec_digest}
+
     path = tmp_path / "seal.json"
     path.write_text(
         json.dumps(
             {
                 "schema_version": "faireval-preexecution-seal-v1",
                 "git_commit_sha": commit,
-                "scientific_spec_sha256": "a" * 64,
+                "scientific_spec_sha256": _json_digest(spec_files),
+                "scientific_spec_file_count": 1,
+                "scientific_spec_files": spec_files,
                 "hosted_api_generation_calls_made": 0,
                 "local_model_weights_loaded": False,
                 "empirical_results_seen_or_inserted": False,
@@ -84,29 +97,48 @@ def _write_seal(tmp_path: Path, *, commit: str, plan_sha: str) -> Path:
         + "\n",
         encoding="utf-8",
     )
-    return path
+    return path, spec
 
 
-def test_verify_preexecution_seal_accepts_matching_commit_and_plan(tmp_path: Path) -> None:
+def test_verify_preexecution_seal_accepts_matching_commit_plan_and_sources(
+    tmp_path: Path,
+) -> None:
     plan_dir, plan_sha = _write_plan(tmp_path)
-    seal = _write_seal(tmp_path, commit="abc123", plan_sha=plan_sha)
+    seal, _ = _write_seal(tmp_path, commit="abc123", plan_sha=plan_sha)
     result = verify_preexecution_seal(
         seal,
         expected_commit_sha="abc123",
         plan_dir=plan_dir,
         plan_key="whitebox_core",
+        spec_root=tmp_path,
     )
     assert result["status"] == "pass"
     assert result["planned_cells"] == 1
+    assert result["scientific_spec_file_count"] == 1
 
 
 def test_verify_preexecution_seal_rejects_commit_drift(tmp_path: Path) -> None:
     plan_dir, plan_sha = _write_plan(tmp_path)
-    seal = _write_seal(tmp_path, commit="sealed", plan_sha=plan_sha)
+    seal, _ = _write_seal(tmp_path, commit="sealed", plan_sha=plan_sha)
     with pytest.raises(ValueError, match="commit mismatch"):
         verify_preexecution_seal(
             seal,
             expected_commit_sha="different",
             plan_dir=plan_dir,
             plan_key="whitebox_core",
+            spec_root=tmp_path,
+        )
+
+
+def test_verify_preexecution_seal_rejects_uncommitted_source_drift(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, spec = _write_seal(tmp_path, commit="abc123", plan_sha=plan_sha)
+    spec.write_text("changed-after-seal\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="scientific source hash mismatch"):
+        verify_preexecution_seal(
+            seal,
+            expected_commit_sha="abc123",
+            plan_dir=plan_dir,
+            plan_key="whitebox_core",
+            spec_root=tmp_path,
         )
