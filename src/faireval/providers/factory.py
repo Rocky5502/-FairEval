@@ -12,15 +12,47 @@ QWEN25_LOCAL_REVISION = "a09a35458c702b33eeacc393d103063234e8bc28"
 PHI35_LOCAL_REVISION = "2fe192450127e6a83f7441aef6e3ca586c338b77"
 
 
+def _gateway_enabled() -> bool:
+    return os.environ.get("FAIREVAL_HOSTED_GATEWAY", "").strip().lower() == "zhizengzeng"
+
+
+def _zhizengzeng_provider(family: str) -> OpenAICompatibleAdapter:
+    """Route hosted FairEval families through Zhizengzeng's OpenAI-compatible API.
+
+    The gateway documents https://api.zhizengzeng.com/v1 as its OpenAI-compatible
+    base URL for most supported models.  We deliberately use one gateway key and
+    keep family/model identity in the immutable run plan. Provider-specific
+    reasoning controls that are not part of the common OpenAI-compatible schema
+    are not injected here; the run log records the frozen requested policy, while
+    gateway-specific behavior is treated as serving provenance rather than
+    pretending native-vendor API equivalence.
+    """
+    base_url = os.environ.get("ZZZ_BASE_URL", "https://api.zhizengzeng.com/v1")
+    output_field = "max_completion_tokens" if family == "openai" else "max_tokens"
+    return OpenAICompatibleAdapter(
+        family=family,
+        provider_name="zhizengzeng",
+        api_key_env="ZZZ_API_KEY",
+        base_url=base_url,
+        supports_seed_flag=False,
+        json_mode=True,
+        output_token_parameter=output_field,
+    )
+
+
 def build_provider(family: str):
     """Build a provider adapter from frozen FairEval provider policy.
 
-    The hosted core uses the lowest practical deliberation mode for direct
-    ranking. The two local open-weight families are a separate transparency
-    track and run directly through Transformers so internal generation-score
-    diagnostics can be logged without changing the output validator.
+    Hosted execution can use either the original provider-specific adapters or
+    the explicitly configured Zhizengzeng gateway. The two local open-weight
+    families remain a separate transparency track and are unaffected by the
+    hosted gateway setting.
     """
     family = family.lower()
+
+    if family in {"openai", "anthropic", "google", "deepseek", "qwen", "meta"} and _gateway_enabled():
+        return _zhizengzeng_provider(family)
+
     if family == "openai":
         return OpenAICompatibleAdapter(
             family="openai",
