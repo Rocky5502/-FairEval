@@ -17,15 +17,13 @@ def _gateway_enabled() -> bool:
 
 
 def _zhizengzeng_provider(family: str) -> OpenAICompatibleAdapter:
-    """Route hosted FairEval families through Zhizengzeng's OpenAI-compatible API.
+    """Route hosted FairEval families through Zhizengzeng's compatible API.
 
-    The gateway documents https://api.zhizengzeng.com/v1 as its OpenAI-compatible
-    base URL for most supported models.  We deliberately use one gateway key and
-    keep family/model identity in the immutable run plan. Provider-specific
-    reasoning controls that are not part of the common OpenAI-compatible schema
-    are not injected here; the run log records the frozen requested policy, while
-    gateway-specific behavior is treated as serving provenance rather than
-    pretending native-vendor API equivalence.
+    One gateway key fixes endpoint provenance, while the immutable run plan keeps
+    model-family/model-ID identity. The common gateway interface does not prove
+    vendor-native deliberation or decoding semantics, so ``controls_verified``
+    is false and the persisted run log records requested controls as unverified
+    rather than pretending provider-native equivalence.
     """
     base_url = os.environ.get("ZZZ_BASE_URL", "https://api.zhizengzeng.com/v1")
     output_field = "max_completion_tokens" if family == "openai" else "max_tokens"
@@ -37,17 +35,12 @@ def _zhizengzeng_provider(family: str) -> OpenAICompatibleAdapter:
         supports_seed_flag=False,
         json_mode=True,
         output_token_parameter=output_field,
+        controls_verified=False,
     )
 
 
 def build_provider(family: str):
-    """Build a provider adapter from frozen FairEval provider policy.
-
-    Hosted execution can use either the original provider-specific adapters or
-    the explicitly configured Zhizengzeng gateway. The two local open-weight
-    families remain a separate transparency track and are unaffected by the
-    hosted gateway setting.
-    """
+    """Build a provider adapter from frozen FairEval provider policy."""
     family = family.lower()
 
     if family in {"openai", "anthropic", "google", "deepseek", "qwen", "meta"} and _gateway_enabled():
