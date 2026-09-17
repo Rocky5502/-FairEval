@@ -55,32 +55,30 @@ Never commit API keys. Copy `.env.example` to `.env` and fill only the credentia
 
 Third-party raw releases are not silently downloaded or substituted. Before a paid real-world pilot, acquire each exact upstream release under its documented terms, place it under the configured raw path, compute and record its hash, freeze deterministic benchmark instances, and verify hashes before compiling a run plan. FairEval never infers protected attributes from names, free text, embeddings, ZIP codes, or model guesses.
 
-## Deterministic data preparation
+`configs/dataset_releases.yaml` intentionally remains pre-freeze until the exact files exist locally. **Do not invent missing checksums or mark a license reviewed without checking the downloaded release.**
+
+## Pre-execution scientific seal
+
+Before any paid hosted generation or local-model inference, build the zero-call seal:
 
 ```bash
-faireval prepare \
-  --dataset movielens_1m \
-  --raw-dir data/raw/movielens_1m \
-  --output-dir data/frozen/movielens_1m \
-  --users 20 \
-  --candidate-set-size 50 \
-  --max-history-items 20 \
-  --seed 1729
-
-faireval verify-freeze --output-dir data/frozen/movielens_1m
+python scripts/build_preexecution_seal.py \
+  --output-dir results/preexecution/seal-v1
 ```
 
-The freeze manifest records instance count, canonical instance SHA-256, adapter/version metadata, and split/candidate-generation provenance.
+This step loads no model weights and makes no hosted generation calls. It regenerates the canonical FairSynth freeze, compiles the deterministic hosted and white-box FairSynth plans, renders pre-result paper contracts/figures, runs configuration/manuscript checks, hashes the tracked scientific specification, records unresolved real-dataset blockers, and creates a pre-result anonymous Overleaf ZIP.
+
+Both real launchers require the seal's Git commit and plan SHA to match the current checkout. A scientific-source or plan change therefore requires a new seal/version rather than silently continuing an old run log.
 
 ## Immutable run plans
 
 Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hashed and linked to a manifest. Execution verifies the plan hash and every cell ID before constructing a provider. Resume semantics are exact: already persisted `planned_cell_id` values are not regenerated, and invalidity remains an experimental outcome.
 
-The six-real-dataset hosted core plan remains gated on exact third-party dataset freezes. The API-only evidence layer that can run immediately is the project-owned FairSynth control.
+The six-real-dataset hosted core plan remains gated on exact third-party dataset freezes. The immediately executable project-owned control is FairSynth-360.
 
-## Hosted API execution — 200/250 RMB freeze
+## Hosted API execution — 200 RMB normal stop / 250 RMB emergency threshold
 
-The current black-box phase uses the Zhizengzeng OpenAI-compatible gateway with a single gateway key. The gateway/model freeze is in `configs/models.yaml`; spend policy is in `configs/hosted_budget.yaml`.
+The black-box track uses the Zhizengzeng OpenAI-compatible gateway with a single gateway key. The gateway/model freeze is in `configs/models.yaml`; spend policy is in `configs/hosted_budget.yaml`.
 
 Current hosted panel:
 
@@ -99,35 +97,11 @@ ZZZ_BASE_URL=https://api.zhizengzeng.com/v1
 ZZZ_API_KEY=<secret>
 ```
 
-The runner itself performs a live `GET /v1/models` exact-ID gate before paid generation. If an exact frozen ID is absent, execution is blocked before spend; a nearby model is never substituted silently.
+The runner performs a live `GET /v1/models` exact-ID gate before paid generation. If an exact frozen ID is absent, execution is blocked before generation; a nearby model is never substituted silently.
 
-The hosted budget is frozen as a **200 RMB normal stop target**, **250 RMB non-bypassable emergency ceiling**, and **2 RMB pre-cell reserve**. A 50 RMB buffer therefore remains between ordinary stopping and the absolute ceiling. Spend is reconciled from Zhizengzeng account-balance movement rather than hand-estimated token counts.
+The hosted budget policy is a **200 RMB normal stop target**, **250 RMB client-side emergency stop threshold**, and **2 RMB pre-cell reserve**. FairEval does **not** claim the 250 RMB threshold is an atomic provider-side spending cap. The client normally stops around 200 RMB, leaving roughly 50 RMB of operational headroom, and reconciles experiment spend from account-balance movement before and after every persisted cell.
 
-### Immediate hosted FairSynth plan
-
-Create/verify the 360-user project-owned freeze:
-
-```bash
-python scripts/build_fairsynth360.py \
-  --output-dir data/frozen/fairsynth360 \
-  --users 360 \
-  --candidate-set-size 30 \
-  --max-history-items 8 \
-  --seed 1729
-```
-
-Compile the default deterministic 120-user A/B/C-balanced hosted plan:
-
-```bash
-python scripts/plan_hosted_fairsynth.py \
-  --freeze-root data/frozen \
-  --output-dir results/plans/hosted-fairsynth-budget-v1 \
-  --users 120 \
-  --repetitions 3 \
-  --seed 1729
-```
-
-This yields 12,960 immutable planned cells: 120 users × 6 FairSynth conditions × 6 hosted families × 3 repetitions. The plan may be truncated by the budget, but its order is fixed independently of results.
+The sealed hosted FairSynth plan has 12,960 immutable planned cells: 120 balanced users × 6 FairSynth conditions × 6 hosted families × 3 repetitions. Budget truncation is reported as incomplete planned coverage; the execution order never adapts to observed results.
 
 Dry-run first:
 
@@ -135,29 +109,41 @@ Dry-run first:
 python scripts/run_hosted_budgeted.py \
   --plan-dir results/plans/hosted-fairsynth-budget-v1 \
   --freeze-root data/frozen \
-  --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl
+  --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl \
+  --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json
 ```
 
-Run a 12-cell paid canary:
+Real execution additionally requires the exact checked-out SHA:
 
 ```bash
+SHA=$(git rev-parse HEAD)
 python scripts/run_hosted_budgeted.py \
   --plan-dir results/plans/hosted-fairsynth-budget-v1 \
   --freeze-root data/frozen \
   --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl \
   --ledger results/budget/hosted_zzz_v1.json \
+  --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json \
   --target-rmb 200 \
   --hard-cap-rmb 250 \
   --request-reserve-rmb 2 \
   --max-cells 12 \
+  --code-commit-sha "$SHA" \
   --execute
 ```
 
-After auditing the canary, rerun the same command without `--max-cells` to resume. The runner cannot accept a target above 200 RMB or a hard ceiling above 250 RMB.
+## Full-scale local/open-weight white-box stratum
 
-## Local/open-weight transparency track
+The repository freezes Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct as a **required, separately reported replication stratum**. Hosted and local effects are never pooled merely because they answer the same RQ, and local token-score diagnostics are explicitly auxiliary and uncalibrated.
 
-The repository retains the Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct transparency track for later reproducibility/white-box analysis. It is optional during the current hosted-only API phase and is not pooled with hosted-model claims.
+The canonical FairSynth white-box plan contains exactly **12,960 generations**:
+
+```text
+360 users × 6 conditions × 3 seeded repetitions × 2 frozen models
+```
+
+The two model families run sequentially through `scripts/run_whitebox_family.py`. Real GPU execution requires the exact checked-out Git SHA and matching pre-execution seal. `scripts/finalize_whitebox.py` refuses partial/mixed coverage, merges both audited family logs in immutable plan order, computes the declared diagnostics, renders `paper/generated/whitebox_summary_table.tex`, and rebuilds the anonymous Overleaf bundle.
+
+Once all real-world release locks are complete, a separately versioned campaign extends the same two local models to the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path.
 
 ## Analysis and direct paper synchronization
 
@@ -172,15 +158,13 @@ hosted JSONL
 → Overleaf ZIP
 ```
 
-One command performs the post-run pipeline:
+One command performs the hosted post-run pipeline:
 
 ```bash
 python scripts/finalize_hosted_fairsynth.py
 ```
 
-The generated six-model table reports synthetic identity and synthetic personality paired nDCG@10 differences, bootstrap confidence intervals, Holm-adjusted permutation p-values, and paired-user counts. It is automatically included in the paper and the exported Overleaf ZIP only when the audited artifact exists.
-
-For the full real-world study, the existing result-table/figure renderers remain the canonical path. Until audited artifacts exist, corresponding paper cells remain explicitly pending; empirical numbers are never typed into the manuscript manually.
+The full local path is similarly wrapped by `scripts/finalize_whitebox.py`. Until audited artifacts exist, corresponding paper cells remain explicitly pending; empirical numbers are never typed into the manuscript manually.
 
 ## Reproducibility checks
 
@@ -189,11 +173,12 @@ python scripts/check_config_consistency.py
 python scripts/check_paper_source.py
 python scripts/check_result_table_contracts.py
 python scripts/check_pilot_readiness.py
+python scripts/build_preexecution_seal.py
 pytest -q
 ```
 
-`check_pilot_readiness.py --strict` intentionally remains non-zero for the six-real-dataset confirmatory panel until exact third-party release locks and local raw paths are complete. That does not block the separately scoped project-owned hosted FairSynth sanity run.
+`check_pilot_readiness.py --strict` intentionally remains non-zero for the six-real-dataset confirmatory panel until exact third-party release locks and local raw paths are complete. That does not block the separately scoped project-owned FairSynth hosted/local control experiments.
 
 ## Reporting discipline
 
-FairEval does not claim that one model is fairer than another, that measured personality necessarily improves recommendation, or that a mitigation works until the frozen pipeline produces validated evidence. Real-world, synthetic, hosted, and optional local evidence retain their declared scope throughout analysis and the paper.
+FairEval does not claim that one model is fairer than another, that measured personality necessarily improves recommendation, or that a mitigation works until the frozen pipeline produces validated evidence. Real-world, synthetic, hosted, and local evidence retain their declared scope throughout analysis and the paper.
