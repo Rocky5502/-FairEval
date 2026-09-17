@@ -2,8 +2,10 @@
 #
 # This file is intentionally PRE-FREEZE. Do not invent checksums. Replace each
 # pending value only after the exact raw release has been downloaded locally,
-# inspected, license-reviewed, and hashed. The strict pilot-readiness checker
-# refuses to approve API execution while any row remains pending.
+# inspected, license-reviewed, and hashed. Public landing-page/README checks may
+# refine license_note, but they do NOT set license_reviewed=true for unseen bytes.
+# The strict pilot-readiness checker refuses full real-world execution while any
+# row remains pending.
 
 schema_version: faireval-dataset-releases-v1
 status: pre_freeze
@@ -24,7 +26,11 @@ datasets:
     release_status: pending_local_freeze
     raw_sha256: null
     license_reviewed: false
-    license_note: pending_upstream_readme_review
+    license_note: >-
+      Public official README verified 2026-09-17: research use is permitted with
+      acknowledgement; redistribution is prohibited without separate permission;
+      commercial/revenue-bearing use requires GroupLens permission. Reinspect the
+      README bundled with the exact downloaded release before setting reviewed=true.
 
   music_master_bfi2:
     source: https://figshare.com/articles/dataset/19678962
@@ -33,7 +39,10 @@ datasets:
     release_status: pending_local_freeze
     raw_sha256: null
     license_reviewed: false
-    license_note: verify_CC-BY-4.0_on_downloaded_release
+    license_note: >-
+      Public official Figshare record verified 2026-09-17: CC BY 4.0; dataset usage
+      requires citation of the associated paper. Confirm the license metadata/file
+      identity on the exact downloaded release before setting reviewed=true.
 
   reasoner:
     source: https://github.com/REASONER2023/reasoner2023.github.io
@@ -42,7 +51,10 @@ datasets:
     release_status: pending_local_freeze
     raw_sha256: null
     license_reviewed: false
-    license_note: pending_upstream_license_review
+    license_note: >-
+      Public official project repository verified 2026-09-17: CC BY-NC 4.0 with
+      additional terms referenced by the project. Inspect those additional terms
+      and the exact downloaded dataset release before setting reviewed=true.
 
   movielens_1m:
     source: https://grouplens.org/datasets/movielens/1m/
@@ -51,7 +63,11 @@ datasets:
     release_status: pending_local_freeze
     raw_sha256: null
     license_reviewed: false
-    license_note: pending_upstream_readme_review
+    license_note: >-
+      Public official ml-1m README verified 2026-09-17: research use is permitted
+      with acknowledgement; redistribution is prohibited without separate
+      permission; commercial/revenue-bearing use requires GroupLens permission.
+      Reinspect the README bundled with the exact downloaded release before freeze.
 
   lastfm_1k:
     source: https://github.com/eifuentes/lastfm-dataset-1K
@@ -60,7 +76,11 @@ datasets:
     release_status: pending_local_freeze
     raw_sha256: null
     license_reviewed: false
-    license_note: verify_noncommercial_terms_before_use
+    license_note: >-
+      Public preservation mirror checked 2026-09-17 reproduces the original terms:
+      data distributed with Last.fm permission and made available for non-commercial
+      use. Because this is a mirror, verify the terms included with the exact local
+      archive/upstream release before setting reviewed=true.
 
   mind:
     source: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-microsoft-news
@@ -69,7 +89,11 @@ datasets:
     release_status: pending_local_freeze
     raw_sha256: null
     license_reviewed: false
-    license_note: verify_Microsoft_Research_License_terms_for_selected_release
+    license_note: >-
+      Public Microsoft Learn page verifies the MIND dataset identity/scope, but this
+      audit did not establish the exact license terms for the specific release to be
+      used. Verify the selected release's Microsoft Research License/terms locally
+      before setting reviewed=true.
 
 promotion_rule: >-
   A dataset may move to release_status=frozen only after raw_path exists locally,
