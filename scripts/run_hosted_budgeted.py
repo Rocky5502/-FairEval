@@ -13,6 +13,7 @@ from faireval.gateway import verify_frozen_gateway_models
 
 FROZEN_MAX_TARGET_RMB = 200.0
 FROZEN_MAX_HARD_CAP_RMB = 250.0
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_dotenv(path: Path) -> None:
@@ -30,13 +31,17 @@ def _load_dotenv(path: Path) -> None:
 
 
 def _git_head() -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError(
+            "hosted execution requires a Git checkout so code provenance can be proven"
+        ) from exc
 
 
 def _enforce_cli_budget_ceiling(target: float, hard_cap: float, reserve: float) -> None:
@@ -73,6 +78,7 @@ def main() -> int:
     parser.add_argument("--target-rmb", type=float, default=200.0)
     parser.add_argument("--hard-cap-rmb", type=float, default=250.0)
     parser.add_argument("--request-reserve-rmb", type=float, default=2.0)
+    parser.add_argument("--code-commit-sha")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
@@ -116,6 +122,16 @@ def main() -> int:
         print(json.dumps(dry_report, indent=2, sort_keys=True))
         return 0
 
+    if not args.code_commit_sha:
+        raise ValueError("--code-commit-sha is required with --execute")
+    checked_out_sha = _git_head()
+    if args.code_commit_sha.strip() != checked_out_sha:
+        raise ValueError(
+            "--code-commit-sha must equal the currently checked-out Git HEAD; "
+            f"argument={args.code_commit_sha.strip()} HEAD={checked_out_sha}. "
+            "Do not mix code revisions inside a frozen hosted run log."
+        )
+
     api_key = os.environ.get("ZZZ_API_KEY")
     if not api_key:
         raise RuntimeError("ZZZ_API_KEY is required for hosted execution")
@@ -151,7 +167,7 @@ def main() -> int:
             plan_dir=plan_dir,
             freeze_root=Path(args.freeze_root),
             output_jsonl=output_jsonl,
-            code_commit_sha=_git_head(),
+            code_commit_sha=checked_out_sha,
             families=families,
             max_cells=args.max_cells,
             before_cell=guard.before_cell,
@@ -162,12 +178,14 @@ def main() -> int:
         report["execution_status"] = "STOPPED_BY_BUDGET_GUARD"
         report["reason"] = str(exc)
         report["model_gate"] = model_gate
+        report["checked_out_code_commit_sha"] = checked_out_sha
         print(json.dumps(report, indent=2, sort_keys=True))
         return 10
 
     report = guard.report()
     summary["budget"] = report
     summary["model_gate"] = model_gate
+    summary["checked_out_code_commit_sha"] = checked_out_sha
     summary["execution_status"] = "COMPLETED_SELECTED_CELLS"
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
