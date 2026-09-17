@@ -13,19 +13,6 @@ from faireval.datasets.factory import DATASET_IDS
 
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-REQUIRED_API_ENV = (
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "GEMINI_API_KEY",
-    "DEEPSEEK_API_KEY",
-    "DASHSCOPE_API_KEY",
-    "LLAMA_PROVIDER_API_KEY",
-)
-REQUIRED_ENDPOINT_ENV = (
-    "QWEN_BASE_URL",
-    "LLAMA_BASE_URL",
-    "LLAMA_PROVIDER_NAME",
-)
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -71,18 +58,26 @@ def _dataset_blockers(repo_root: Path, lock: dict[str, Any]) -> list[str]:
 
 def _model_blockers(models: dict[str, Any]) -> list[str]:
     blockers: list[str] = []
-    rows = [row for row in models.get("models", []) if isinstance(row, dict) and row.get("enabled", True)]
+    rows = [
+        row
+        for row in models.get("models", [])
+        if isinstance(row, dict) and row.get("enabled", True)
+    ]
     if len(rows) != 6:
         blockers.append(f"model panel must contain six enabled families; found {len(rows)}")
         return blockers
     by_family = {str(row.get("family")): row for row in rows}
-    if set(by_family) != {"openai", "anthropic", "google", "deepseek", "qwen", "meta"}:
+    expected = {"openai", "anthropic", "google", "deepseek", "qwen", "meta"}
+    if set(by_family) != expected:
         blockers.append(f"unexpected enabled model families: {sorted(by_family)}")
 
-    meta = by_family.get("meta", {})
-    if not meta.get("provider"):
-        blockers.append("meta: configs/models.yaml provider is not frozen")
+    gateway = models.get("hosted_gateway")
+    if not isinstance(gateway, dict) or gateway.get("name") != "zhizengzeng":
+        blockers.append("hosted_gateway: expected frozen zhizengzeng configuration")
+
     for family, row in by_family.items():
+        if row.get("provider") != "zhizengzeng":
+            blockers.append(f"{family}: provider is not frozen to zhizengzeng")
         for key in (
             "model_id",
             "reasoning_or_thinking_setting",
@@ -96,23 +91,44 @@ def _model_blockers(models: dict[str, Any]) -> list[str]:
 
 def _environment_blockers() -> list[str]:
     blockers: list[str] = []
-    for name in REQUIRED_API_ENV:
-        if not os.environ.get(name):
-            blockers.append(f"environment: {name} missing")
-    for name in REQUIRED_ENDPOINT_ENV:
-        if not os.environ.get(name):
-            blockers.append(f"environment: {name} missing")
+    if os.environ.get("FAIREVAL_HOSTED_GATEWAY", "").strip().lower() != "zhizengzeng":
+        blockers.append("environment: FAIREVAL_HOSTED_GATEWAY must be zhizengzeng")
+    if not os.environ.get("ZZZ_API_KEY"):
+        blockers.append("environment: ZZZ_API_KEY missing")
+    base_url = os.environ.get("ZZZ_BASE_URL", "https://api.zhizengzeng.com/v1")
+    if not base_url.startswith("https://api.zhizengzeng.com/"):
+        blockers.append("environment: ZZZ_BASE_URL is not the frozen Zhizengzeng host")
+    return blockers
+
+
+def _budget_blockers(repo_root: Path) -> list[str]:
+    path = repo_root / "configs" / "hosted_budget.yaml"
+    if not path.is_file():
+        return ["configs/hosted_budget.yaml missing"]
+    budget = _load(path)
+    policy = budget.get("policy")
+    if not isinstance(policy, dict):
+        return ["hosted budget policy mapping missing"]
+    blockers: list[str] = []
+    if float(policy.get("planning_target_rmb", -1)) != 200.0:
+        blockers.append("hosted budget planning target is not frozen to 200 RMB")
+    if float(policy.get("hard_cap_rmb", -1)) != 250.0:
+        blockers.append("hosted budget hard cap is not frozen to 250 RMB")
+    if float(policy.get("per_request_reserve_rmb", -1)) != 2.0:
+        blockers.append("hosted budget request reserve is not frozen to 2 RMB")
+    if policy.get("bypass_allowed") is not False:
+        blockers.append("hosted budget bypass must be false")
     return blockers
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate whether FairEval is safe to promote from repo-ready to API-pilot-ready."
+        description="Validate whether FairEval is safe to promote to a budgeted hosted API pilot."
     )
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Return non-zero until dataset locks, provider freeze, endpoints and credentials are complete.",
+        help="Return non-zero until dataset locks, gateway freeze, budget policy and credentials are complete.",
     )
     args = parser.parse_args()
 
@@ -122,7 +138,11 @@ def main() -> int:
 
     dataset_lock = _load(dataset_lock_path)
     models = _load(models_path)
-    blockers = _dataset_blockers(repo_root, dataset_lock) + _model_blockers(models)
+    blockers = (
+        _dataset_blockers(repo_root, dataset_lock)
+        + _model_blockers(models)
+        + _budget_blockers(repo_root)
+    )
     environment_blockers = _environment_blockers()
 
     structural_errors = [
@@ -136,16 +156,20 @@ def main() -> int:
     ]
 
     report = {
-        "schema_version": "faireval-pilot-readiness-v1",
+        "schema_version": "faireval-pilot-readiness-v2",
         "dataset_ids": list(DATASET_IDS),
-        "dataset_and_model_blockers": blockers,
+        "hosted_gateway": "zhizengzeng",
+        "budget_target_rmb": 200.0,
+        "budget_hard_cap_rmb": 250.0,
+        "dataset_model_budget_blockers": blockers,
         "environment_blockers": environment_blockers,
         "schema_valid": not structural_errors,
         "ready_for_six_family_pilot": not blockers and not environment_blockers,
         "strict_mode": args.strict,
         "note": (
-            "Repo/CI validity is intentionally weaker than pilot readiness. "
-            "Pending locks are expected before local dataset freeze and must not be bypassed."
+            "Repo/CI validity is intentionally weaker than paid pilot readiness. "
+            "Third-party dataset release locks remain mandatory. Hosted execution "
+            "uses the unified gateway and the non-bypassable RMB budget ledger."
         ),
     }
     print(json.dumps(report, indent=2, sort_keys=True))
