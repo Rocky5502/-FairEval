@@ -51,15 +51,38 @@ def _git(*args: str) -> str:
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
 
 
+def _is_scientific_spec_path(name: str) -> bool:
+    normalized = name.replace("\\", "/")
+    if normalized.startswith(SPEC_EXCLUDES):
+        return False
+    return normalized in SPEC_EXACT or normalized.startswith(SPEC_PREFIXES)
+
+
+def assert_clean_scientific_worktree() -> None:
+    """Refuse to seal uncommitted files that can change the scientific study."""
+    status = _git("status", "--porcelain", "--untracked-files=all")
+    dirty: list[str] = []
+    for raw in status.splitlines():
+        if len(raw) < 4:
+            continue
+        path_text = raw[3:].strip()
+        candidates = [part.strip() for part in path_text.split(" -> ")]
+        if any(_is_scientific_spec_path(name) for name in candidates):
+            dirty.append(raw)
+    if dirty:
+        raise RuntimeError(
+            "cannot build pre-execution seal from a dirty scientific worktree; "
+            "commit or intentionally revert these files first:\n" + "\n".join(dirty)
+        )
+
+
 def collect_spec_hashes(root: Path = ROOT) -> dict[str, str]:
     """Hash tracked files that define the executable scientific specification."""
     tracked = _git("ls-files").splitlines()
     selected: dict[str, str] = {}
     for raw in tracked:
         name = raw.replace("\\", "/")
-        if name in SPEC_EXACT or name.startswith(SPEC_PREFIXES):
-            if name.startswith(SPEC_EXCLUDES):
-                continue
+        if _is_scientific_spec_path(name):
             path = root / name
             if path.is_file():
                 selected[name] = _sha256(path)
@@ -68,7 +91,9 @@ def collect_spec_hashes(root: Path = ROOT) -> dict[str, str]:
     return dict(sorted(selected.items()))
 
 
-def dataset_release_blockers(path: Path = ROOT / "configs" / "dataset_releases.yaml") -> dict[str, list[str]]:
+def dataset_release_blockers(
+    path: Path = ROOT / "configs" / "dataset_releases.yaml",
+) -> dict[str, list[str]]:
     cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
     datasets = cfg.get("datasets") if isinstance(cfg, dict) else None
     if not isinstance(datasets, dict):
@@ -145,6 +170,7 @@ def _markdown(seal: dict[str, Any]) -> str:
             "- Hosted API generation calls made while building this seal: 0",
             "- Local model weights loaded while building this seal: no",
             "- Empirical result numbers inserted: no",
+            "- Scientific worktree clean at seal creation: yes",
             "",
             "## Real-dataset blockers",
             "",
@@ -172,6 +198,11 @@ def main() -> int:
         default=ROOT / "results" / "preexecution" / "seal-v1",
     )
     args = parser.parse_args()
+
+    # The seal's commit SHA must describe the actual scientific source bytes.
+    # Generated result/figure artifacts are excluded from the scientific-spec set,
+    # but prompts/configs/code/tests/paper contracts may not be dirty.
+    assert_clean_scientific_worktree()
 
     output_dir = args.output_dir
     command_dir = output_dir / "commands"
@@ -216,6 +247,10 @@ def main() -> int:
     ]
     step_results = [_run(label, command, command_dir) for label, command in steps]
 
+    # Deterministic builders must not rewrite tracked scientific contracts. If they
+    # do, commit the new contract first and create a new seal from that revision.
+    assert_clean_scientific_worktree()
+
     whitebox_manifest_path = ROOT / "results/plans/whitebox-full-v1/core/plan_manifest.json"
     hosted_manifest_path = ROOT / "results/plans/hosted-fairsynth-budget-v1/plan_manifest.json"
     fairsynth_manifest_path = ROOT / "data/frozen/fairsynth360/manifest.json"
@@ -237,6 +272,7 @@ def main() -> int:
         "schema_version": "faireval-preexecution-seal-v1",
         "git_commit_sha": _git("rev-parse", "HEAD"),
         "git_branch_or_detached": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        "scientific_worktree_clean": True,
         "scientific_spec_sha256": _json_digest(spec_hashes),
         "scientific_spec_file_count": len(spec_hashes),
         "scientific_spec_files": spec_hashes,
