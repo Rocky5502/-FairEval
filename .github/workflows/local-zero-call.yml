@@ -49,6 +49,24 @@ jobs:
             > results/smoke/local_cli_dry_run.json
           grep -q '"api_calls_made": 0' results/smoke/local_cli_dry_run.json
           grep -q '"selected_pending_cells": 2' results/smoke/local_cli_dry_run.json
+      - name: Build full zero-call pre-execution seal
+        run: python scripts/build_preexecution_seal.py --output-dir results/preexecution/seal-v1
+      - name: Verify seal invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('results/preexecution/seal-v1/PREEXECUTION_SEAL.json')
+          s = json.loads(p.read_text())
+          assert s['hosted_api_generation_calls_made'] == 0
+          assert s['local_model_weights_loaded'] is False
+          assert s['empirical_results_seen_or_inserted'] is False
+          assert s['plans']['whitebox_core']['planned_cells'] == 12960
+          assert s['plans']['hosted_fairsynth']['planned_cells'] == 12960
+          print('pre-execution seal invariants: PASS')
+          PY
       - name: Upload zero-call provenance artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -57,5 +75,9 @@ jobs:
             results/smoke/local_zero_call_v1.json
             results/smoke/local_cli_dry_run.json
             results/plans/local-zero-call/plan_manifest.json
+            results/preexecution/seal-v1/PREEXECUTION_SEAL.json
+            results/preexecution/seal-v1/PREEXECUTION_SEAL.md
+            results/preexecution/seal-v1/FairEval_ECIR2027_PreResult_Overleaf.zip
+            results/preexecution/seal-v1/commands
           if-no-files-found: error
           retention-days: 14
