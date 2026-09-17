@@ -1,4 +1,4 @@
-version: faireval-hosted-budget-v1
+version: faireval-hosted-budget-v2
 currency: CNY
 gateway: zhizengzeng
 base_url: https://api.zhizengzeng.com/v1
@@ -6,6 +6,8 @@ base_url: https://api.zhizengzeng.com/v1
 policy:
   planning_target_rmb: 200.0
   hard_cap_rmb: 250.0
+  hard_cap_semantics: client_side_emergency_stop_threshold
+  provider_side_atomic_spend_cap_claimed: false
   per_request_reserve_rmb: 2.0
   balance_reconciliation: true
   balance_endpoint: /dashboard/billing/credit_grants
@@ -14,18 +16,22 @@ policy:
   notes: >-
     The 200 RMB value is the normal hosted execution stop target. The runner
     stops launching new cells when the remaining target budget is at or below
-    the 2 RMB reserve. The 250 RMB value is an emergency hard ceiling that
-    remains a 50 RMB safety buffer under normal execution. Zhizengzeng available
-    balance is reconciled before and after every hosted cell and written to the
-    persistent experiment ledger. Budget exhaustion truncates deterministic plan
-    coverage; it never selects cells based on interim empirical results.
+    the 2 RMB reserve. The 250 RMB value is an emergency client-side stop
+    threshold that leaves roughly 50 RMB of safety headroom under normal
+    execution; FairEval does not represent it as an atomic provider-side spend
+    cap. Zhizengzeng available balance is reconciled before and after every
+    persisted hosted cell and written to the experiment ledger. Budget exhaustion
+    truncates deterministic plan coverage; it never selects cells based on
+    interim empirical results.
 
 # Conservative public price references captured 2026-09-17. These values are
-# used for planning/audit only; the source of record for spend is real gateway
-# balance movement. Foreign-provider RMB conversions use 7.2 RMB/USD * 1.05,
-# following the gateway's documented billing example. Domestic model entries
-# use the upper end of published tier/range pricing where applicable.
+# used for planning/audit only; the source of record for experiment spend is
+# observed gateway balance movement. Foreign-provider RMB conversions use
+# 7.2 RMB/USD * 1.05, following the gateway's documented billing example.
+# Domestic entries use the upper end of published tier/range pricing where
+# applicable. Pricing can change, so live balance movement remains authoritative.
 pricing_reference:
+  captured_date: 2026-09-17
   usd_to_rmb: 7.2
   foreign_gateway_multiplier: 1.05
   models:
@@ -72,3 +78,4 @@ reporting:
   record_spend_from_balance_delta: true
   include_budget_ledger_in_provenance: true
   never_print_api_key: true
+  disclose_no_provider_atomic_cap: true
