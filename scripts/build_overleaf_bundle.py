@@ -20,6 +20,12 @@ RESULT_TABLE_FILES = (
     "result_tables/whitebox_table.tex",
 )
 
+EDITABLE_CONCEPT_FIGURES = (
+    "figures/faireval_framework.svg",
+    "figures/faireval_conditions.svg",
+    "figures/faireval_evaluation_pipeline.svg",
+)
+
 REQUIRED_FILES = (
     "main.tex",
     "benchmark_model_table.tex",
@@ -32,6 +38,7 @@ REQUIRED_FILES = (
     "figures/faireval_framework.pdf",
     "figures/faireval_conditions.pdf",
     "figures/faireval_evaluation_pipeline.pdf",
+    *EDITABLE_CONCEPT_FIGURES,
     *RESULT_TABLE_FILES,
 )
 
@@ -42,7 +49,8 @@ OPTIONAL_RESULT_FILES = (
     "generated/rq34_results_table.tex",
     "generated/fairsynth_hosted_table.tex",
     "generated/whitebox_summary_table.tex",
-    # Artifact-generated result figures.
+    # Artifact-generated result figures. These intentionally remain analysis-
+    # generated outputs rather than manually editable artwork.
     "figures/rq1_quadrant.pdf",
     "figures/rq2_personality_forest.pdf",
     "figures/rq3_variance.pdf",
@@ -67,7 +75,8 @@ def build_overleaf_bundle(
     """Create a deterministic upload-ready archive from canonical paper sources.
 
     The ZIP deliberately excludes repository code, raw datasets, run logs,
-    secrets, and author-identifying metadata. Generated result tables/figures are
+    secrets, and author-identifying metadata. Conceptual figures travel with both
+    publication PDF and editable SVG sources. Generated result tables/figures are
     included only when they already exist as artifact-derived paper inputs; the
     manuscript otherwise compiles registered placeholders. This means the ZIP
     cannot silently drop numerical tables that were already rendered locally.
@@ -123,6 +132,8 @@ def build_overleaf_bundle(
         "double_blind": True,
         "canonical_source": "paper/ on ecir-2027-redesign",
         "empirical_numbers_manually_entered": False,
+        "editable_concept_figures": list(EDITABLE_CONCEPT_FIGURES),
+        "result_figure_policy": "artifact-generated; do not manually edit empirical geometry or values",
         "result_table_contract": {
             "fallback_main_tables": [
                 "result_tables/rq12_main_table.tex",
@@ -149,6 +160,7 @@ def build_overleaf_bundle(
         "output": str(output_zip),
         "files": len(selected),
         "zip_sha256": _sha256(output_zip),
+        "editable_concept_figures": list(EDITABLE_CONCEPT_FIGURES),
         "included_result_table_contracts": list(RESULT_TABLE_FILES),
         "included_generated_result_tables": generated_tables,
         "included_generated_result_figures": generated_figures,
