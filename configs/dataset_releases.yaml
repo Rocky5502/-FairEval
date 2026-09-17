@@ -90,10 +90,11 @@ datasets:
     raw_sha256: null
     license_reviewed: false
     license_note: >-
-      Public Microsoft Learn page verifies the MIND dataset identity/scope, but this
-      audit did not establish the exact license terms for the specific release to be
-      used. Verify the selected release's Microsoft Research License/terms locally
-      before setting reviewed=true.
+      Public official MIND site/Microsoft documentation verified 2026-09-17: the
+      dataset is free for research under Microsoft Research License Terms and is
+      intended for non-commercial research. Freeze the exact selected MIND release
+      (small/large and train/dev/test scope), inspect its accompanying terms, and
+      record its release identity/hash before setting reviewed=true.
 
 promotion_rule: >-
   A dataset may move to release_status=frozen only after raw_path exists locally,
