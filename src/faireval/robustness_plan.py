@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -109,12 +109,19 @@ def compile_rq3_extra_plan(
     study_design_yaml: Path,
     experiment_yaml: Path,
     seed: int,
+    model_panel_loader: Callable[[Path], list[dict[str, str]]] = load_model_panel,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Compile only RQ3 cells not already present in the primary core plan.
 
     The primary core cell supplies template A, structured cue, adapter-frozen
     candidate order, K=10 and the main temperature. This extra plan schedules
     only missing factor levels under a one-factor-at-a-time design.
+
+    ``model_panel_loader`` defaults to the six-family hosted panel. The explicit
+    hook lets the separately reported local white-box stratum reuse exactly the
+    same registered robustness geometry without duplicating the design code.
+    Local callers remain responsible for freezing generation seeds and rehashing
+    cell IDs after this shared semantic plan is constructed.
     """
     counterfactual_cfg = yaml.safe_load(counterfactuals_yaml.read_text(encoding="utf-8"))
     study = yaml.safe_load(study_design_yaml.read_text(encoding="utf-8"))
@@ -124,7 +131,7 @@ def compile_rq3_extra_plan(
     if not isinstance(study, Mapping) or not isinstance(experiment, Mapping):
         raise ValueError("study/experiment configs must be mappings")
 
-    model_panel = load_model_panel(models_yaml)
+    model_panel = model_panel_loader(models_yaml)
     primary = study["primary_prompt"]
     generation = study["primary_generation"]
     robustness = experiment["robustness"]
@@ -153,9 +160,6 @@ def compile_rq3_extra_plan(
             )
             if _representative(row)
         ]
-        by_user: dict[str, list[PlannedCondition]] = {}
-        for row in conditions:
-            by_user.setdefault(row.user_id, []).append(row)
 
         factor_counts: dict[str, int] = {}
 
