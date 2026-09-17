@@ -13,6 +13,8 @@ For RQ1/RQ2 and RQ3/RQ4 it prefers generated audited tables when they exist and 
 
 Hosted FairSynth is different: `generated/fairsynth_hosted_table.tex` is included **only if an audited hosted FairSynth inference artifact has actually been rendered**. There is no synthetic fake-number fallback.
 
+The full-scale local white-box stratum follows the same artifact-only rule. `generated/whitebox_summary_table.tex` is included only after audited local output has been analyzed and rendered. White-box numerical values are never typed into the manuscript by hand and are never pooled with unavailable hosted-model internals.
+
 The bundle also carries the compact supporting result contracts:
 
 - `result_tables/coverage_table.tex`;
@@ -34,7 +36,56 @@ The current black-box phase uses the Zhizengzeng OpenAI-compatible gateway and t
 
 The budget is outcome-independent. Cells execute in immutable plan order and the budget is never expanded after inspecting results. Any budget-truncated coverage is reported as incomplete planned coverage rather than evidence for or against an RQ.
 
-The first hosted-only executable evidence layer is the deterministic A/B/C-balanced FairSynth subset compiled by `scripts/plan_hosted_fairsynth.py`. Real-world RQ1/RQ2 remains blocked until exact third-party raw releases are frozen.
+The first hosted executable evidence layer is the deterministic A/B/C-balanced FairSynth subset compiled by `scripts/plan_hosted_fairsynth.py`. Real-world hosted RQ1/RQ2 remains blocked until exact third-party raw releases are frozen.
+
+## Full-scale local white-box execution contract
+
+The two frozen open-weight models form a **required, separately reported replication stratum** rather than a small optional demo. The model panel remains fixed to exact Hugging Face revisions in `configs/local_models.yaml`; adding models after observing results is prohibited by the campaign contract.
+
+The canonical controlled run is:
+
+- 360 FairSynth users;
+- 6 registered conditions per user;
+- 3 seeded repetitions;
+- 2 frozen local model families;
+- 12,960 core generations in total.
+
+After exact real-world dataset freezes exist, the same two models replicate the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path. Hosted and local estimands remain separate strata.
+
+Build the immutable full core plan with:
+
+```bash
+python scripts/build_whitebox_campaign.py \
+  --freeze-root data/frozen \
+  --output-root results/plans/whitebox-full-v1
+```
+
+When all six real-world freezes are available, rebuild/version the campaign with `--include-real-world` rather than modifying an existing plan in place.
+
+Run one family at a time so a large GPU is used for throughput without mixing model state:
+
+```bash
+python scripts/run_whitebox_family.py \
+  --plan-dir results/plans/whitebox-full-v1/core \
+  --freeze-root data/frozen \
+  --family qwen25_local \
+  --output-jsonl results/runs/whitebox-qwen25-v1.jsonl \
+  --max-cells 250
+```
+
+Review the dry run first; add `--execute --code-commit-sha <SHA>` only for the real GPU run. Repeat for `phi35_local`. The output file is resume-safe and every completed plan cell is persisted before the next cell starts.
+
+For the registered local RQ3 prompt/cue/order/cutoff/stochasticity factors, compile the separate seeded extra-cell plan only after real-world freezes exist:
+
+```bash
+python scripts/plan_whitebox_rq3.py \
+  --freeze-root data/frozen \
+  --output-dir results/plans/whitebox-full-v1/rq3
+```
+
+This planner reuses the same registered semantic geometry as hosted RQ3, substitutes the frozen local model panel, freezes a deterministic generation seed into every local robustness cell, and rehashes the immutable cell ID. Execute it with the same one-family `scripts/run_whitebox_family.py` runner by pointing `--plan-dir` to the RQ3 plan.
+
+RQ4 identity-irrelevance prompting is derived from the real-world local core with `scripts/build_rq4_prompt_plan.py`; because the source local cells already carry frozen generation seeds, the derived executor-compatible plan preserves those seeds while changing only the named prompt intervention. Contextual PAIR remains a post-processing mitigation and never selects an operating point on test outcomes.
 
 ## Result generation
 
@@ -44,7 +95,7 @@ Before experiments:
 python scripts/render_result_tables.py --contracts-only
 ```
 
-After a hosted FairSynth run exists, the canonical paper update is:
+After a hosted FairSynth run exists, the canonical hosted paper update is:
 
 ```bash
 python scripts/finalize_hosted_fairsynth.py
@@ -52,7 +103,34 @@ python scripts/finalize_hosted_fairsynth.py
 
 That path performs run-log audit, FairSynth scoring/inference, `generated/fairsynth_hosted_table.tex` rendering, manuscript/result preflights, Overleaf bundle rebuild, and paper-sync hashing.
 
-For the complete real-world RQ1--RQ4 study, use the final renderer documented in `docs/RESULT_TABLES.md`. Final rendering requires the core inference, C5 trait inference, RQ3 summary, RQ4 PAIR artifact, RQ4 identity-irrelevance prompting summary, FairSynth inference, optional local white-box summary when that track is executed, and the user-condition artifact.
+For a completed local white-box run, the artifact flow is:
+
+```text
+frozen local run JSONL
+  -> local run-log / seed audit
+  -> scripts/analyze_local_whitebox.py
+  -> results/analysis/.../whitebox_summary.jsonl
+  -> scripts/render_whitebox_paper.py
+  -> paper/generated/whitebox_summary_table.tex
+  -> scripts/build_overleaf_bundle.py
+```
+
+A representative command pair is:
+
+```bash
+python scripts/analyze_local_whitebox.py \
+  --output-jsonl results/runs/whitebox-qwen25-v1.jsonl \
+  --plan-dir results/plans/whitebox-full-v1/core \
+  --freeze-root data/frozen \
+  --output-dir results/analysis/whitebox-qwen25-v1
+
+python scripts/render_whitebox_paper.py \
+  --summary-jsonl results/analysis/whitebox-qwen25-v1/whitebox_summary.jsonl
+```
+
+When both local families are complete, analyze/render a merged audited run artifact or a combined summary rather than manually averaging table values.
+
+For the complete real-world RQ1--RQ4 study, use the final renderer documented in `docs/RESULT_TABLES.md`. Final rendering requires the core inference, C5 trait inference, RQ3 summary, RQ4 PAIR artifact, RQ4 identity-irrelevance prompting summary, FairSynth inference, local white-box summary, and the user-condition artifact for every claimed stratum.
 
 RQ4 identity-irrelevance prompting runs through its own derived immutable plan (`scripts/build_rq4_prompt_plan.py`) so the neutral RQ1 audit is never fairness-coached. The derived plan uses the same `faireval-run-plan-v1` execution/audit protocol and changes only the named prompt mode while preserving source-cell provenance.
 
@@ -67,8 +145,10 @@ Methodology PDFs are generated from `scripts/build_paper_figures.py`. Result PDF
 - never describe FairSynth labels as human demographics or its OCEAN vectors as measured psychometrics;
 - never describe gateway-native thinking/sampling controls as verified unless returned metadata proves them;
 - never describe local token-score diagnostics as calibrated uncertainty;
+- never pool local internal-score diagnostics with hosted models that do not expose the same internals;
 - never select a PAIR point from test outcomes or tune one per model/dataset;
 - never use the RQ4 mitigation prompt in the RQ1 audit run;
-- never increase the hosted budget after inspecting results.
+- never increase the hosted budget after inspecting results;
+- never add a white-box model after observing campaign outcomes without versioning a new study.
 
 Before an Overleaf upload, run the repository CI/preflight chain. CI checks configuration, manuscript sources, methodology figures, result-table contracts, and builds an anonymous Overleaf ZIP only after the branch passes its guards.
