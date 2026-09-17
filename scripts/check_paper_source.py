@@ -92,10 +92,13 @@ def main() -> int:
         "optional local open-weight replication stratum",
         "optional local transparency replication",
         "current hosted-only phase does not require local execution",
+        "250 RMB hard ceiling",
+        "250 RMB emergency hard ceiling",
+        "250 RMB non-bypassable emergency ceiling",
     ]
     stale = [phrase for phrase in stale_phrases if phrase in main_text]
     if stale:
-        raise SystemExit(f"stale pre-gateway/white-box manuscript wording found: {stale}")
+        raise SystemExit(f"stale pre-gateway/white-box/budget manuscript wording found: {stale}")
 
     if "\\author{Anonymous Authors}" not in main_text:
         raise SystemExit("double-blind author placeholder missing")
@@ -107,8 +110,13 @@ def main() -> int:
         raise SystemExit("artifact-only result-integrity policy missing from manuscript")
     if "persistent invalid output" not in main_text.lower():
         raise SystemExit("primary invalid-output policy is missing from manuscript text")
-    if "250 RMB hard ceiling" not in main_text:
-        raise SystemExit("hosted API hard-ceiling policy missing from manuscript")
+    budget_markers = (
+        "200 RMB normal stop target",
+        "250 RMB client-side emergency stop threshold",
+        "does not represent the 250 RMB threshold as an atomic provider-side spending cap",
+    )
+    if not all(marker in main_text for marker in budget_markers):
+        raise SystemExit("hosted API client-side budget-safety wording missing from manuscript")
     if "Zhizengzeng" not in main_text:
         raise SystemExit("hosted gateway provenance missing from manuscript")
     if "12,960" not in main_text or "full-scale local white-box" not in main_text:
@@ -137,7 +145,8 @@ def main() -> int:
         "native application unverified",
         "12,960",
         "200 RMB",
-        "250 RMB",
+        "250 RMB client-side emergency stop threshold",
+        "do not claim an atomic provider-side spend cap",
     )
     for token in required_benchmark_tokens:
         if token not in benchmark:
@@ -177,7 +186,8 @@ def main() -> int:
     )
     print("paper preflight: LaTeX inputs and required vector/table assets present")
     print("paper preflight: six hosted gateway IDs + full-scale local white-box stratum synchronized")
-    print("paper preflight: 200 RMB target / 250 RMB ceiling documented")
+    print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
+    print("paper preflight: no atomic provider-side spend-cap claim")
     print("paper preflight: generated hosted/local result tables are artifact-only")
     print("paper preflight: RQ4 validation/no-test-selection rule synchronized")
     print("paper preflight: double-blind and invalid-output guards present")
