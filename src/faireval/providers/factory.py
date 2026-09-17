@@ -22,11 +22,22 @@ def _zhizengzeng_provider(family: str) -> OpenAICompatibleAdapter:
     One gateway key fixes endpoint provenance, while the immutable run plan keeps
     model-family/model-ID identity. The common gateway interface does not prove
     vendor-native deliberation or decoding semantics, so ``controls_verified``
-    is false and the persisted run log records requested controls as unverified
-    rather than pretending provider-native equivalence.
+    is false and the persisted run log records requested controls as unverified.
+
+    Google retains its provider-native/reference ``max_output_tokens`` contract
+    in the immutable plan, while the gateway wire request normalizes that field
+    to OpenAI-compatible ``max_tokens``; both are recorded for auditability.
     """
     base_url = os.environ.get("ZZZ_BASE_URL", "https://api.zhizengzeng.com/v1")
-    output_field = "max_completion_tokens" if family == "openai" else "max_tokens"
+    if family == "openai":
+        contract_field = "max_completion_tokens"
+        wire_field = "max_completion_tokens"
+    elif family == "google":
+        contract_field = "max_output_tokens"
+        wire_field = "max_tokens"
+    else:
+        contract_field = "max_tokens"
+        wire_field = "max_tokens"
     return OpenAICompatibleAdapter(
         family=family,
         provider_name="zhizengzeng",
@@ -34,7 +45,8 @@ def _zhizengzeng_provider(family: str) -> OpenAICompatibleAdapter:
         base_url=base_url,
         supports_seed_flag=False,
         json_mode=True,
-        output_token_parameter=output_field,
+        output_token_parameter=contract_field,
+        wire_output_token_parameter=wire_field,
         controls_verified=False,
     )
 
