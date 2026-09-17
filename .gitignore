@@ -10,14 +10,21 @@ venv/
 .env
 *.key
 
-# Raw/derived data and model outputs
+# Third-party/raw/generated/frozen data are provenance inputs, not source code.
+# Exact hashes/manifests are recorded by the experiment pipeline instead.
 data/raw/
 data/processed/
-results/raw/
-results/cache/
+data/generated/
+data/frozen/
+data/frozen-smoke/
 
-# Keep small manifests/aggregates under version control when intentionally added
+# Local/CI execution products. Paper-facing generated artifacts under
+# paper/generated/ are intentionally NOT ignored so audited final results can be
+# committed deliberately when the experiment is complete.
+results/*
 !results/.gitkeep
+dist/
+artifacts/
 
 # Paper build products
 paper/*.aux
