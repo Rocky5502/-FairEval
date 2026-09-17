@@ -22,14 +22,15 @@ models:
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
-    reasoning_or_thinking_setting: none
-    sampling_policy: explicit_low_variance_where_supported
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_completion_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
       Gateway catalog lists GPT-5.6 Terra. FairEval uses the gateway's
       OpenAI-compatible endpoint. The resolved model string returned by the
-      service, request timestamp, and gateway provenance are logged.
+      service, request timestamp, and gateway provenance are logged. Native
+      reasoning-control application is not assumed unless gateway metadata proves it.
 
   - family: anthropic
     name: claude-sonnet-5
@@ -37,15 +38,14 @@ models:
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
-    reasoning_or_thinking_setting: disabled_requested_at_study_level
-    sampling_policy: gateway_openai_compatible_low_variance_request
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
-      Gateway catalog lists Claude Sonnet 5. Because this execution uses the
-      common OpenAI-compatible gateway path rather than Anthropic's native API,
-      FairEval does not claim native serving-stack equivalence. Requested
-      deliberation policy and returned serving metadata are logged separately.
+      Gateway catalog lists Claude Sonnet 5. This execution uses the common
+      OpenAI-compatible gateway path rather than Anthropic's native API, so
+      FairEval does not claim that native thinking controls were applied.
 
   - family: google
     name: gemini-3.8-flash
@@ -53,15 +53,14 @@ models:
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
-    reasoning_or_thinking_setting: low_requested_at_study_level
-    sampling_policy: gateway_openai_compatible_low_variance_request
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
       Gateway catalog lists Gemini 3.8 Flash. The gateway OpenAI-compatible path
-      uses max_tokens semantics, so the plan freezes that field instead of the
-      native Gemini max_output_tokens field. No native-API equivalence claim is
-      made.
+      uses max_tokens semantics; native Gemini thinking/sampling application is
+      not assumed from request acceptance alone.
 
   - family: deepseek
     name: deepseek-v4.1-flash
@@ -69,14 +68,14 @@ models:
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
-    reasoning_or_thinking_setting: disabled_requested_at_study_level
-    sampling_policy: gateway_openai_compatible_low_variance_request
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
       Gateway catalog explicitly lists DeepSeek V4.1 Flash. Use the explicit
-      v4.1 identifier rather than the moving deepseek-flash alias so the paper
-      and execution manifest describe the same checkpoint family.
+      v4.1 identifier rather than the moving deepseek-flash alias. Native
+      thinking-control application through the gateway is not assumed.
 
   - family: qwen
     name: qwen3.8-2.4t-a95b
@@ -84,15 +83,14 @@ models:
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
-    reasoning_or_thinking_setting: disabled_requested_at_study_level
-    sampling_policy: gateway_openai_compatible_low_variance_request
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
       The previous pre-run label qwen3.8-max-0902 was not retained. The current
-      gateway catalog lists qwen3.8-2.4t-a95b; that exact gateway ID is frozen for
-      the hosted panel, subject to live /v1/models confirmation on the experiment
-      key before paid execution.
+      gateway catalog lists qwen3.8-2.4t-a95b; that exact gateway ID is frozen,
+      subject to live /v1/models confirmation on the experiment key.
 
   - family: meta
     name: llama-4-maverick
@@ -100,15 +98,14 @@ models:
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
-    reasoning_or_thinking_setting: not_applicable
-    sampling_policy: gateway_openai_compatible_low_variance_request
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
       Gateway catalog lists llama-4-maverick directly. The previously unresolved
-      Llama hosting-provider blocker is therefore replaced by the explicit
-      Zhizengzeng gateway provenance, while returned model metadata remains part
-      of every request record.
+      Llama hosting-provider blocker is replaced by explicit gateway provenance,
+      while returned model metadata remains part of every request record.
 
 generation:
   top_k: 10
@@ -124,21 +121,21 @@ generation:
   request_chain_of_thought: false
   cross_provider_decoding_equivalence_claimed: false
   deliberation_policy: >-
-    Direct-ranking prompts request the lowest practical deliberation behavior,
-    but the common gateway path is not claimed to reproduce each vendor's native
-    API control surface exactly. FairEval logs the requested policy, gateway
-    provider, returned model/version string, sampling controls, and timestamps.
+    Under the unified gateway, vendor-native reasoning/thinking control is
+    treated as unverified unless returned gateway metadata establishes it.
+    FairEval requests a common low-variance temperature/top-p profile through
+    the OpenAI-compatible interface and logs that request without equating it to
+    verified native-vendor decoding mechanics.
 
 budget:
   config: configs/hosted_budget.yaml
-  planning_target_rmb: 200.0
+  normal_stop_target_rmb: 200.0
   hard_cap_rmb: 250.0
   per_request_reserve_rmb: 2.0
   source_of_record: gateway_balance_delta
 
 reproducibility_required_fields:
   - provider
-  - provider_region
   - model_family
   - requested_model_id
   - resolved_model_version
