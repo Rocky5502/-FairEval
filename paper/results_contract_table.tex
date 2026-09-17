@@ -19,3 +19,9 @@
 \IfFileExists{generated/fairsynth_hosted_table.tex}{%
   \input{generated/fairsynth_hosted_table}%
 }{}
+
+% The local white-box table is also artifact-only. It is rendered from the
+% audited local analysis summary and never receives hand-entered numbers.
+\IfFileExists{generated/whitebox_summary_table.tex}{%
+  \input{generated/whitebox_summary_table}%
+}{}
