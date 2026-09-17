@@ -89,10 +89,13 @@ def main() -> int:
         "spans six recommendation datasets and six LLM families",
         "across six datasets, six LLM families",
         "one frozen model configuration from six independent families",
+        "optional local open-weight replication stratum",
+        "optional local transparency replication",
+        "current hosted-only phase does not require local execution",
     ]
     stale = [phrase for phrase in stale_phrases if phrase in main_text]
     if stale:
-        raise SystemExit(f"stale pre-gateway manuscript wording found: {stale}")
+        raise SystemExit(f"stale pre-gateway/white-box manuscript wording found: {stale}")
 
     if "\\author{Anonymous Authors}" not in main_text:
         raise SystemExit("double-blind author placeholder missing")
@@ -108,6 +111,8 @@ def main() -> int:
         raise SystemExit("hosted API hard-ceiling policy missing from manuscript")
     if "Zhizengzeng" not in main_text:
         raise SystemExit("hosted gateway provenance missing from manuscript")
+    if "12,960" not in main_text or "full-scale local white-box" not in main_text:
+        raise SystemExit("full-scale local white-box campaign is missing from manuscript")
 
     related = (PAPER / "related_work_table.tex").read_text(encoding="utf-8")
     if related.count("\\\\") < 16:
@@ -130,6 +135,7 @@ def main() -> int:
         "microsoft/Phi-3.5-mini-instruct",
         "generation-score diagnostics",
         "native application unverified",
+        "12,960",
         "200 RMB",
         "250 RMB",
     )
@@ -140,13 +146,14 @@ def main() -> int:
     if "FairSynth-360" not in main_text:
         raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
     if "Qwen2.5" not in main_text or "Phi-3.5" not in main_text:
-        raise SystemExit("manuscript must explain the optional local open-weight models")
+        raise SystemExit("manuscript must explain the full-scale local open-weight models")
 
     results_entry = (PAPER / "results_contract_table.tex").read_text(encoding="utf-8")
     for token in (
         "generated/rq12_inference_table.tex",
         "generated/rq34_results_table.tex",
         "generated/fairsynth_hosted_table.tex",
+        "generated/whitebox_summary_table.tex",
         "Do not type empirical values",
     ):
         if token not in results_entry:
@@ -169,9 +176,9 @@ def main() -> int:
         f"{len(bib_targets)} bibliography files"
     )
     print("paper preflight: LaTeX inputs and required vector/table assets present")
-    print("paper preflight: six hosted gateway IDs + optional local scope synchronized")
+    print("paper preflight: six hosted gateway IDs + full-scale local white-box stratum synchronized")
     print("paper preflight: 200 RMB target / 250 RMB ceiling documented")
-    print("paper preflight: generated result tables are artifact-only")
+    print("paper preflight: generated hosted/local result tables are artifact-only")
     print("paper preflight: RQ4 validation/no-test-selection rule synchronized")
     print("paper preflight: double-blind and invalid-output guards present")
     return 0
