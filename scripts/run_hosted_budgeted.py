@@ -9,10 +9,11 @@ from pathlib import Path
 from faireval.budget import BudgetExceeded, ZhizengzengBudgetGuard
 from faireval.execute import completed_cell_ids, execute_plan, load_and_verify_plan, pending_cells
 from faireval.gateway import verify_frozen_gateway_models
+from faireval.preexecution import verify_preexecution_seal
 
 
 FROZEN_MAX_TARGET_RMB = 200.0
-FROZEN_MAX_HARD_CAP_RMB = 250.0
+FROZEN_MAX_EMERGENCY_THRESHOLD_RMB = 250.0
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -44,16 +45,17 @@ def _git_head() -> str:
         ) from exc
 
 
-def _enforce_cli_budget_ceiling(target: float, hard_cap: float, reserve: float) -> None:
+def _enforce_cli_budget_policy(target: float, emergency_threshold: float, reserve: float) -> None:
     if target > FROZEN_MAX_TARGET_RMB:
         raise ValueError(
             f"--target-rmb cannot exceed frozen normal-stop target {FROZEN_MAX_TARGET_RMB:.0f} RMB"
         )
-    if hard_cap > FROZEN_MAX_HARD_CAP_RMB:
+    if emergency_threshold > FROZEN_MAX_EMERGENCY_THRESHOLD_RMB:
         raise ValueError(
-            f"--hard-cap-rmb cannot exceed frozen emergency ceiling {FROZEN_MAX_HARD_CAP_RMB:.0f} RMB"
+            "--hard-cap-rmb cannot exceed frozen emergency stop threshold "
+            f"{FROZEN_MAX_EMERGENCY_THRESHOLD_RMB:.0f} RMB"
         )
-    if target <= 0 or hard_cap <= 0 or target >= hard_cap:
+    if target <= 0 or emergency_threshold <= 0 or target >= emergency_threshold:
         raise ValueError("require 0 < target-rmb < hard-cap-rmb")
     if reserve <= 0 or reserve >= target:
         raise ValueError("request-reserve-rmb must be positive and below target-rmb")
@@ -63,7 +65,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Execute a frozen FairEval hosted plan through Zhizengzeng with a "
-            "200 RMB normal stop and 250 RMB non-bypassable emergency ceiling. "
+            "200 RMB normal stop and 250 RMB emergency stop threshold. The gateway "
+            "balance is reconciled around every persisted cell; this client-side "
+            "threshold is not represented as an atomic provider-side spend cap. "
             "Dry-run by default."
         )
     )
@@ -79,10 +83,14 @@ def main() -> int:
     parser.add_argument("--hard-cap-rmb", type=float, default=250.0)
     parser.add_argument("--request-reserve-rmb", type=float, default=2.0)
     parser.add_argument("--code-commit-sha")
+    parser.add_argument(
+        "--preexecution-seal",
+        default="results/preexecution/seal-v1/PREEXECUTION_SEAL.json",
+    )
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
-    _enforce_cli_budget_ceiling(
+    _enforce_cli_budget_policy(
         args.target_rmb,
         args.hard_cap_rmb,
         args.request_reserve_rmb,
@@ -102,8 +110,9 @@ def main() -> int:
             raise ValueError("--max-cells must be positive")
         selected = selected[: args.max_cells]
 
+    seal_path = Path(args.preexecution_seal)
     dry_report = {
-        "schema_version": "faireval-hosted-budgeted-launch-v2",
+        "schema_version": "faireval-hosted-budgeted-launch-v3",
         "mode": "execute" if args.execute else "dry_run",
         "gateway": "zhizengzeng",
         "plan_sha256": manifest.get("plan_sha256"),
@@ -112,10 +121,13 @@ def main() -> int:
         "selected_pending_cells": len(selected),
         "family_filter": None if families is None else sorted(families),
         "target_rmb": args.target_rmb,
-        "hard_cap_rmb": args.hard_cap_rmb,
+        "emergency_stop_threshold_rmb": args.hard_cap_rmb,
         "request_reserve_rmb": args.request_reserve_rmb,
         "maximum_allowed_target_rmb": FROZEN_MAX_TARGET_RMB,
-        "maximum_allowed_hard_cap_rmb": FROZEN_MAX_HARD_CAP_RMB,
+        "maximum_allowed_emergency_stop_threshold_rmb": FROZEN_MAX_EMERGENCY_THRESHOLD_RMB,
+        "provider_side_atomic_spend_cap_claimed": False,
+        "preexecution_seal_path": str(seal_path),
+        "preexecution_seal_exists": seal_path.is_file(),
         "api_calls_made": 0,
     }
     if not args.execute:
@@ -132,12 +144,19 @@ def main() -> int:
             "Do not mix code revisions inside a frozen hosted run log."
         )
 
+    seal_verification = verify_preexecution_seal(
+        seal_path,
+        expected_commit_sha=checked_out_sha,
+        plan_dir=plan_dir,
+        plan_key="hosted_fairsynth",
+    )
+
     api_key = os.environ.get("ZZZ_API_KEY")
     if not api_key:
         raise RuntimeError("ZZZ_API_KEY is required for hosted execution")
 
-    # Hard pre-spend gate: paid execution cannot start unless the live account
-    # exposes every exact frozen model ID. This GET makes no generation call.
+    # Pre-spend gate: paid execution cannot start unless the live account exposes
+    # every exact frozen model ID. This model-list check makes no generation call.
     model_gate = verify_frozen_gateway_models(
         models_yaml=Path(args.models),
         api_key=api_key,
@@ -179,6 +198,8 @@ def main() -> int:
         report["reason"] = str(exc)
         report["model_gate"] = model_gate
         report["checked_out_code_commit_sha"] = checked_out_sha
+        report["preexecution_seal"] = seal_verification
+        report["provider_side_atomic_spend_cap_claimed"] = False
         print(json.dumps(report, indent=2, sort_keys=True))
         return 10
 
@@ -186,6 +207,8 @@ def main() -> int:
     summary["budget"] = report
     summary["model_gate"] = model_gate
     summary["checked_out_code_commit_sha"] = checked_out_sha
+    summary["preexecution_seal"] = seal_verification
+    summary["provider_side_atomic_spend_cap_claimed"] = False
     summary["execution_status"] = "COMPLETED_SELECTED_CELLS"
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
