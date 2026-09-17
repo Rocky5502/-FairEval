@@ -11,10 +11,11 @@ class OpenAICompatibleAdapter(ProviderAdapter):
     """Adapter for providers exposing an OpenAI-compatible chat endpoint.
 
     Provider-specific non-standard controls (for example DeepSeek ``thinking``
-    or Qwen ``enable_thinking``) are supplied at construction time as a frozen
-    ``extra_body`` mapping. The output-token field is also explicit because the
-    current OpenAI API uses ``max_completion_tokens`` while several compatible
-    providers still document ``max_tokens``.
+    or Qwen ``enable_thinking``) can be supplied as a frozen ``extra_body``.
+    ``controls_verified`` is deliberately explicit: a gateway may accept an
+    OpenAI-shaped request without proving that the underlying vendor-native
+    decoding controls were applied. FairEval records that uncertainty instead
+    of silently treating request acceptance as provider-native equivalence.
     """
 
     def __init__(
@@ -29,6 +30,7 @@ class OpenAICompatibleAdapter(ProviderAdapter):
         extra_body: Mapping[str, Any] | None = None,
         extra_request_fields: Mapping[str, Any] | None = None,
         output_token_parameter: str = "max_tokens",
+        controls_verified: bool = True,
     ) -> None:
         if output_token_parameter not in {"max_tokens", "max_completion_tokens"}:
             raise ValueError(
@@ -43,6 +45,7 @@ class OpenAICompatibleAdapter(ProviderAdapter):
         self.extra_body = dict(extra_body or {})
         self.extra_request_fields = dict(extra_request_fields or {})
         self.output_token_parameter = output_token_parameter
+        self.controls_verified = bool(controls_verified)
 
     def supports_seed(self) -> bool:
         return self._supports_seed
@@ -89,12 +92,29 @@ class OpenAICompatibleAdapter(ProviderAdapter):
                 "temperature": request.temperature,
                 "top_p": request.top_p,
             },
-            "sampling_controls_applied": True,
-            "sampling_policy": "explicit_temperature_and_top_p",
+            "sampling_controls_applied": True if self.controls_verified else None,
+            "sampling_controls_verification": (
+                "provider_interface_verified"
+                if self.controls_verified
+                else "gateway_request_accepted_underlying_native_application_unverified"
+            ),
+            "sampling_policy": (
+                "explicit_temperature_and_top_p"
+                if self.controls_verified
+                else "gateway_explicit_temperature_top_p_requested_unverified_native_application"
+            ),
             "output_token_parameter": self.output_token_parameter,
             "provider_extra_body": dict(self.extra_body),
             "provider_extra_request_fields": dict(self.extra_request_fields),
-            "reasoning_or_thinking_applied": request.reasoning_or_thinking_setting,
+            "reasoning_or_thinking_requested": request.reasoning_or_thinking_setting,
+            "reasoning_or_thinking_applied": (
+                request.reasoning_or_thinking_setting if self.controls_verified else None
+            ),
+            "reasoning_or_thinking_verification": (
+                "provider_interface_verified"
+                if self.controls_verified
+                else "gateway_native_deliberation_control_unverified"
+            ),
         }
         return GenerationResponse(
             text=text,
