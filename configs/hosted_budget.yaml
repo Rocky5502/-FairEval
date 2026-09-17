@@ -12,14 +12,16 @@ policy:
   stop_before_request_when_remaining_lte_reserve: true
   bypass_allowed: false
   notes: >-
-    The 200 RMB value is a planning/alert target. The 250 RMB value is the
-    experiment hard ceiling. Execution checks Zhizengzeng available balance
-    before every hosted cell and writes an append-only-style JSON ledger snapshot.
-    The 2 RMB reserve is intentionally much larger than the expected cost of one
-    candidate-constrained ranking call, limiting possible post-request overshoot.
+    The 200 RMB value is the normal hosted execution stop target. The runner
+    stops launching new cells when the remaining target budget is at or below
+    the 2 RMB reserve. The 250 RMB value is an emergency hard ceiling that
+    remains a 50 RMB safety buffer under normal execution. Zhizengzeng available
+    balance is reconciled before and after every hosted cell and written to the
+    persistent experiment ledger. Budget exhaustion truncates deterministic plan
+    coverage; it never selects cells based on interim empirical results.
 
 # Conservative public price references captured 2026-09-17. These values are
-# used for planning/audit only; the hard stop is reconciled against real gateway
+# used for planning/audit only; the source of record for spend is real gateway
 # balance movement. Foreign-provider RMB conversions use 7.2 RMB/USD * 1.05,
 # following the gateway's documented billing example. Domestic model entries
 # use the upper end of published tier/range pricing where applicable.
