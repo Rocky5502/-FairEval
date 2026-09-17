@@ -30,13 +30,7 @@ Candidates, history, task structure, and candidate ordering are frozen across ma
 
 ## Metrics and inference
 
-Primary utility uses nDCG@10 and Recall@10. RBO and Jaccard measure ranking sensitivity only. Fairness/personality estimands include:
-
-- Counterfactual Utility Gap (CUG)
-- Group Utility Disparity (GUD)
-- Counterfactual Exposure Gap (CEG) only where complete auditable metadata exists
-- Invalid Output Disparity (IOD)
-- Personality Value Added (PVA)
+Primary utility uses nDCG@10 and Recall@10. RBO and Jaccard measure ranking sensitivity only. Fairness/personality estimands include Counterfactual Utility Gap (CUG), Group Utility Disparity (GUD), Counterfactual Exposure Gap (CEG) only where complete auditable metadata exists, Invalid Output Disparity (IOD), and Personality Value Added (PVA).
 
 User is the primary unit of inference. Repeated generations are averaged within user-condition before pairing. The main inference stack uses paired bootstrap confidence intervals, paired sign-flip permutation tests, Wilcoxon sensitivity analysis, matched rank-biserial effect size, and Holm correction inside pre-registered families.
 
