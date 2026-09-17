@@ -2,7 +2,11 @@ import json
 import zipfile
 from pathlib import Path
 
-from scripts.build_overleaf_bundle import REQUIRED_FILES, build_overleaf_bundle
+from scripts.build_overleaf_bundle import (
+    OPTIONAL_RESULT_FILES,
+    REQUIRED_FILES,
+    build_overleaf_bundle,
+)
 
 
 def test_build_overleaf_bundle_contains_required_anonymous_sources(tmp_path: Path):
@@ -24,3 +28,7 @@ def test_build_overleaf_bundle_contains_required_anonymous_sources(tmp_path: Pat
         assert manifest["entrypoint"] == "main.tex"
         assert manifest["empirical_numbers_manually_entered"] is False
         assert set(manifest["files"]) == set(REQUIRED_FILES)
+
+
+def test_generated_whitebox_table_is_an_optional_artifact_input():
+    assert "generated/whitebox_summary_table.tex" in OPTIONAL_RESULT_FILES
