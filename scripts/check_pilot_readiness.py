@@ -113,11 +113,13 @@ def _budget_blockers(repo_root: Path) -> list[str]:
     if float(policy.get("planning_target_rmb", -1)) != 200.0:
         blockers.append("hosted budget planning target is not frozen to 200 RMB")
     if float(policy.get("hard_cap_rmb", -1)) != 250.0:
-        blockers.append("hosted budget hard cap is not frozen to 250 RMB")
+        blockers.append("hosted budget emergency stop threshold is not frozen to 250 RMB")
     if float(policy.get("per_request_reserve_rmb", -1)) != 2.0:
         blockers.append("hosted budget request reserve is not frozen to 2 RMB")
     if policy.get("bypass_allowed") is not False:
-        blockers.append("hosted budget bypass must be false")
+        blockers.append("hosted budget policy must prohibit deliberate threshold bypass")
+    if policy.get("provider_side_atomic_spend_cap_claimed") is not False:
+        blockers.append("hosted budget policy must not claim an unverified provider-side atomic cap")
     return blockers
 
 
@@ -156,11 +158,12 @@ def main() -> int:
     ]
 
     report = {
-        "schema_version": "faireval-pilot-readiness-v2",
+        "schema_version": "faireval-pilot-readiness-v3",
         "dataset_ids": list(DATASET_IDS),
         "hosted_gateway": "zhizengzeng",
         "budget_target_rmb": 200.0,
-        "budget_hard_cap_rmb": 250.0,
+        "budget_emergency_stop_threshold_rmb": 250.0,
+        "provider_side_atomic_spend_cap_claimed": False,
         "dataset_model_budget_blockers": blockers,
         "environment_blockers": environment_blockers,
         "schema_valid": not structural_errors,
@@ -169,7 +172,9 @@ def main() -> int:
         "note": (
             "Repo/CI validity is intentionally weaker than paid pilot readiness. "
             "Third-party dataset release locks remain mandatory. Hosted execution "
-            "uses the unified gateway and the non-bypassable RMB budget ledger."
+            "uses the unified gateway plus a client-side, balance-reconciled 200 RMB "
+            "normal stop and 250 RMB emergency stop threshold; no provider-side atomic "
+            "spend cap is claimed without independent verification."
         ),
     }
     print(json.dumps(report, indent=2, sort_keys=True))
