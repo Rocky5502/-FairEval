@@ -19,30 +19,30 @@ jobs:
         run: python -m pip install -e '.[dev,analysis]'
       - name: Library-level FairSynth to local-plan smoke
         run: python scripts/zero_call_local_smoke.py --output results/smoke/local_zero_call_v1.json
-      - name: Freeze FairSynth through public CLI
+      - name: Freeze tiny FairSynth smoke fixture through public CLI
         run: |
           faireval prepare \
             --dataset fairsynth360 \
             --raw-dir . \
-            --output-dir data/frozen/fairsynth360 \
+            --output-dir data/frozen-smoke/fairsynth360 \
             --users 12 \
             --candidate-set-size 30 \
             --max-history-items 8 \
             --seed 1729
-          faireval verify-freeze --output-dir data/frozen/fairsynth360
-      - name: Compile local plan through public CLI
+          faireval verify-freeze --output-dir data/frozen-smoke/fairsynth360
+      - name: Compile local smoke plan through public CLI
         run: |
           faireval plan-local \
-            --freeze-root data/frozen \
+            --freeze-root data/frozen-smoke \
             --output-dir results/plans/local-zero-call \
             --fairsynth-users 12 \
             --repetitions 1 \
             --no-real-world
-      - name: Dry-run local plan through shared executor CLI
+      - name: Dry-run local smoke plan through shared executor CLI
         run: |
           faireval execute-plan \
             --plan-dir results/plans/local-zero-call \
-            --freeze-root data/frozen \
+            --freeze-root data/frozen-smoke \
             --output-jsonl results/raw/local-zero-call.jsonl \
             --family qwen25_local \
             --max-cells 2 \
