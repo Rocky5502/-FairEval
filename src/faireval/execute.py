@@ -180,6 +180,8 @@ def execute_plan(
     families: set[str] | None = None,
     max_cells: int | None = None,
     provider_builder: Callable[[str], ProviderAdapter] = build_provider,
+    before_cell: Callable[[Mapping[str, Any], int], None] | None = None,
+    after_cell: Callable[[Mapping[str, Any], int], None] | None = None,
 ) -> dict[str, Any]:
     """Execute pending frozen cells sequentially with exact resume semantics.
 
@@ -189,6 +191,10 @@ def execute_plan(
     invalidity is an experimental outcome and should not be silently regenerated
     until it becomes valid. Core hosted plans omit ``seed``; local open-weight
     plans may freeze one and the executor forwards it exactly.
+
+    ``before_cell``/``after_cell`` are intentionally narrow hooks used by the
+    hosted budget guard. They preserve the immutable plan while allowing a hard
+    pre-request spend check and post-request ledger refresh.
     """
     if not code_commit_sha.strip():
         raise ValueError("code_commit_sha is required for planned execution")
@@ -217,6 +223,9 @@ def execute_plan(
     executed = 0
 
     for row in selected:
+        if before_cell is not None:
+            before_cell(row, executed)
+
         dataset = str(row["dataset"])
         user_id = str(row["user_id"])
         key = (dataset, user_id)
@@ -267,6 +276,9 @@ def execute_plan(
             planned_cell_id=str(row["cell_id"]),
         )
         executed += 1
+
+        if after_cell is not None:
+            after_cell(row, executed)
 
     completed_after = completed_cell_ids(output_jsonl)
     return {
