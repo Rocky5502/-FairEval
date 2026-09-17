@@ -25,19 +25,19 @@ MIND~\cite{wu2020mind} & News & click histories + logged impression candidates +
 \midrule
 \multicolumn{7}{c}{\textbf{Panel B: Hosted gateway panel + optional local transparency track}} \\
 \cmidrule(lr){1-7}
-\textbf{Family/track} & \textbf{Frozen model ID} & \textbf{Deliberation policy} & \textbf{Sampling policy} & \textbf{Output-token field} & \textbf{Execution / transparency path} & \textbf{Freeze state} \\
+\textbf{Family/track} & \textbf{Frozen model ID} & \textbf{Deliberation policy} & \textbf{Sampling policy} & \textbf{Output-token contract} & \textbf{Execution / transparency path} & \textbf{Freeze state} \\
 \midrule
-OpenAI & \texttt{gpt-5.6-terra} & lowest practical; no CoT request & low-variance request & \texttt{max\_completion\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
-Anthropic & \texttt{claude-sonnet-5} & thinking disabled requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
-Google & \texttt{gemini-3.8-flash} & low deliberation requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
-DeepSeek & \texttt{deepseek-v4.1-flash} & thinking disabled requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
-Alibaba Qwen & \texttt{qwen3.8-2.4t-a95b} & thinking disabled requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
-Meta Llama & \texttt{llama-4-maverick} & no added reasoning wrapper & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+OpenAI & \texttt{gpt-5.6-terra} & gateway-native mode unverified; no CoT requested & $T$/top-$p$ requested; native application unverified & \texttt{max\_completion\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Anthropic & \texttt{claude-sonnet-5} & gateway-native mode unverified & $T$/top-$p$ requested; native application unverified & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Google & \texttt{gemini-3.8-flash} & gateway-native mode unverified & $T$/top-$p$ requested; native application unverified & native \texttt{max\_output\_tokens}; gateway wire \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+DeepSeek & \texttt{deepseek-v4.1-flash} & gateway-native mode unverified & $T$/top-$p$ requested; native application unverified & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Alibaba Qwen & \texttt{qwen3.8-2.4t-a95b} & gateway-native mode unverified & $T$/top-$p$ requested; native application unverified & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Meta Llama & \texttt{llama-4-maverick} & gateway-native mode unverified & $T$/top-$p$ requested; native application unverified & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
 \addlinespace[1pt]
 Qwen local~\cite{qwen25tech} & \texttt{Qwen/Qwen2.5-7B-Instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Optional; frozen HF commit \texttt{a09a3545...} \\
 Microsoft local~\cite{phi3tech} & \texttt{microsoft/Phi-3.5-mini-instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Optional; frozen HF commit \texttt{2fe19245...} \\
 \bottomrule
 \end{tabular}}
 \vspace{0.5mm}
-\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} The six hosted families are routed through one frozen Zhizengzeng OpenAI-compatible gateway configuration. This controls endpoint/key provenance but is not claimed to reproduce every vendor-native serving control exactly. A live model-list preflight is required before paid execution, returned model/version metadata is logged, and hosted spend is governed by a 200 RMB planning target and 250 RMB hard ceiling. FairSynth-360 is not pooled with real-world demographic or psychometric claims. The local track remains optional and separately reported.}
+\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} The six hosted families are routed through one frozen Zhizengzeng OpenAI-compatible gateway configuration. This controls endpoint/key provenance but does not establish vendor-native deliberation or sampling semantics; those controls are logged as unverified unless returned metadata proves otherwise. A live model-list preflight is required before paid execution. The hosted run normally stops around 200 RMB, with a separate 250 RMB emergency ceiling and 2 RMB pre-cell reserve. FairSynth-360 is not pooled with real-world demographic or psychometric claims. The local track remains optional and separately reported.}
 \end{table}
