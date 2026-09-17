@@ -83,20 +83,31 @@ def main() -> int:
     stale_phrases = [
         "DeepSeek V4 Flash, Qwen 3.8 Max",
         "DeepSeek V4 Flash,",
+        "qwen3.8-max-0902",
+        "deepseek-flash",
+        "Pending exact host/revision",
         "spans six recommendation datasets and six LLM families",
         "across six datasets, six LLM families",
         "one frozen model configuration from six independent families",
     ]
     stale = [phrase for phrase in stale_phrases if phrase in main_text]
     if stale:
-        raise SystemExit(f"stale pre-extension manuscript wording found: {stale}")
+        raise SystemExit(f"stale pre-gateway manuscript wording found: {stale}")
 
     if "\\author{Anonymous Authors}" not in main_text:
         raise SystemExit("double-blind author placeholder missing")
-    if "Numerical findings are intentionally omitted" not in main_text:
-        raise SystemExit("result-integrity statement missing from abstract")
+    integrity_markers = (
+        "audited frozen experiment artifacts",
+        "No empirical value is typed into the manuscript by hand",
+    )
+    if not all(marker in main_text for marker in integrity_markers):
+        raise SystemExit("artifact-only result-integrity policy missing from manuscript")
     if "persistent invalid output" not in main_text.lower():
         raise SystemExit("primary invalid-output policy is missing from manuscript text")
+    if "250 RMB hard ceiling" not in main_text:
+        raise SystemExit("hosted API hard-ceiling policy missing from manuscript")
+    if "Zhizengzeng" not in main_text:
+        raise SystemExit("hosted gateway provenance missing from manuscript")
 
     related = (PAPER / "related_work_table.tex").read_text(encoding="utf-8")
     if related.count("\\\\") < 16:
@@ -110,11 +121,17 @@ def main() -> int:
         "MIND",
         "FairSynth-360",
         "gpt-5.6-terra",
-        "qwen3.8-max-0902",
-        "Llama-4-Maverick",
+        "claude-sonnet-5",
+        "gemini-3.8-flash",
+        "deepseek-v4.1-flash",
+        "qwen3.8-2.4t-a95b",
+        "llama-4-maverick",
         "Qwen/Qwen2.5-7B-Instruct",
         "microsoft/Phi-3.5-mini-instruct",
         "generation-score diagnostics",
+        "native application unverified",
+        "200 RMB",
+        "250 RMB",
     )
     for token in required_benchmark_tokens:
         if token not in benchmark:
@@ -123,7 +140,17 @@ def main() -> int:
     if "FairSynth-360" not in main_text:
         raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
     if "Qwen2.5" not in main_text or "Phi-3.5" not in main_text:
-        raise SystemExit("manuscript must explain the two local open-weight models")
+        raise SystemExit("manuscript must explain the optional local open-weight models")
+
+    results_entry = (PAPER / "results_contract_table.tex").read_text(encoding="utf-8")
+    for token in (
+        "generated/rq12_inference_table.tex",
+        "generated/rq34_results_table.tex",
+        "generated/fairsynth_hosted_table.tex",
+        "Do not type empirical values",
+    ):
+        if token not in results_entry:
+            raise SystemExit(f"results entrypoint missing artifact-only token: {token}")
 
     rq_design = (PAPER / "rq_design_table.tex").read_text(encoding="utf-8")
     rq4_required = (
@@ -137,11 +164,16 @@ def main() -> int:
         if token not in rq_design:
             raise SystemExit(f"RQ4 design table missing frozen selection guard: {token}")
 
-    print(f"paper preflight: {len(cited)} citation keys resolved across {len(bib_targets)} bibliography files")
+    print(
+        f"paper preflight: {len(cited)} citation keys resolved across "
+        f"{len(bib_targets)} bibliography files"
+    )
     print("paper preflight: LaTeX inputs and required vector/table assets present")
-    print("paper preflight: 6-real+FairSynth and 6-hosted+2-local scope is synchronized")
-    print("paper preflight: RQ4 20% validation / >=95% utility / no-test-selection rule is synchronized")
-    print("paper preflight: double-blind, result-integrity, and invalid-output guards present")
+    print("paper preflight: six hosted gateway IDs + optional local scope synchronized")
+    print("paper preflight: 200 RMB target / 250 RMB ceiling documented")
+    print("paper preflight: generated result tables are artifact-only")
+    print("paper preflight: RQ4 validation/no-test-selection rule synchronized")
+    print("paper preflight: double-blind and invalid-output guards present")
     return 0
 
 
