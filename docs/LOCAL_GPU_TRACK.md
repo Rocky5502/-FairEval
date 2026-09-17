@@ -1,137 +1,118 @@
 # FairEval Local Open-Weight / White-Box Track
 
-This track extends the six hosted/API families with two locally executed open-weight models:
+This is the required, separately reported white-box replication stratum for ECIR 2027. It extends the six hosted/API families with exactly two frozen open-weight models:
 
-- `Qwen/Qwen2.5-7B-Instruct` — Apache-2.0
-- `microsoft/Phi-3.5-mini-instruct` — MIT
+- `Qwen/Qwen2.5-7B-Instruct` — Apache-2.0;
+- `microsoft/Phi-3.5-mini-instruct` — MIT.
 
-It is a **separate transparency/reproducibility stratum**, not a size-matched causal comparison against the hosted models.
+The exact Hugging Face revisions are already frozen in `configs/local_models.yaml` and enforced by the local provider. Do not replace either revision, add another model, quantize the canonical run, or tune the panel after observing results. This is not a size-matched causal comparison with the hosted families.
 
-## Hardware target
+## Hardware
 
-The preferred single-GPU workstation target is an **NVIDIA GeForce RTX 5090 with 32 GB VRAM**. The experiment loads only one checkpoint at a time. Do not describe the target as an “RTX 5090 Ti” unless NVIDIA publishes such a product and the actual machine uses it.
+The canonical protocol loads one model at a time in BF16. A 32–48+ GiB NVIDIA GPU is preferred; larger AI Galaxy instances such as A100/H100/L40S-class hardware are acceptable. Record the actual GPU, VRAM, CUDA, driver, PyTorch, Transformers, and code commit. Hardware changes do not authorize changes to prompts, candidates, model revisions, generation settings, or analysis.
 
-Larger alternatives such as RTX 6000 Ada, L40S, A100, or H100 are acceptable, but the actual GPU/VRAM/CUDA/driver/PyTorch metadata must be logged. Changing hardware does not authorize changing the frozen model revision, prompt, candidate set, or analysis policy.
+## Zero-call seal before GPU execution
 
-## Environment
-
-Install the CUDA-matched PyTorch build for the workstation first, then:
+From a clean checkout, install the project and build the scientific seal before any model weights are loaded:
 
 ```bash
 python -m venv .venv
-# Windows PowerShell: .\.venv\Scripts\Activate.ps1
-# WSL/Linux: source .venv/bin/activate
+source .venv/bin/activate
+python -m pip install -U pip
 pip install -r requirements-local-gpu.txt
 pip install -e .
+
+python scripts/build_preexecution_seal.py \
+  --output-dir results/preexecution/seal-v1
 ```
 
-Run the zero-cost checks:
+The seal verifies a clean scientific worktree, hashes all tracked scientific source files, regenerates the canonical FairSynth freeze and both immutable plans, records the exact Git commit, and proves that no hosted generation or local model loading occurred while the seal was created. Real execution later rechecks the sealed source hashes, code commit, plan hash, and planned-cell count.
 
-```bash
-python scripts/check_config_consistency.py
-python scripts/check_local_gpu.py
-pytest -q
-```
+## Canonical FairSynth campaign
 
-## Freeze exact model revisions
-
-Before the first real local pilot, resolve and record the exact Hugging Face commit/revision for both repositories. Put those immutable identifiers in the local environment:
+The sealed core plan contains exactly:
 
 ```text
-QWEN25_LOCAL_REVISION=<exact commit>
-PHI35_LOCAL_REVISION=<exact commit>
-FAIREVAL_LOCAL_DTYPE=bfloat16
+360 FairSynth users
+× 6 registered conditions
+× 3 seeded repetitions
+× 2 frozen local models
+= 12,960 generations
 ```
 
-The pre-run manifest intentionally says `pin_exact_huggingface_commit_before_pilot` until this step is complete. Do not execute the final local study from a moving repository head.
-
-## Build FairSynth-360
-
-FairSynth-360 uses no external raw files:
+The builder is zero-call:
 
 ```bash
-python scripts/build_fairsynth360.py \
-  --output-dir data/frozen/fairsynth360 \
-  --users 360 \
-  --candidate-set-size 30 \
-  --max-history-items 8 \
-  --seed 1729
-```
-
-Then verify the cryptographic freeze:
-
-```bash
-python -m faireval.cli verify-freeze \
-  --output-dir data/frozen/fairsynth360
-```
-
-## Compile the local immutable plan
-
-After the six real-world freezes also exist under `data/frozen/`:
-
-```bash
-python scripts/plan_local_open_weight.py \
+python scripts/build_whitebox_campaign.py \
   --freeze-root data/frozen \
-  --output-dir results/plans/local-open-weight-v1 \
-  --fairsynth-users 360 \
-  --repetitions 3
+  --output-root results/plans/whitebox-full-v1
 ```
 
-For a FairSynth-only first smoke run, add `--no-real-world`.
+Each local cell carries a deterministic generation seed inside its immutable cell hash.
 
-Every local plan cell contains a deterministic generation seed. The seed is part of the cell hash and is rechecked before white-box analysis.
-
-## Zero-call inspection
-
-The shared executor remains dry-run by default:
+## GPU preflight and canary
 
 ```bash
-python -m faireval.cli execute-plan \
-  --plan-dir results/plans/local-open-weight-v1 \
+nvidia-smi
+python scripts/check_local_gpu.py --strict
+
+SHA=$(git rev-parse HEAD)
+python scripts/run_whitebox_family.py \
+  --plan-dir results/plans/whitebox-full-v1/core \
   --freeze-root data/frozen \
-  --output-jsonl results/raw/local-open-weight-v1.jsonl \
   --family qwen25_local \
-  --max-cells 10
+  --output-jsonl results/runs/whitebox-qwen25-v1.jsonl \
+  --max-cells 2
 ```
 
-Only after reviewing the summary should `--execute` be added with the exact code commit SHA.
-
-## Execute one model at a time
-
-Example:
+The first command is a dry run. For the two-cell real canary, use the same command with:
 
 ```bash
-python -m faireval.cli execute-plan \
-  --plan-dir results/plans/local-open-weight-v1 \
-  --freeze-root data/frozen \
-  --output-jsonl results/raw/local-open-weight-v1.jsonl \
-  --family qwen25_local \
-  --code-commit-sha <git-commit> \
+  --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json \
+  --code-commit-sha "$SHA" \
   --execute
 ```
 
-After completion, release the model/GPU memory before starting `phi35_local`. Do not run both checkpoints concurrently in the canonical 32-GB profile.
+Repeat the canary for `phi35_local` using its own output JSONL. Only scale after the persisted rows pass the run-log/seed/provenance checks.
 
-## Analyze FairSynth separately
+## Full resume-safe execution
 
-```bash
-python scripts/analyze_fairsynth360.py \
-  --output-jsonl results/raw/local-open-weight-v1.jsonl \
-  --plan-dir results/plans/local-open-weight-v1 \
-  --freeze-root data/frozen \
-  --output-dir results/analysis/fairsynth360-v1
-```
-
-FairSynth identity A/B/C is semantically meaningless and independent of relevance by construction. Synthetic OCEAN is **not measured human personality**. These results are never pooled with real-world RQ1/RQ2 inference.
-
-## Analyze local internal scores
+Run one family per process, for example in 250–1000-cell operational batches. Batch size changes checkpoint frequency only; it does not change the immutable scientific plan.
 
 ```bash
-python scripts/analyze_local_whitebox.py \
-  --output-jsonl results/raw/local-open-weight-v1.jsonl \
-  --plan-dir results/plans/local-open-weight-v1 \
+SHA=$(git rev-parse HEAD)
+python scripts/run_whitebox_family.py \
+  --plan-dir results/plans/whitebox-full-v1/core \
   --freeze-root data/frozen \
-  --output-dir results/analysis/local-whitebox-v1
+  --family qwen25_local \
+  --output-jsonl results/runs/whitebox-qwen25-v1.jsonl \
+  --max-cells 500 \
+  --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json \
+  --code-commit-sha "$SHA" \
+  --execute
 ```
 
-The analyzer reports token log-probability, NLL/perplexity, and top-1/top-2 generation-score margin against utility/invalidity descriptively. These are **uncalibrated auxiliary generation-score diagnostics**, not a probability that a ranking is correct and not directly comparable with unavailable internals from closed APIs.
+Use the analogous command for `phi35_local`. Completed `planned_cell_id` values are skipped exactly on resume. Persistent invalid outputs remain experimental outcomes and are not repeatedly regenerated until valid.
+
+## Finalize directly into the paper
+
+Only after both family logs fully cover the sealed core plan:
+
+```bash
+python scripts/finalize_whitebox.py \
+  --input-jsonl results/runs/whitebox-qwen25-v1.jsonl \
+  --input-jsonl results/runs/whitebox-phi35-v1.jsonl \
+  --plan-dir results/plans/whitebox-full-v1/core \
+  --freeze-root data/frozen \
+  --output-dir results/analysis/whitebox-full-v1 \
+  --paper-table paper/generated/whitebox_summary_table.tex \
+  --overleaf-output dist/FairEval_ECIR2027_Overleaf.zip
+```
+
+The finalizer audits coverage/provenance, merges rows in immutable plan order, analyzes the declared white-box diagnostics, renders the artifact-derived LaTeX table, and rebuilds the anonymous Overleaf bundle. Do not manually average or type numerical values into the paper.
+
+## RQ3/RQ4 and real-world replication
+
+Real-world execution stays blocked until all six exact third-party releases are locally acquired, license-reviewed, hashed, and frozen. Once those locks exist, version a new campaign with `--include-real-world` and compile the registered local RQ3 plan with `scripts/plan_whitebox_rq3.py`. RQ4 identity-irrelevance prompting is a derived immutable plan; contextual PAIR remains validation-selected post-processing.
+
+White-box token log-probability, NLL/perplexity, and top1–top2 margin are uncalibrated auxiliary generation-score diagnostics. They are not probabilities of correctness and are never pooled with unavailable hosted internals.
