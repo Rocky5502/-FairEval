@@ -1,0 +1,72 @@
+version: faireval-hosted-budget-v1
+currency: CNY
+gateway: zhizengzeng
+base_url: https://api.zhizengzeng.com/v1
+
+policy:
+  planning_target_rmb: 200.0
+  hard_cap_rmb: 250.0
+  per_request_reserve_rmb: 2.0
+  balance_reconciliation: true
+  balance_endpoint: /dashboard/billing/credit_grants
+  stop_before_request_when_remaining_lte_reserve: true
+  bypass_allowed: false
+  notes: >-
+    The 200 RMB value is a planning/alert target. The 250 RMB value is the
+    experiment hard ceiling. Execution checks Zhizengzeng available balance
+    before every hosted cell and writes an append-only-style JSON ledger snapshot.
+    The 2 RMB reserve is intentionally much larger than the expected cost of one
+    candidate-constrained ranking call, limiting possible post-request overshoot.
+
+# Conservative public price references captured 2026-09-17. These values are
+# used for planning/audit only; the hard stop is reconciled against real gateway
+# balance movement. Foreign-provider RMB conversions use 7.2 RMB/USD * 1.05,
+# following the gateway's documented billing example. Domestic model entries
+# use the upper end of published tier/range pricing where applicable.
+pricing_reference:
+  usd_to_rmb: 7.2
+  foreign_gateway_multiplier: 1.05
+  models:
+    gpt-5.6-terra:
+      family: openai
+      input_usd_per_million: 2.0
+      output_usd_per_million: 12.0
+      input_rmb_per_million_conservative: 15.12
+      output_rmb_per_million_conservative: 90.72
+    claude-sonnet-5:
+      family: anthropic
+      input_usd_per_million: 2.0
+      output_usd_per_million_conservative: 15.0
+      input_rmb_per_million_conservative: 15.12
+      output_rmb_per_million_conservative: 113.4
+      note: gateway page states Sonnet 5 output price changes to 15 USD/M after September 1
+    gemini-3.8-flash:
+      family: google
+      input_usd_per_million: 0.75
+      output_usd_per_million: 3.75
+      input_rmb_per_million_conservative: 5.67
+      output_rmb_per_million_conservative: 28.35
+    deepseek-v4.1-flash:
+      family: deepseek
+      input_rmb_per_million_conservative: 2.0
+      output_rmb_per_million_conservative: 8.0
+      note: upper end of published 1-2 RMB input and 4-8 RMB output ranges
+    qwen3.8-2.4t-a95b:
+      family: qwen
+      input_rmb_per_million_conservative: 12.0
+      output_rmb_per_million_conservative: 36.0
+      note: published tiered price shown as 0.012/1k input and 0.036/1k output
+    llama-4-maverick:
+      family: meta
+      input_usd_per_million: 0.18
+      output_usd_per_million: 0.65
+      input_rmb_per_million_conservative: 1.3608
+      output_rmb_per_million_conservative: 4.914
+
+reporting:
+  record_initial_balance: true
+  record_pre_cell_balance: true
+  record_post_cell_balance: true
+  record_spend_from_balance_delta: true
+  include_budget_ledger_in_provenance: true
+  never_print_api_key: true
