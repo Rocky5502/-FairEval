@@ -2,7 +2,7 @@
 % local open-weight semantics mirror configs/local_models.yaml.
 \begin{table}[t]
 \centering
-\caption{FairEval benchmark and model panel. Panel A separates the six real-world datasets from the project-generated FairSynth-360 stress test; Panel B separates six hosted/API families from two local open-weight models. ``Pending'' means the exact upstream release or serving endpoint must still be frozen before execution.}
+\caption{FairEval benchmark and model panel. Panel A separates the six real-world datasets from the project-generated FairSynth-360 stress test; Panel B separates the six primary hosted families from the optional local transparency track. ``Pending'' is reserved for exact third-party dataset releases that are not yet frozen.}
 \label{tab:benchmark-model-panel}
 \scriptsize
 \setlength{\tabcolsep}{2.2pt}
@@ -21,23 +21,23 @@ MovieLens-1M & Movies & ratings + gender + age + occupation + ZIP & gender confi
 Last.fm-1K & Music & listening events + available gender/age/country & gender confirmatory; age robustness; country excluded from primary test & held-out positives + popularity-matched unseen artists & RQ1 confirmatory; RQ4; domain generalization & Pending exact noncommercial release lock \\
 MIND~\cite{wu2020mind} & News & click histories + logged impression candidates + news metadata & no observed demographic/personality claim & logged impression candidate sets & RQ3 utility/reliability generalization only & Microsoft terms; exact release hash pending \\
 \addlinespace[1pt]
-\textbf{FairSynth-360} & Synthetic & 360 generated users + 120-item latent-feature catalog & balanced meaningless identity A/B/C + synthetic OCEAN controls & known latent utility; top-5 relevant in frozen candidate sets & controlled identity/personality sanity checks; local white-box study & Generated in repo; release license pending \\
+\textbf{FairSynth-360} & Synthetic & 360 generated users + 120-item latent-feature catalog & balanced meaningless identity A/B/C + synthetic OCEAN controls & known latent utility; top-5 relevant in frozen candidate sets & controlled identity/personality sanity checks & Generated and frozen in repo \\
 \midrule
-\multicolumn{7}{c}{\textbf{Panel B: Hosted/API + local open-weight model panel}} \\
+\multicolumn{7}{c}{\textbf{Panel B: Hosted gateway panel + optional local transparency track}} \\
 \cmidrule(lr){1-7}
 \textbf{Family/track} & \textbf{Frozen model ID} & \textbf{Deliberation policy} & \textbf{Sampling policy} & \textbf{Output-token field} & \textbf{Execution / transparency path} & \textbf{Freeze state} \\
 \midrule
-OpenAI & \texttt{gpt-5.6-terra} & reasoning \texttt{none} & $T=0.2$, top-$p=1$ where supported & \texttt{max\_completion\_tokens} & hosted JSON object mode & Frozen config \\
-Anthropic & \texttt{claude-sonnet-5} & thinking disabled & provider default & \texttt{max\_tokens} & hosted schema-validated JSON & Frozen config \\
-Google & \texttt{gemini-3.8-flash} & thinking \texttt{low} & provider default & \texttt{max\_output\_tokens} & Interactions API + JSON schema & Frozen config \\
-DeepSeek & \texttt{deepseek-flash} & thinking disabled & explicit low-variance controls & \texttt{max\_tokens} & hosted OpenAI-compatible JSON & Backend metadata logged \\
-Alibaba Qwen & \texttt{qwen3.8-max-0902} & thinking disabled & explicit low-variance controls & \texttt{max\_tokens} & Model Studio OpenAI-compatible JSON & Region/endpoint pending local freeze \\
-Meta Llama & \texttt{Llama-4-Maverick-17B-128E-Instruct} & no added reasoning wrapper & host-dependent explicit controls & host-specific & hosted OpenAI-compatible path & \textbf{Pending exact host/revision} \\
+OpenAI & \texttt{gpt-5.6-terra} & lowest practical; no CoT request & low-variance request & \texttt{max\_completion\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Anthropic & \texttt{claude-sonnet-5} & thinking disabled requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Google & \texttt{gemini-3.8-flash} & low deliberation requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+DeepSeek & \texttt{deepseek-v4.1-flash} & thinking disabled requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Alibaba Qwen & \texttt{qwen3.8-2.4t-a95b} & thinking disabled requested at study level & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
+Meta Llama & \texttt{llama-4-maverick} & no added reasoning wrapper & low-variance gateway request & \texttt{max\_tokens} & Zhizengzeng OpenAI-compatible gateway & Gateway ID frozen \\
 \addlinespace[1pt]
-Qwen local~\cite{qwen25tech} & \texttt{Qwen/Qwen2.5-7B-Instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Frozen HF commit \texttt{a09a3545...} \\
-Microsoft local~\cite{phi3tech} & \texttt{microsoft/Phi-3.5-mini-instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Frozen HF commit \texttt{2fe19245...} \\
+Qwen local~\cite{qwen25tech} & \texttt{Qwen/Qwen2.5-7B-Instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Optional; frozen HF commit \texttt{a09a3545...} \\
+Microsoft local~\cite{phi3tech} & \texttt{microsoft/Phi-3.5-mini-instruct} & no added reasoning wrapper & explicit $T$/top-$p$; seeded locally & \texttt{max\_new\_tokens} & direct Transformers; internal generation-score diagnostics & Optional; frozen HF commit \texttt{2fe19245...} \\
 \bottomrule
 \end{tabular}}
 \vspace{0.5mm}
-\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} FairSynth-360 is an auxiliary synthetic control and is not pooled with observed-demographic or measured-psychometric claims. The two local models form a transparency/reproducibility track; their exact repository commits are frozen in \texttt{configs/local\_models.yaml}. Their internal score diagnostics are auxiliary and are not assumed calibrated or directly comparable with unavailable internals from hosted APIs. The hosted six remain the primary cross-vendor panel.}
+\parbox{0.985\textwidth}{\scriptsize\textit{Protocol note.} The six hosted families are routed through one frozen Zhizengzeng OpenAI-compatible gateway configuration. This controls endpoint/key provenance but is not claimed to reproduce every vendor-native serving control exactly. A live model-list preflight is required before paid execution, returned model/version metadata is logged, and hosted spend is governed by a 200 RMB planning target and 250 RMB hard ceiling. FairSynth-360 is not pooled with real-world demographic or psychometric claims. The local track remains optional and separately reported.}
 \end{table}
