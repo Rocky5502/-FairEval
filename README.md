@@ -17,14 +17,7 @@ The ECIR 2027 redesign separates demographic counterfactual effects from benefic
 
 The real-world benchmark contains six datasets spanning personality-aware recommendation, demographic fairness, and domain generalization. FairSynth-360 is a project-generated 360-user controlled sanity benchmark whose synthetic A/B/C identity is independent of relevance by construction. Real and synthetic results are always reported separately.
 
-The primary matched conditions are:
-
-- `C0`: preference history only
-- `C1`: observed demographic context
-- `C2`: matched one-field demographic counterfactual
-- `C3`: true measured personality
-- `C4`: deterministic whole-profile derangement
-- `C5`: one measured Big Five trait changed while the other four stay fixed
+The primary matched conditions are `C0` preference history only, `C1` observed demographic context, `C2` matched one-field demographic counterfactual, `C3` true measured personality, `C4` deterministic whole-profile derangement, and `C5` one measured Big Five trait changed while the other four stay fixed.
 
 Candidates, history, task structure, and candidate ordering are frozen across matched conditions. The model must return exactly `K` unique candidate IDs from the supplied candidate set in structured JSON.
 
@@ -60,20 +53,9 @@ Never commit API keys. Copy `.env.example` to `.env` and fill only the credentia
 
 ## Dataset safety
 
-Third-party raw releases are not silently downloaded or substituted. Before a paid pilot:
-
-1. acquire each exact upstream release under its documented terms;
-2. place it under the path described by `configs/dataset_acquisition.yaml`;
-3. compute and record the release hash;
-4. update `configs/dataset_releases.yaml` only after the exact release is frozen;
-5. materialize deterministic benchmark instances with the dataset adapter;
-6. verify freeze hashes before compiling a run plan.
-
-FairEval never infers protected attributes from names, free text, embeddings, ZIP codes, or model guesses.
+Third-party raw releases are not silently downloaded or substituted. Before a paid pilot, acquire each exact upstream release under its documented terms, place it under the configured raw path, compute and record its hash, freeze deterministic benchmark instances, and verify hashes before compiling a run plan. FairEval never infers protected attributes from names, free text, embeddings, ZIP codes, or model guesses.
 
 ## Deterministic data preparation
-
-The package exposes reproducible dataset utilities through the `faireval` CLI. Example:
 
 ```bash
 faireval prepare \
@@ -92,7 +74,7 @@ The freeze manifest records instance count, canonical instance SHA-256, adapter/
 
 ## Immutable run plans
 
-Hosted and local plans are compiled before execution. Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hashed and linked to a manifest. Execution verifies the plan hash and every cell ID before constructing a provider.
+Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hashed and linked to a manifest. Execution verifies the plan hash and every cell ID before constructing a provider.
 
 ```bash
 faireval plan-core \
@@ -100,16 +82,7 @@ faireval plan-core \
   --output-dir results/plans/hosted-core-v1
 ```
 
-`execute-plan` is a dry run unless `--execute` is explicitly supplied:
-
-```bash
-faireval execute-plan \
-  --plan-dir results/plans/hosted-core-v1 \
-  --freeze-root data/frozen \
-  --output-jsonl results/runs/hosted-core-v1.jsonl
-```
-
-Resume semantics are exact: already persisted `planned_cell_id` values are not regenerated. Invalidity is an experimental outcome and still counts as a completed planned cell.
+`execute-plan` is a dry run unless `--execute` is explicitly supplied. Resume semantics are exact: already persisted `planned_cell_id` values are not regenerated, and invalidity remains an experimental outcome.
 
 ## Hosted API execution — 200/250 RMB budget freeze
 
@@ -134,12 +107,7 @@ ZZZ_API_KEY=<secret>
 
 A live `GET /v1/models` preflight on the experiment key is mandatory before paid execution. If an exact frozen ID is absent, create a new experiment version rather than silently substituting a model.
 
-The execution budget is frozen as:
-
-- planning/alert target: **200 RMB**
-- hard ceiling: **250 RMB**
-- per-request safety reserve: **2 RMB**
-- source of record: Zhizengzeng account balance movement from the experiment's initial balance
+The execution budget is frozen as a **200 RMB planning/alert target**, **250 RMB hard ceiling**, and **2 RMB pre-request safety reserve**. The source of record is Zhizengzeng account balance movement from the experiment's initial balance.
 
 The budgeted runner is dry-run by default:
 
@@ -168,49 +136,27 @@ For the first paid canary, add `--max-cells 12`, audit the persisted rows and mo
 
 ## Local/open-weight transparency track
 
-The repository retains a separate local/open-weight track using exact Hugging Face commits for Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct. This track is optional during the current hosted-only API phase; it is not pooled with hosted-model claims.
+The repository retains the Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct transparency track for later reproducibility/white-box analysis. It is optional during the current hosted-only API phase and is not pooled with hosted-model claims.
 
-Install a CUDA-matched PyTorch build first and then:
+## Analysis and paper synchronization
 
-```bash
-python -m pip install -r requirements-local-gpu.txt
-python scripts/check_local_gpu.py --strict
-```
+Paper-facing results are generated from persisted run artifacts, not copied notebook values. Core scripts include `audit_run_log.py`, `analyze_core.py`, `analyze_rq2_traits.py`, `analyze_rq3.py`, `analyze_rq4.py`, `analyze_rq4_prompting.py`, `analyze_fairsynth360.py`, `render_result_tables.py`, `render_result_tables_lncs.py`, `build_result_figures.py`, `render_paper_results.py`, and `build_overleaf_bundle.py`.
 
-## Analysis
-
-Paper-facing results are generated from persisted run artifacts, not from copied notebook values. Core scripts include:
-
-```text
-scripts/audit_run_log.py
-scripts/analyze_core.py
-scripts/analyze_rq2_traits.py
-scripts/analyze_rq3.py
-scripts/analyze_rq4.py
-scripts/analyze_rq4_prompting.py
-scripts/analyze_fairsynth360.py
-scripts/analyze_local_whitebox.py
-```
-
-## Paper synchronization
-
-Empirical numbers are never typed into the manuscript by hand. The intended chain is:
+The required chain is:
 
 ```text
 frozen run JSONL
 → run-log audit
 → RQ analysis artifacts
-→ render_result_tables.py / render_result_tables_lncs.py
-→ build_result_figures.py
-→ render_paper_results.py
-→ build_overleaf_bundle.py
+→ result-table renderer
+→ result-figure renderer
+→ paper result renderer
+→ Overleaf bundle
 ```
 
 Until audited artifacts exist, corresponding paper cells remain explicitly pending. This prevents invented results and transcription drift between the repository and Overleaf.
 
 ## Reproducibility checks
-
-Useful preflight commands include:
 
 ```bash
 python scripts/check_config_consistency.py
