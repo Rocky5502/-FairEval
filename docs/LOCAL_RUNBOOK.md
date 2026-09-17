@@ -1,203 +1,134 @@
-# FairEval Local Runbook
+# FairEval ECIR 2027 Local/Execution Runbook
 
-This runbook is the intended path from a fresh clone to a frozen ECIR 2027 run. It is deliberately conservative: preflight and dry-run steps make **zero provider API calls**.
+This document is a compact local entrypoint. The authoritative detailed procedure is `docs/EXECUTION_RUNBOOK_2026-09-17.md`. The current study has two separately reported evidence lanes: six hosted families through Zhizengzeng and two frozen local open-weight models on a large CUDA GPU.
 
-## 1. Create the Python environment
+## 1. Pull one clean revision
 
-### Windows PowerShell
+From `G:\ECIR2027`:
 
 ```powershell
-cd G:\path\to\-FairEval
+cd G:\ECIR2027
+git fetch origin
+git checkout ecir-2027-redesign
+git pull --ff-only origin ecir-2027-redesign
+$SHA = (git rev-parse HEAD).Trim()
+git status --short
+```
+
+Do not start a real run from a dirty scientific worktree. Once the first experimental row is persisted, do not change executable source inside that experiment version.
+
+## 2. Install the zero-call environment
+
+```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install -U pip
+python -m pip install -e ".[dev,analysis,providers]"
 ```
 
-### WSL / Linux
+Never commit `.env` or any API key.
 
-```bash
-cd /path/to/-FairEval
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e .
+## 3. Hosted gateway environment
+
+The black-box lane uses one gateway configuration, not six independent provider credentials:
+
+```dotenv
+FAIREVAL_HOSTED_GATEWAY=zhizengzeng
+ZZZ_BASE_URL=https://api.zhizengzeng.com/v1
+ZZZ_API_KEY=<secret>
 ```
 
-`requirements.txt` pins the provider SDK versions used by the experiment and bounds the scientific stack. Before a frozen pilot/confirmatory release, archive `python -m pip freeze` alongside the run manifest.
+The exact six model IDs are frozen in `configs/models.yaml`. A live model-list preflight is mandatory before paid execution; nearby model names are not substitutes.
 
-## 2. Configure credentials without committing them
+The hosted experiment normally stops around 200 RMB. A separate 250 RMB client-side emergency stop threshold and 2 RMB reserve provide additional protection. Balance is reconciled before/after persisted cells. This is not represented as an atomic provider-side spending cap.
 
-Use `.env.example` only as a checklist. The code reads provider credentials from the process environment; it does **not** require committing or auto-loading a `.env` file.
+## 4. Build the zero-call scientific seal
 
-PowerShell example:
+Before hosted generation or local model loading:
 
 ```powershell
-$env:OPENAI_API_KEY = "..."
-$env:ANTHROPIC_API_KEY = "..."
-$env:GEMINI_API_KEY = "..."
-$env:DEEPSEEK_API_KEY = "..."
-$env:DASHSCOPE_API_KEY = "..."
-$env:QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-
-# Freeze one Llama host before the pilot:
-$env:LLAMA_PROVIDER_API_KEY = "..."
-$env:LLAMA_BASE_URL = "..."
-$env:LLAMA_PROVIDER_NAME = "..."
+python scripts\build_preexecution_seal.py `
+  --output-dir results\preexecution\seal-v1
 ```
 
-Never paste real keys into YAML, logs, screenshots, issues, or commits.
+The seal performs the deterministic pre-experiment work in one path: canonical FairSynth generation, hosted/local plan construction, configuration and paper checks, pre-result Overleaf bundle generation, source-file hashing, Git-SHA capture, and real-dataset blocker reporting.
 
-## 3. Zero-call preflight
+Expected core geometry in the seal:
 
-Run these before touching any paid provider:
-
-```bash
-python scripts/check_config_consistency.py
-python scripts/check_environment.py
-pytest -q
-python scripts/build_paper_figures.py
-python scripts/check_paper_source.py
-python scripts/write_environment_manifest.py --output results/environment_manifest.json
+```text
+white-box FairSynth core: 12,960 cells
+hosted FairSynth plan:    12,960 cells
+hosted generation calls: 0
+local model weights:      not loaded
+empirical paper results:  none
 ```
 
-Expected properties:
+Both real runners later verify the exact sealed commit, scientific source hashes, plan hash, and cell count.
 
-- six executable dataset IDs agree across adapters and configs;
-- MIND stays preference-only in the frozen core plan;
-- primary prompt/cue/model-generation settings agree across manifests;
-- provider credential presence is reported without printing secrets;
-- the three methods figures regenerate as vector PDFs;
-- every cited BibTeX key and LaTeX input resolves;
-- all unit tests pass.
+## 5. Hosted dry run and canary
 
-## 4. Inspect dataset adapters before downloading/running
-
-```bash
-faireval dataset-card --dataset personality2018
-faireval dataset-card --dataset music_master_bfi2
-faireval dataset-card --dataset reasoner
-faireval dataset-card --dataset movielens_1m
-faireval dataset-card --dataset lastfm_1k
-faireval dataset-card --dataset mind
-```
-
-Confirm the upstream license/terms and raw schema for the exact release you will use. Do not silently substitute a different release after the pilot freeze.
-
-## 5. Freeze deterministic benchmark instances
-
-Example:
-
-```bash
-faireval prepare \
-  --dataset movielens_1m \
-  --raw-dir data/raw/movielens_1m \
-  --output-dir data/frozen/movielens_1m \
-  --users 20 \
-  --candidate-set-size 50 \
-  --max-history-items 20 \
-  --seed 1729
-
-faireval verify-freeze --output-dir data/frozen/movielens_1m
-```
-
-Repeat for all six datasets. The pilot default is 20 users per dataset. The final confirmatory N is frozen only after the variance/invalid-output pilot, following `configs/study_design.yaml`.
-
-## 6. Compile the immutable core run plan
-
-After **all six** frozen dataset directories exist:
-
-```bash
-faireval plan-core \
-  --freeze-root data/frozen \
-  --output-dir results/plans/core-v1 \
-  --counterfactuals configs/counterfactuals.yaml \
-  --models configs/models.yaml \
-  --seed 1729
-```
-
-The command writes `run_plan.jsonl` plus `plan_manifest.json`, including dataset hashes and a plan hash. Do not hand-edit either file after compilation.
-
-## 7. Dry-run before any API call
-
-```bash
-faireval execute-plan \
-  --plan-dir results/plans/core-v1 \
-  --freeze-root data/frozen \
-  --output-jsonl results/raw/core-v1.jsonl
-```
-
-Without `--execute`, this is a **zero-call dry run**. Review the planned cell count, family filters, credentials, provider endpoints, and expected cost before proceeding.
-
-To inspect only one family without calling it:
-
-```bash
-faireval execute-plan \
-  --plan-dir results/plans/core-v1 \
-  --freeze-root data/frozen \
-  --output-jsonl results/raw/core-v1.jsonl \
-  --family openai \
-  --max-cells 5
-```
-
-## 8. Execute only after the freeze is approved
-
-Capture the exact code commit first.
-
-PowerShell:
+First run the no-generation gateway check:
 
 ```powershell
-$sha = git rev-parse HEAD
-faireval execute-plan `
-  --plan-dir results/plans/core-v1 `
-  --freeze-root data/frozen `
-  --output-jsonl results/raw/core-v1.jsonl `
-  --code-commit-sha $sha `
-  --execute
+python scripts\check_zhizengzeng_gateway.py --env-file .env --strict
 ```
 
-WSL / Linux:
+Then dry-run the sealed hosted plan:
+
+```powershell
+python scripts\run_hosted_budgeted.py `
+  --plan-dir results\plans\hosted-fairsynth-budget-v1 `
+  --freeze-root data\frozen `
+  --output-jsonl results\runs\hosted-fairsynth-budget-v1.jsonl `
+  --ledger results\budget\hosted_zzz_v1.json `
+  --env-file .env `
+  --max-cells 12
+```
+
+Paid execution additionally requires the exact current `$SHA`, the seal path, and `--execute`. Start with one cell per hosted family as documented in the authoritative execution runbook. Exit code `10` means the budget policy intentionally stopped the run; do not bypass it.
+
+## 6. Large-GPU white-box lane
+
+Use a Linux CUDA environment on AI Galaxy or equivalent. Install the CUDA-matched PyTorch build, then:
 
 ```bash
-SHA="$(git rev-parse HEAD)"
-faireval execute-plan \
-  --plan-dir results/plans/core-v1 \
-  --freeze-root data/frozen \
-  --output-jsonl results/raw/core-v1.jsonl \
-  --code-commit-sha "$SHA" \
-  --execute
+pip install -r requirements-local-gpu.txt
+pip install -e .
+python scripts/check_local_gpu.py --strict
 ```
 
-The executor resumes by immutable `planned_cell_id`. An invalid model output still completes its planned cell because invalidity is an experimental outcome; do not rerun until valid.
+The exact Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct revisions are already frozen in `configs/local_models.yaml`. The canonical FairSynth plan is 12,960 generations. Execute one family at a time with `scripts/run_whitebox_family.py`; real inference requires the same pre-execution seal and exact Git SHA.
 
-## 9. Before promoting pilot to confirmatory
+Do not quantize the canonical run merely to fit a smaller GPU. Use suitable hardware or create a separately versioned protocol.
 
-Do **not** use the pilot treatment-effect mean to chase significance. Use the pilot only for variance, invalid-output rate, runtime, and cost. Then freeze:
+## 7. Third-party real datasets
 
-- final N and user split hashes;
-- candidate sets and order;
-- prompt template/cue suite;
-- provider endpoints/regions;
-- exact model IDs and deliberation policies;
-- metric/statistical definitions;
-- analysis code commit.
+The six real-world datasets are intentionally not considered execution-ready until their exact upstream releases are present locally and `configs/dataset_releases.yaml` records:
 
-If any of those change, create a new versioned plan rather than mutating the old one.
+- exact release identity;
+- deterministic SHA-256 freeze;
+- reviewed license/terms;
+- valid local raw path.
 
-## 10. Paper integrity
+Do not invent hashes or silently substitute a newer/different release. Real-world RQ1–RQ4 starts only after those locks pass.
 
-The manuscript intentionally keeps numerical results as `TBD` until generated from frozen outputs. Regenerate methods figures with:
+## 8. Artifact-only paper updates
 
-```bash
-python scripts/build_paper_figures.py
+Numerical paper content follows this rule:
+
+```text
+frozen run JSONL
+→ run-log audit
+→ registered analysis
+→ generated LaTeX/PDF artifact
+→ paper/generated/
+→ anonymous Overleaf bundle
 ```
 
-Then run:
+Hosted FairSynth finalization uses `scripts/finalize_hosted_fairsynth.py`. Full white-box finalization uses `scripts/finalize_whitebox.py`. Real-world RQ1–RQ4 uses the result-table/figure pipeline documented in `docs/RESULT_TABLES.md`.
 
-```bash
-python scripts/check_paper_source.py
-```
+If a required artifact is missing, the manuscript stays explicitly pending. Never type a result value into the manuscript by hand.
 
-The comparison table is an evidence-audited **study-design coverage** matrix, not a claim that FairEval empirically outperforms prior work. Its source ledger is `docs/LITERATURE_COMPARISON_AUDIT.md`.
+## 9. Stop rather than improvise
+
+Stop the current experiment version if the frozen model ID disappears, source/seal verification fails, Git SHA changes, CUDA/BF16 preflight fails, a run-log audit fails, a real dataset lock is incomplete, or the client-side hosted budget policy stops execution. Versioned incomplete evidence is preferable to an untracked substitution.
