@@ -7,6 +7,16 @@ from pathlib import Path
 
 
 MAIN_TABLES = ("rq12_main_table.tex", "rq34_main_table.tex")
+COVERAGE_TABLE = "coverage_table.tex"
+DATASET_LABELS = {
+    "personality2018": "Personality 2018",
+    "music_master_bfi2": "Music Master/BFI-2",
+    "reasoner": "REASONER",
+    "movielens_1m": "MovieLens-1M",
+    "lastfm_1k": "Last.fm-1K",
+    "mind": "MIND",
+    "fairsynth360": "FairSynth-360",
+}
 
 
 def _normalize_main_table(path: Path) -> None:
@@ -17,6 +27,16 @@ def _normalize_main_table(path: Path) -> None:
         raise RuntimeError(f"{path}: unresolved table* token after LNCS normalization")
     if r"\begin{table}[t]" not in text or r"\end{table}" not in text:
         raise RuntimeError(f"{path}: expected ordinary LNCS table float after normalization")
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def _normalize_coverage_labels(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    for dataset_id, display_name in DATASET_LABELS.items():
+        text = text.replace(dataset_id, display_name)
+        text = text.replace(dataset_id.replace("_", r"\_"), display_name)
+    if "FairSynth-360" not in text:
+        raise RuntimeError(f"{path}: FairSynth-360 display label missing after normalization")
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
@@ -39,9 +59,14 @@ def main() -> int:
             raise FileNotFoundError(f"renderer did not create required main table: {path}")
         _normalize_main_table(path)
 
+    coverage = output_dir / COVERAGE_TABLE
+    if not coverage.is_file():
+        raise FileNotFoundError(f"renderer did not create required coverage table: {coverage}")
+    _normalize_coverage_labels(coverage)
+
     print(
         "LNCS result-table normalization: PASS "
-        "(RQ1-RQ2 and RQ3-RQ4 use ordinary table floats)"
+        "(ordinary main-table floats + publication dataset labels)"
     )
     return 0
 
