@@ -41,6 +41,7 @@ OPTIONAL_RESULT_FILES = (
     "generated/rq12_inference_table.tex",
     "generated/rq34_results_table.tex",
     "generated/fairsynth_hosted_table.tex",
+    "generated/whitebox_summary_table.tex",
     # Artifact-generated result figures.
     "figures/rq1_quadrant.pdf",
     "figures/rq2_personality_forest.pdf",
@@ -89,6 +90,7 @@ def build_overleaf_bundle(
         r"\input{result_tables/rq12_main_table}",
         r"\input{result_tables/rq34_main_table}",
         "generated/fairsynth_hosted_table.tex",
+        "generated/whitebox_summary_table.tex",
     ):
         if token not in results_entrypoint:
             raise ValueError(f"results entrypoint missing result contract: {token}")
