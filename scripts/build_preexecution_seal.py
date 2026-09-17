@@ -206,6 +206,9 @@ def main() -> int:
     assert_clean_scientific_worktree()
 
     output_dir = args.output_dir
+    if not output_dir.is_absolute():
+        output_dir = ROOT / output_dir
+    output_dir = output_dir.resolve()
     command_dir = output_dir / "commands"
     output_dir.mkdir(parents=True, exist_ok=True)
 
