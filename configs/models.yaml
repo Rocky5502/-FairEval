@@ -102,7 +102,7 @@ models:
     enabled: true
     provider: zhizengzeng
     reasoning_or_thinking_setting: gateway_native_control_unverified
-    sampling_policy: gateway_expai_compatible_explicit_temperature_top_p_requested_unverified_native_application
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
     verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
     notes: >-
