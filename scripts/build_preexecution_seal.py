@@ -30,6 +30,7 @@ SPEC_EXACT = {
 SPEC_EXCLUDES = (
     "paper/generated/",
     "paper/figures/",
+    "paper/result_tables/",
 )
 
 
@@ -178,7 +179,7 @@ def _markdown(seal: dict[str, Any]) -> str:
             "",
             "## Interpretation",
             "",
-            "This artifact freezes the executable scientific specification before paid hosted or local-GPU model generation. It is not an empirical result artifact. Real-world execution remains blocked until the exact third-party releases are locally frozen, license-reviewed, and hashed.",
+            "This artifact freezes the executable scientific specification before paid hosted or local-GPU model generation. Derived paper result tables and figures are regenerated from their sealed renderer/source contracts and are not themselves treated as executable source. It is not an empirical result artifact. Real-world execution remains blocked until the exact third-party releases are locally frozen, license-reviewed, and hashed.",
             "",
         ]
     )
@@ -200,8 +201,8 @@ def main() -> int:
     args = parser.parse_args()
 
     # The seal's commit SHA must describe the actual scientific source bytes.
-    # Generated result/figure artifacts are excluded from the scientific-spec set,
-    # but prompts/configs/code/tests/paper contracts may not be dirty.
+    # Derived paper result tables/figures may be regenerated below, but prompts,
+    # configs, code, tests, paper entrypoints and renderer contracts may not be dirty.
     assert_clean_scientific_worktree()
 
     output_dir = args.output_dir
@@ -229,7 +230,10 @@ def main() -> int:
                 "results/plans/hosted-fairsynth-budget-v1",
             ],
         ),
-        ("render_result_contracts", ["scripts/render_result_tables.py", "--contracts-only"]),
+        (
+            "render_result_contracts",
+            ["scripts/render_result_tables_lncs.py", "--contracts-only"],
+        ),
         ("build_paper_figures", ["scripts/build_paper_figures.py"]),
         ("check_config_consistency", ["scripts/check_config_consistency.py"]),
         ("check_pilot_readiness", ["scripts/check_pilot_readiness.py"]),
@@ -247,8 +251,8 @@ def main() -> int:
     ]
     step_results = [_run(label, command, command_dir) for label, command in steps]
 
-    # Deterministic builders must not rewrite tracked scientific contracts. If they
-    # do, commit the new contract first and create a new seal from that revision.
+    # Deterministic builders may rewrite derived table/figure products, but they
+    # must not rewrite any sealed scientific source contract.
     assert_clean_scientific_worktree()
 
     whitebox_manifest_path = ROOT / "results/plans/whitebox-full-v1/core/plan_manifest.json"
