@@ -95,13 +95,16 @@ def main() -> int:
     )
 
     # Real-result generation must go through the LNCS wrapper so a future
-    # renderer invocation cannot recreate table* in the single-column paper.
+    # renderer invocation cannot recreate table* in the single-column paper or
+    # regress canonical dataset IDs into unpolished paper-facing labels.
     _require_tokens(
         ROOT / "scripts" / "render_result_tables_lncs.py",
         (
             "render_result_tables.py",
             "MAIN_TABLES",
             "table*",
+            "_normalize_coverage_labels",
+            "FairSynth-360",
             "LNCS result-table normalization: PASS",
         ),
         label="LNCS result-table wrapper",
@@ -136,6 +139,7 @@ def main() -> int:
     print("result-table preflight: 2 main + 4 compact contracts present")
     print("result-table preflight: main result contracts use ordinary LNCS table floats")
     print("result-table preflight: canonical real-result rendering uses the LNCS wrapper")
+    print("result-table preflight: publication dataset labels are normalized")
     print("result-table preflight: C5 trait analysis is wired")
     print("result-table preflight: all three RQ4 methods have executable evidence paths")
     return 0
