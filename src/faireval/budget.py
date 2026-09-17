@@ -27,19 +27,24 @@ class BudgetSnapshot:
 
 
 class ZhizengzengBudgetGuard:
-    """Balance-reconciled RMB budget guard for FairEval hosted execution.
+    """Balance-reconciled client-side RMB budget guard for FairEval hosted execution.
 
     The gateway documents a credit endpoint that returns ``available_amount``.
     We record an initial balance and reconcile experiment spend as balance
     movement. The preferred stop is the 200 RMB target: no new cell is launched
     when the remaining target budget is at or below the frozen request reserve.
-    The separate 250 RMB hard ceiling is an emergency upper bound that should
-    therefore retain a large safety buffer rather than being approached normally.
+    The separate 250 RMB value is an emergency client-side stop threshold that
+    retains a large safety buffer rather than being approached normally.
+
+    FairEval does not claim that this threshold is an atomic provider-side spend
+    cap. A provider could in principle charge an unexpectedly large in-flight
+    request before the next balance reconciliation. The protocol therefore stops
+    around 200 RMB, retains roughly 50 RMB of emergency headroom, keeps outputs
+    short, and checks balance before and after every persisted cell.
 
     A cell can contain one format-only repair call, so ``request_reserve_rmb`` is
-    held back before the cell starts. With the default 2 RMB reserve and 50 RMB
-    target-to-hard-cap buffer, ordinary FairEval ranking cells stop well before
-    the user's absolute ceiling even if the final persisted cell needs repair.
+    held back before the cell starts. The reserve protects the normal-stop target;
+    the larger target-to-threshold gap is an additional operational safety buffer.
     """
 
     def __init__(
@@ -122,6 +127,8 @@ class ZhizengzengBudgetGuard:
                 "initial_balance_rmb": available,
                 "target_rmb": self.target_rmb,
                 "hard_cap_rmb": self.hard_cap_rmb,
+                "hard_cap_semantics": "client_side_emergency_stop_threshold",
+                "provider_side_atomic_spend_cap_claimed": False,
                 "request_reserve_rmb": self.request_reserve_rmb,
                 "checks": [],
             }
@@ -165,7 +172,7 @@ class ZhizengzengBudgetGuard:
         checks.append(record)
         ledger["latest"] = record
         ledger["target_reached"] = spent >= self.target_rmb
-        ledger["hard_cap_reached"] = spent >= self.hard_cap_rmb
+        ledger["emergency_threshold_reached"] = spent >= self.hard_cap_rmb
         self._write_ledger(ledger)
         return BudgetSnapshot(
             available_rmb=available,
@@ -204,7 +211,7 @@ class ZhizengzengBudgetGuard:
         if snap.spent_rmb >= self.hard_cap_rmb:
             raise BudgetExceeded(
                 f"Hosted execution cannot continue: spent={snap.spent_rmb:.4f} RMB "
-                f"already reaches hard cap={self.hard_cap_rmb:.2f} RMB."
+                f"already reaches emergency threshold={self.hard_cap_rmb:.2f} RMB."
             )
 
         remaining_to_target = self.target_rmb - snap.spent_rmb
@@ -213,7 +220,7 @@ class ZhizengzengBudgetGuard:
                 "Hosted execution stopped before the next cell at the primary budget target: "
                 f"spent={snap.spent_rmb:.4f} RMB, target={self.target_rmb:.2f} RMB, "
                 f"reserve={self.request_reserve_rmb:.2f} RMB, "
-                f"hard_cap={self.hard_cap_rmb:.2f} RMB."
+                f"emergency_threshold={self.hard_cap_rmb:.2f} RMB."
             )
 
     def after_cell(self, row: Mapping[str, Any], executed_cells: int) -> None:
@@ -224,23 +231,27 @@ class ZhizengzengBudgetGuard:
         )
         if snap.spent_rmb >= self.hard_cap_rmb:
             raise BudgetExceeded(
-                "Hosted execution reached the emergency hard cap after a persisted cell: "
-                f"spent={snap.spent_rmb:.4f} RMB >= {self.hard_cap_rmb:.2f} RMB."
+                "Hosted execution reached the emergency client-side stop threshold after a "
+                f"persisted cell: spent={snap.spent_rmb:.4f} RMB >= {self.hard_cap_rmb:.2f} RMB."
             )
         if snap.spent_rmb >= self.target_rmb:
             raise BudgetExceeded(
                 "Hosted execution reached the primary budget target after a persisted cell; "
                 f"spent={snap.spent_rmb:.4f} RMB >= {self.target_rmb:.2f} RMB. "
-                f"The {self.hard_cap_rmb:.2f} RMB hard cap remains an unused safety buffer."
+                f"The {self.hard_cap_rmb:.2f} RMB emergency threshold remains safety headroom."
             )
 
     def report(self) -> dict[str, Any]:
         snap = self.snapshot(event="report")
         return {
-            "schema_version": "faireval-hosted-budget-report-v1",
+            "schema_version": "faireval-hosted-budget-report-v2",
             **asdict(snap),
+            "hard_cap_semantics": "client_side_emergency_stop_threshold",
+            "provider_side_atomic_spend_cap_claimed": False,
             "remaining_to_target_rmb": max(0.0, self.target_rmb - snap.spent_rmb),
-            "remaining_to_hard_cap_rmb": max(0.0, self.hard_cap_rmb - snap.spent_rmb),
+            "remaining_to_emergency_threshold_rmb": max(
+                0.0, self.hard_cap_rmb - snap.spent_rmb
+            ),
             "request_reserve_rmb": self.request_reserve_rmb,
             "ledger_path": str(self.ledger_path),
         }
