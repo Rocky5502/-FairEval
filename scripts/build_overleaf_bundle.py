@@ -36,6 +36,12 @@ REQUIRED_FILES = (
 )
 
 OPTIONAL_RESULT_FILES = (
+    # Artifact-generated LaTeX tables. These are the authoritative numerical
+    # paper inputs whenever present and must travel with the Overleaf archive.
+    "generated/rq12_inference_table.tex",
+    "generated/rq34_results_table.tex",
+    "generated/fairsynth_hosted_table.tex",
+    # Artifact-generated result figures.
     "figures/rq1_quadrant.pdf",
     "figures/rq2_personality_forest.pdf",
     "figures/rq3_variance.pdf",
@@ -59,12 +65,11 @@ def build_overleaf_bundle(
 ) -> dict[str, Any]:
     """Create a deterministic upload-ready archive from canonical paper sources.
 
-    The ZIP deliberately excludes repository code, raw datasets, run logs, secrets,
-    and author-identifying metadata. Result PDFs are included only when they already
-    exist as generated artifacts; the manuscript otherwise compiles its registered
-    result placeholders via ``\\IfFileExists``. The two main and four compact result
-    table contracts are always shipped so later frozen-artifact rendering can replace
-    them without restructuring the Overleaf project.
+    The ZIP deliberately excludes repository code, raw datasets, run logs,
+    secrets, and author-identifying metadata. Generated result tables/figures are
+    included only when they already exist as artifact-derived paper inputs; the
+    manuscript otherwise compiles registered placeholders. This means the ZIP
+    cannot silently drop numerical tables that were already rendered locally.
     """
     missing = [name for name in REQUIRED_FILES if not (paper_dir / name).is_file()]
     if missing:
@@ -83,9 +88,10 @@ def build_overleaf_bundle(
     for token in (
         r"\input{result_tables/rq12_main_table}",
         r"\input{result_tables/rq34_main_table}",
+        "generated/fairsynth_hosted_table.tex",
     ):
         if token not in results_entrypoint:
-            raise ValueError(f"results entrypoint missing main table contract: {token}")
+            raise ValueError(f"results entrypoint missing result contract: {token}")
 
     selected = list(REQUIRED_FILES)
     if include_available_results:
@@ -99,19 +105,31 @@ def build_overleaf_bundle(
         }
         for name in selected
     }
+    generated_tables = sorted(
+        name
+        for name in OPTIONAL_RESULT_FILES
+        if name.startswith("generated/") and name in selected
+    )
+    generated_figures = sorted(
+        name
+        for name in OPTIONAL_RESULT_FILES
+        if name.startswith("figures/") and name in selected
+    )
     manifest = {
-        "schema_version": "faireval-overleaf-bundle-v2",
+        "schema_version": "faireval-overleaf-bundle-v3",
         "entrypoint": "main.tex",
         "double_blind": True,
         "canonical_source": "paper/ on ecir-2027-redesign",
         "empirical_numbers_manually_entered": False,
         "result_table_contract": {
-            "main_tables": [
+            "fallback_main_tables": [
                 "result_tables/rq12_main_table.tex",
                 "result_tables/rq34_main_table.tex",
             ],
             "compact_supporting_tables": list(RESULT_TABLE_FILES[2:]),
+            "artifact_generated_tables_included": generated_tables,
         },
+        "artifact_generated_figures_included": generated_figures,
         "files": manifest_files,
     }
 
@@ -125,14 +143,13 @@ def build_overleaf_bundle(
         )
 
     return {
-        "schema_version": "faireval-overleaf-bundle-build-v2",
+        "schema_version": "faireval-overleaf-bundle-build-v3",
         "output": str(output_zip),
         "files": len(selected),
         "zip_sha256": _sha256(output_zip),
         "included_result_table_contracts": list(RESULT_TABLE_FILES),
-        "included_optional_result_figures": sorted(
-            name for name in OPTIONAL_RESULT_FILES if name in selected
-        ),
+        "included_generated_result_tables": generated_tables,
+        "included_generated_result_figures": generated_figures,
     }
 
 
@@ -148,7 +165,7 @@ def main() -> int:
     parser.add_argument(
         "--exclude-results",
         action="store_true",
-        help="Do not include generated result PDFs even if they exist.",
+        help="Do not include generated result LaTeX/PDF artifacts even if they exist.",
     )
     args = parser.parse_args()
     result = build_overleaf_bundle(
