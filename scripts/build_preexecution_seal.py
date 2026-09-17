@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 SPEC_PREFIXES = (
     "configs/",
@@ -107,8 +109,8 @@ def dataset_release_blockers(
         reasons: list[str] = []
         if raw.get("release_status") != "frozen":
             reasons.append("release_status_not_frozen")
-        digest = raw.get("raw_sha256")
-        if not isinstance(digest, str) or len(digest) != 64:
+        digest = str(raw.get("raw_sha256") or "").lower()
+        if not SHA256_RE.fullmatch(digest):
             reasons.append("raw_sha256_not_frozen")
         if raw.get("license_reviewed") is not True:
             reasons.append("license_not_reviewed")
@@ -166,6 +168,7 @@ def _markdown(seal: dict[str, Any]) -> str:
             f"- Git commit: `{seal['git_commit_sha']}`",
             f"- Scientific specification SHA-256: `{seal['scientific_spec_sha256']}`",
             f"- Tracked specification files: {seal['scientific_spec_file_count']}",
+            f"- Canonical FairSynth frozen users: {seal['fairsynth_freeze']['instances']}",
             f"- FairSynth white-box core cells: {seal['plans']['whitebox_core']['planned_cells']}",
             f"- Hosted FairSynth planned cells: {seal['plans']['hosted_fairsynth']['planned_cells']}",
             "- Hosted API generation calls made while building this seal: 0",
@@ -267,6 +270,16 @@ def main() -> int:
 
     whitebox_cells = int(whitebox_manifest.get("planned_api_cells", -1))
     hosted_cells = int(hosted_manifest.get("planned_api_cells", -1))
+    fairsynth_instances = int(fairsynth_manifest.get("instance_count", -1))
+    if fairsynth_manifest.get("dataset_id") != "fairsynth360":
+        raise RuntimeError(
+            "canonical FairSynth freeze manifest dataset_id drifted: "
+            f"{fairsynth_manifest.get('dataset_id')!r}"
+        )
+    if fairsynth_instances != 360:
+        raise RuntimeError(
+            f"canonical FairSynth freeze geometry drift: expected 360 users, got {fairsynth_instances}"
+        )
     if whitebox_cells != 12960:
         raise RuntimeError(f"white-box FairSynth geometry drift: expected 12960, got {whitebox_cells}")
     if hosted_cells != 12960:
@@ -302,8 +315,8 @@ def main() -> int:
         "fairsynth_freeze": {
             "manifest_path": str(fairsynth_manifest_path.relative_to(ROOT)),
             "manifest_sha256": _sha256(fairsynth_manifest_path),
-            "dataset": fairsynth_manifest.get("dataset"),
-            "instances": fairsynth_manifest.get("instance_count"),
+            "dataset_id": fairsynth_manifest.get("dataset_id"),
+            "instances": fairsynth_instances,
         },
         "real_dataset_blockers": blockers,
         "real_world_execution_ready": not bool(blockers),
