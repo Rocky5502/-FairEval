@@ -2,12 +2,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from pathlib import Path
 
 from faireval.execute import execute_plan
 
 
 LOCAL_FAMILIES = {"qwen25_local", "phi35_local"}
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _git_head() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError(
+            "real white-box execution requires a Git checkout so code provenance can be proven"
+        ) from exc
 
 
 def main() -> int:
@@ -57,17 +73,25 @@ def main() -> int:
 
     if not args.code_commit_sha:
         raise ValueError("--code-commit-sha is required with --execute")
+    checked_out_sha = _git_head()
+    if args.code_commit_sha.strip() != checked_out_sha:
+        raise ValueError(
+            "--code-commit-sha must equal the currently checked-out Git HEAD; "
+            f"argument={args.code_commit_sha.strip()} HEAD={checked_out_sha}. "
+            "Do not mix code revisions inside a frozen run log."
+        )
 
     summary = execute_plan(
         plan_dir=Path(args.plan_dir),
         freeze_root=Path(args.freeze_root),
         output_jsonl=Path(args.output_jsonl),
-        code_commit_sha=args.code_commit_sha,
+        code_commit_sha=checked_out_sha,
         families={args.family},
         max_cells=args.max_cells,
     )
     summary["whitebox_family_sequential_execution"] = True
     summary["family"] = args.family
+    summary["checked_out_code_commit_sha"] = checked_out_sha
     print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
     return 0
 
