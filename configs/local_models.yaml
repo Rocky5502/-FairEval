@@ -3,13 +3,15 @@
 # This track is complementary to the six hosted/API families in configs/models.yaml.
 # It is NOT pooled with the hosted-model confirmatory panel when discussing vendor effects.
 
-version: faireval-local-models-v1
-track_name: local_open_weight_transparency
+version: faireval-local-models-v2
+track_name: local_open_weight_whitebox
 purpose:
   - reproducible_local_inference
   - token_level_white_box_diagnostics
   - hardware_controlled_robustness
   - synthetic_stress_test_validation
+  - full_real_world_replication
+  - local_mitigation_replication
 
 models:
   - family: qwen25_local
@@ -38,8 +40,8 @@ models:
         - mean_top1_top2_logit_margin
     notes: >-
       Open-weight local comparison model frozen to an exact Hugging Face commit.
-      The transparency diagnostics are model-internal auxiliary signals and are
-      not treated as calibrated uncertainty by default.
+      The internal diagnostics are auxiliary white-box signals and are never
+      relabeled as calibrated uncertainty probabilities.
 
   - family: phi35_local
     organization: Microsoft
@@ -76,9 +78,9 @@ hardware_profile:
     vram_gb: 32
     precision: bfloat16
     rationale: >-
-      Both selected checkpoints fit comfortably for sequential single-model
-      inference on a 32 GB RTX 5090-class GPU in BF16. Models are loaded one at
-      a time. Do not claim a nonexistent official RTX 5090 Ti configuration.
+      Both checkpoints fit for sequential single-model BF16 inference on a
+      32 GB-class GPU. Larger 48--80 GB GPUs are encouraged for throughput but
+      do not change the frozen model revisions or evaluation design.
   acceptable_alternatives:
     - NVIDIA RTX 6000 Ada 48GB
     - NVIDIA L40S 48GB
@@ -87,19 +89,81 @@ hardware_profile:
   execution_policy:
     concurrent_model_loading: false
     one_model_at_a_time: true
+    family_sequential_execution_required: true
     record_gpu_name: true
     record_vram_total: true
     record_driver_version: true
     record_cuda_version: true
     record_torch_version: true
 
+full_scale_campaign:
+  experiment_seed: 1729
+  fairsynth360:
+    users: 360
+    conditions_per_user: 6
+    repetitions: 3
+    model_count: 2
+    expected_core_cells: 12960
+    primary_k: 10
+    temperature: 0.2
+    top_p: 1.0
+    max_new_tokens: 512
+    scope:
+      - synthetic_identity_sanity
+      - synthetic_personality_sanity
+      - stochastic_replication
+      - white_box_diagnostic_association
+  real_world:
+    enabled_after_exact_dataset_freeze: true
+    datasets:
+      - personality2018
+      - music_master_bfi2
+      - reasoner
+      - movielens_1m
+      - lastfm_1k
+      - mind
+    repetitions: 3
+    scope:
+      - rq1_demographic_replication
+      - rq2_personality_replication
+      - rq2_trait_ablation
+      - rq3_registered_robustness
+      - rq4_identity_irrelevance_prompting
+      - rq4_pair_secondary_replication
+  white_box_analysis:
+    group_by:
+      - dataset
+      - model_family
+      - condition_id
+    outcomes:
+      - ndcg
+      - recall
+      - mrr
+      - invalid_output
+    diagnostics:
+      - mean_generated_token_logprob
+      - generated_token_nll
+      - generated_token_perplexity
+      - mean_top1_top2_logit_margin
+    association_policy: exploratory_descriptive_only
+    calibrated_uncertainty_claimed: false
+  execution:
+    run_models_one_at_a_time: true
+    recommended_resume_batch_cells: 250
+    persist_every_cell: true
+    audit_before_scaling: true
+    paper_update_requires_audited_artifact: true
+
 reporting_policy:
-  label: local_open_weight
+  label: local_open_weight_whitebox
   headline_model_count: 8_total_6_hosted_plus_2_local
   do_not_claim_exact_equivalence_with_hosted_apis: true
   do_not_pool_white_box_confidence_with_api_models: true
+  status: required_separate_replication_stratum
   primary_use:
     - RQ3 reliability and reproducibility
     - FairSynth-360 controlled stress test
+    - white-box uncertainty diagnostics
   secondary_use:
-    - replicate selected RQ1/RQ2 cells on real datasets
+    - RQ1 and RQ2 replication on all executable real-world datasets
+    - RQ4 mitigation replication on MovieLens-1M and Last.fm-1K
