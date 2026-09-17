@@ -12,3 +12,10 @@
 }{%
   \input{result_tables/rq34_main_table}%
 }
+
+% FairSynth is an auxiliary controlled sanity layer and therefore has no fake
+% TBD table. It appears only when its audited inference artifact has actually
+% been rendered.
+\IfFileExists{generated/fairsynth_hosted_table.tex}{%
+  \input{generated/fairsynth_hosted_table}%
+}{}
