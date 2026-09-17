@@ -53,7 +53,7 @@ Never commit API keys. Copy `.env.example` to `.env` and fill only the credentia
 
 ## Dataset safety
 
-Third-party raw releases are not silently downloaded or substituted. Before a paid pilot, acquire each exact upstream release under its documented terms, place it under the configured raw path, compute and record its hash, freeze deterministic benchmark instances, and verify hashes before compiling a run plan. FairEval never infers protected attributes from names, free text, embeddings, ZIP codes, or model guesses.
+Third-party raw releases are not silently downloaded or substituted. Before a paid real-world pilot, acquire each exact upstream release under its documented terms, place it under the configured raw path, compute and record its hash, freeze deterministic benchmark instances, and verify hashes before compiling a run plan. FairEval never infers protected attributes from names, free text, embeddings, ZIP codes, or model guesses.
 
 ## Deterministic data preparation
 
@@ -74,19 +74,13 @@ The freeze manifest records instance count, canonical instance SHA-256, adapter/
 
 ## Immutable run plans
 
-Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hashed and linked to a manifest. Execution verifies the plan hash and every cell ID before constructing a provider.
+Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hashed and linked to a manifest. Execution verifies the plan hash and every cell ID before constructing a provider. Resume semantics are exact: already persisted `planned_cell_id` values are not regenerated, and invalidity remains an experimental outcome.
 
-```bash
-faireval plan-core \
-  --freeze-root data/frozen \
-  --output-dir results/plans/hosted-core-v1
-```
+The six-real-dataset hosted core plan remains gated on exact third-party dataset freezes. The API-only evidence layer that can run immediately is the project-owned FairSynth control.
 
-`execute-plan` is a dry run unless `--execute` is explicitly supplied. Resume semantics are exact: already persisted `planned_cell_id` values are not regenerated, and invalidity remains an experimental outcome.
+## Hosted API execution — 200/250 RMB freeze
 
-## Hosted API execution — 200/250 RMB budget freeze
-
-The current black-box phase uses the Zhizengzeng OpenAI-compatible gateway with a single gateway key. The gateway/model freeze is in `configs/models.yaml`; the spend policy is in `configs/hosted_budget.yaml`.
+The current black-box phase uses the Zhizengzeng OpenAI-compatible gateway with a single gateway key. The gateway/model freeze is in `configs/models.yaml`; spend policy is in `configs/hosted_budget.yaml`.
 
 Current hosted panel:
 
@@ -105,56 +99,88 @@ ZZZ_BASE_URL=https://api.zhizengzeng.com/v1
 ZZZ_API_KEY=<secret>
 ```
 
-A live `GET /v1/models` preflight on the experiment key is mandatory before paid execution. If an exact frozen ID is absent, create a new experiment version rather than silently substituting a model.
+The runner itself performs a live `GET /v1/models` exact-ID gate before paid generation. If an exact frozen ID is absent, execution is blocked before spend; a nearby model is never substituted silently.
 
-The execution budget is frozen as a **200 RMB planning/alert target**, **250 RMB hard ceiling**, and **2 RMB pre-request safety reserve**. The source of record is Zhizengzeng account balance movement from the experiment's initial balance.
+The hosted budget is frozen as a **200 RMB normal stop target**, **250 RMB non-bypassable emergency ceiling**, and **2 RMB pre-cell reserve**. A 50 RMB buffer therefore remains between ordinary stopping and the absolute ceiling. Spend is reconciled from Zhizengzeng account-balance movement rather than hand-estimated token counts.
 
-The budgeted runner is dry-run by default:
+### Immediate hosted FairSynth plan
+
+Create/verify the 360-user project-owned freeze:
 
 ```bash
-python scripts/run_hosted_budgeted.py \
-  --plan-dir results/plans/hosted-core-v1 \
-  --freeze-root data/frozen \
-  --output-jsonl results/runs/hosted-core-v1.jsonl
+python scripts/build_fairsynth360.py \
+  --output-dir data/frozen/fairsynth360 \
+  --users 360 \
+  --candidate-set-size 30 \
+  --max-history-items 8 \
+  --seed 1729
 ```
 
-Real execution adds `--execute` and writes a persistent budget ledger:
+Compile the default deterministic 120-user A/B/C-balanced hosted plan:
+
+```bash
+python scripts/plan_hosted_fairsynth.py \
+  --freeze-root data/frozen \
+  --output-dir results/plans/hosted-fairsynth-budget-v1 \
+  --users 120 \
+  --repetitions 3 \
+  --seed 1729
+```
+
+This yields 12,960 immutable planned cells: 120 users × 6 FairSynth conditions × 6 hosted families × 3 repetitions. The plan may be truncated by the budget, but its order is fixed independently of results.
+
+Dry-run first:
 
 ```bash
 python scripts/run_hosted_budgeted.py \
-  --plan-dir results/plans/hosted-core-v1 \
+  --plan-dir results/plans/hosted-fairsynth-budget-v1 \
   --freeze-root data/frozen \
-  --output-jsonl results/runs/hosted-core-v1.jsonl \
+  --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl
+```
+
+Run a 12-cell paid canary:
+
+```bash
+python scripts/run_hosted_budgeted.py \
+  --plan-dir results/plans/hosted-fairsynth-budget-v1 \
+  --freeze-root data/frozen \
+  --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl \
   --ledger results/budget/hosted_zzz_v1.json \
   --target-rmb 200 \
   --hard-cap-rmb 250 \
   --request-reserve-rmb 2 \
+  --max-cells 12 \
   --execute
 ```
 
-For the first paid canary, add `--max-cells 12`, audit the persisted rows and model-resolution metadata, then resume the same immutable plan. Details are in `docs/HOSTED_API_BUDGET_PROTOCOL.md`.
+After auditing the canary, rerun the same command without `--max-cells` to resume. The runner cannot accept a target above 200 RMB or a hard ceiling above 250 RMB.
 
 ## Local/open-weight transparency track
 
 The repository retains the Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct transparency track for later reproducibility/white-box analysis. It is optional during the current hosted-only API phase and is not pooled with hosted-model claims.
 
-## Analysis and paper synchronization
+## Analysis and direct paper synchronization
 
-Paper-facing results are generated from persisted run artifacts, not copied notebook values. Core scripts include `audit_run_log.py`, `analyze_core.py`, `analyze_rq2_traits.py`, `analyze_rq3.py`, `analyze_rq4.py`, `analyze_rq4_prompting.py`, `analyze_fairsynth360.py`, `render_result_tables.py`, `render_result_tables_lncs.py`, `build_result_figures.py`, `render_paper_results.py`, and `build_overleaf_bundle.py`.
-
-The required chain is:
+Hosted FairSynth numerical results use this artifact-only path:
 
 ```text
-frozen run JSONL
+hosted JSONL
 → run-log audit
-→ RQ analysis artifacts
-→ result-table renderer
-→ result-figure renderer
-→ paper result renderer
-→ Overleaf bundle
+→ FairSynth paired inference
+→ paper/generated/fairsynth_hosted_table.tex
+→ paper/results_contract_table.tex
+→ Overleaf ZIP
 ```
 
-Until audited artifacts exist, corresponding paper cells remain explicitly pending. This prevents invented results and transcription drift between the repository and Overleaf.
+One command performs the post-run pipeline:
+
+```bash
+python scripts/finalize_hosted_fairsynth.py
+```
+
+The generated six-model table reports synthetic identity and synthetic personality paired nDCG@10 differences, bootstrap confidence intervals, Holm-adjusted permutation p-values, and paired-user counts. It is automatically included in the paper and the exported Overleaf ZIP only when the audited artifact exists.
+
+For the full real-world study, the existing result-table/figure renderers remain the canonical path. Until audited artifacts exist, corresponding paper cells remain explicitly pending; empirical numbers are never typed into the manuscript manually.
 
 ## Reproducibility checks
 
@@ -166,8 +192,8 @@ python scripts/check_pilot_readiness.py
 pytest -q
 ```
 
-`check_pilot_readiness.py --strict` intentionally remains non-zero until exact third-party release locks, local raw paths, gateway credentials, model-provider freeze, and the budget policy are all complete.
+`check_pilot_readiness.py --strict` intentionally remains non-zero for the six-real-dataset confirmatory panel until exact third-party release locks and local raw paths are complete. That does not block the separately scoped project-owned hosted FairSynth sanity run.
 
 ## Reporting discipline
 
-FairEval does not claim that one model is fairer than another, that measured personality necessarily improves recommendation, or that a mitigation works until the frozen pipeline produces validated evidence. Real-world, synthetic, hosted, and local evidence retain their declared scope throughout analysis and the paper.
+FairEval does not claim that one model is fairer than another, that measured personality necessarily improves recommendation, or that a mitigation works until the frozen pipeline produces validated evidence. Real-world, synthetic, hosted, and optional local evidence retain their declared scope throughout analysis and the paper.
