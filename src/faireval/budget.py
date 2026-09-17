@@ -13,7 +13,7 @@ DEFAULT_GATEWAY_BASE_URL = "https://api.zhizengzeng.com/v1"
 
 
 class BudgetExceeded(RuntimeError):
-    """Raised before the next hosted request when the RMB hard cap is reached."""
+    """Raised when the hosted run must stop under the frozen RMB budget policy."""
 
 
 @dataclass(frozen=True)
@@ -30,14 +30,16 @@ class ZhizengzengBudgetGuard:
     """Balance-reconciled RMB budget guard for FairEval hosted execution.
 
     The gateway documents a credit endpoint that returns ``available_amount``.
-    We record an initial balance and reconcile spend as balance movement.  The
-    guard checks the balance before every request, which prevents a new request
-    once the hard cap has been consumed.  Because an individual request is
-    billed only after it returns, ``request_reserve_rmb`` is held back as a
-    conservative per-request reserve; this keeps the executor from launching a
-    request when the remaining budget is too small to absorb one more cell.
+    We record an initial balance and reconcile experiment spend as balance
+    movement. The preferred stop is the 200 RMB target: no new cell is launched
+    when the remaining target budget is at or below the frozen request reserve.
+    The separate 250 RMB hard ceiling is an emergency upper bound that should
+    therefore retain a large safety buffer rather than being approached normally.
 
-    The default policy is a 200 RMB planning target and a 250 RMB hard ceiling.
+    A cell can contain one format-only repair call, so ``request_reserve_rmb`` is
+    held back before the cell starts. With the default 2 RMB reserve and 50 RMB
+    target-to-hard-cap buffer, ordinary FairEval ranking cells stop well before
+    the user's absolute ceiling even if the final persisted cell needs repair.
     """
 
     def __init__(
@@ -52,13 +54,15 @@ class ZhizengzengBudgetGuard:
     ) -> None:
         if target_rmb <= 0 or hard_cap_rmb <= 0:
             raise ValueError("budget values must be positive")
-        if target_rmb > hard_cap_rmb:
-            raise ValueError("target_rmb cannot exceed hard_cap_rmb")
-        if request_reserve_rmb <= 0 or request_reserve_rmb >= hard_cap_rmb:
-            raise ValueError("request_reserve_rmb must be positive and below hard_cap_rmb")
+        if target_rmb >= hard_cap_rmb:
+            raise ValueError("target_rmb must be strictly below hard_cap_rmb")
+        if request_reserve_rmb <= 0 or request_reserve_rmb >= target_rmb:
+            raise ValueError("request_reserve_rmb must be positive and below target_rmb")
         self.ledger_path = ledger_path
         self.api_key_env = api_key_env
-        self.base_url = (base_url or os.environ.get("ZZZ_BASE_URL") or DEFAULT_GATEWAY_BASE_URL).rstrip("/")
+        self.base_url = (
+            base_url or os.environ.get("ZZZ_BASE_URL") or DEFAULT_GATEWAY_BASE_URL
+        ).rstrip("/")
         self.target_rmb = float(target_rmb)
         self.hard_cap_rmb = float(hard_cap_rmb)
         self.request_reserve_rmb = float(request_reserve_rmb)
@@ -100,7 +104,10 @@ class ZhizengzengBudgetGuard:
 
     def _write_ledger(self, payload: Mapping[str, Any]) -> None:
         tmp = self.ledger_path.with_suffix(self.ledger_path.suffix + ".tmp")
-        tmp.write_text(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.write_text(
+            json.dumps(dict(payload), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         tmp.replace(self.ledger_path)
 
     def ensure_initialized(self) -> BudgetSnapshot:
@@ -169,7 +176,13 @@ class ZhizengzengBudgetGuard:
             checked_unix=checked,
         )
 
-    def snapshot(self, *, event: str, cell_id: str | None = None, executed_cells: int | None = None) -> BudgetSnapshot:
+    def snapshot(
+        self,
+        *,
+        event: str,
+        cell_id: str | None = None,
+        executed_cells: int | None = None,
+    ) -> BudgetSnapshot:
         ledger = self._load_ledger()
         if ledger is None:
             return self.ensure_initialized()
@@ -188,11 +201,19 @@ class ZhizengzengBudgetGuard:
             cell_id=str(row.get("cell_id", "")) or None,
             executed_cells=executed_cells,
         )
-        remaining = self.hard_cap_rmb - snap.spent_rmb
-        if remaining <= self.request_reserve_rmb:
+        if snap.spent_rmb >= self.hard_cap_rmb:
             raise BudgetExceeded(
-                f"Hosted execution stopped before next request: spent={snap.spent_rmb:.4f} RMB, "
-                f"hard_cap={self.hard_cap_rmb:.2f} RMB, reserve={self.request_reserve_rmb:.2f} RMB."
+                f"Hosted execution cannot continue: spent={snap.spent_rmb:.4f} RMB "
+                f"already reaches hard cap={self.hard_cap_rmb:.2f} RMB."
+            )
+
+        remaining_to_target = self.target_rmb - snap.spent_rmb
+        if remaining_to_target <= self.request_reserve_rmb:
+            raise BudgetExceeded(
+                "Hosted execution stopped before the next cell at the primary budget target: "
+                f"spent={snap.spent_rmb:.4f} RMB, target={self.target_rmb:.2f} RMB, "
+                f"reserve={self.request_reserve_rmb:.2f} RMB, "
+                f"hard_cap={self.hard_cap_rmb:.2f} RMB."
             )
 
     def after_cell(self, row: Mapping[str, Any], executed_cells: int) -> None:
@@ -203,8 +224,14 @@ class ZhizengzengBudgetGuard:
         )
         if snap.spent_rmb >= self.hard_cap_rmb:
             raise BudgetExceeded(
-                f"Hosted execution reached the hard cap after persisted cell: "
+                "Hosted execution reached the emergency hard cap after a persisted cell: "
                 f"spent={snap.spent_rmb:.4f} RMB >= {self.hard_cap_rmb:.2f} RMB."
+            )
+        if snap.spent_rmb >= self.target_rmb:
+            raise BudgetExceeded(
+                "Hosted execution reached the primary budget target after a persisted cell; "
+                f"spent={snap.spent_rmb:.4f} RMB >= {self.target_rmb:.2f} RMB. "
+                f"The {self.hard_cap_rmb:.2f} RMB hard cap remains an unused safety buffer."
             )
 
     def report(self) -> dict[str, Any]:
