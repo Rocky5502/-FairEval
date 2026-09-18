@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -10,6 +12,12 @@ from scripts.build_overleaf_bundle import (
 
 
 def test_build_overleaf_bundle_contains_required_anonymous_sources(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        [sys.executable, str(repo_root / "scripts" / "build_paper_figures.py")],
+        cwd=repo_root,
+        check=True,
+    )
     output = tmp_path / "fair_eval_overleaf.zip"
     result = build_overleaf_bundle(output_zip=output, include_available_results=False)
     assert output.is_file()
