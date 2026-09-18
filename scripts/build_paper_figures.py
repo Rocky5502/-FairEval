@@ -273,119 +273,206 @@ tx(
 save(fig, "faireval_framework")
 
 # ---------------------------------------------------------------------------
-# Fig. 2 — RQ geometry. Four clean panels; no empirical result values.
+# Fig. 2 — RQ geometry. Compact, symmetric, and free of empirical results.
 # ---------------------------------------------------------------------------
-fig, ax = setup((12.4, 5.25))
+fig, ax = setup((12.8, 5.25))
 tx(ax, 0.02, 0.955, "FairEval experimental geometry", 11.5, "bold", ha="left")
-tx(ax, 0.02, 0.918, "Four research questions share one frozen task contract; each panel changes only the factor needed for its estimand.", 7.9, c=C["muted"], ha="left")
+tx(
+    ax,
+    0.02,
+    0.918,
+    "Each RQ reuses the same frozen recommendation task and changes only the factor required by its registered estimand.",
+    7.9,
+    c=C["muted"],
+    ha="left",
+)
 
-panels = [
-    (0.02, 0.235, "RQ1", "Demographic consequence", C["red"], C["red2"]),
-    (0.265, 0.235, "RQ2", "Grounded personality value", C["green"], C["green2"]),
-    (0.510, 0.235, "RQ3", "Reliability + generalization", C["blue"], C["blue2"]),
-    (0.755, 0.235, "RQ4", "Personalization-preserving mitigation", C["violet"], C["violet2"]),
+panel_specs = [
+    (0.020, "RQ1", "Demographic\nconsequence", C["red"], C["red2"]),
+    (0.265, "RQ2", "Grounded personality\nvalue", C["green"], C["green2"]),
+    (0.510, "RQ3", "Reliability +\ngeneralization", C["blue"], C["blue2"]),
+    (0.755, "RQ4", "Personalization-preserving\nmitigation", C["violet"], C["violet2"]),
 ]
-for x, w, rq, title, ec, bg in panels:
-    rr(ax, x, 0.185, w, 0.665, C["white"], C["line"], lw=0.9, r=0.013)
-    tag(ax, x + 0.014, 0.790, rq, bg, ec, 0.060)
-    tx(ax, x + 0.078, 0.814, title, 7.4, "bold", ha="left")
+for x, rq, title, ec, bg in panel_specs:
+    rr(ax, x, 0.180, 0.225, 0.665, C["white"], C["line"], lw=0.9, r=0.013)
+    tag(ax, x + 0.014, 0.782, rq, bg, ec, 0.060)
+    tx(ax, x + 0.082, 0.807, title, 7.2, "bold", ha="left")
 
-# RQ1
-x = 0.02
-rr(ax, x + 0.012, 0.620, 0.072, 0.095, C["blue2"], C["blue"], r=0.010)
-rr(ax, x + 0.125, 0.620, 0.072, 0.095, C["red2"], C["red"], r=0.010)
-tx(ax, x + 0.048, 0.668, "C1\nobserved", 7.1, "bold")
-tx(ax, x + 0.161, 0.668, "C2\nswap", 7.1, "bold")
-ar(ax, x + 0.086, 0.668, x + 0.120, 0.668, C["red"], 1.0)
-tx(ax, x + 0.112, 0.565, "CUG = U(C1) − U(C2)", 8.0, "bold")
-tx(ax, x + 0.030, 0.505, "MovieLens-1M + Last.fm-1K", 6.7, "bold", ha="left")
-tx(ax, x + 0.030, 0.465, "• gender confirmatory", 6.2, ha="left")
-tx(ax, x + 0.030, 0.430, "• age robustness", 6.2, ha="left")
-tx(ax, x + 0.030, 0.390, "RBO / Jaccard = sensitivity only", 5.9, c=C["muted"], ha="left")
-tx(ax, x + 0.030, 0.330, "Primary inference", 6.4, "bold", C["red"], ha="left")
-tx(ax, x + 0.030, 0.292, "paired sign-flip + bootstrap CI", 6.1, ha="left")
+# RQ1: matched demographic intervention
+x = 0.020
+tx(ax, x + 0.025, 0.725, "MATCHED CONTRAST", 5.7, "bold", C["muted"], ha="left")
+rr(ax, x + 0.022, 0.605, 0.070, 0.090, C["blue2"], C["blue"], r=0.010)
+rr(ax, x + 0.133, 0.605, 0.070, 0.090, C["red2"], C["red"], r=0.010)
+tx(ax, x + 0.057, 0.650, "C1\nobserved", 6.9, "bold")
+tx(ax, x + 0.168, 0.650, "C2\nswap", 6.9, "bold")
+ar(ax, x + 0.096, 0.650, x + 0.128, 0.650, C["red"], 1.0)
+tx(ax, x + 0.1125, 0.557, "CUG = U(C1) − U(C2)", 7.8, "bold")
+rr(ax, x + 0.022, 0.446, 0.181, 0.073, C["panel"], C["line2"], r=0.009)
+tx(ax, x + 0.034, 0.493, "Scope", 5.8, "bold", C["red"], ha="left")
+tx(ax, x + 0.034, 0.465, "MovieLens-1M + Last.fm-1K", 5.9, ha="left")
+tx(ax, x + 0.028, 0.403, "gender confirmatory  •  age robustness", 5.7, ha="left")
+tx(ax, x + 0.028, 0.363, "RBO / Jaccard = sensitivity only", 5.6, c=C["muted"], ha="left")
+tx(ax, x + 0.028, 0.307, "Inference", 5.9, "bold", C["red"], ha="left")
+tx(ax, x + 0.028, 0.275, "paired sign-flip + bootstrap CI", 5.8, ha="left")
+tx(ax, x + 0.028, 0.239, "user is the unit", 5.6, c=C["muted"], ha="left")
 
-# RQ2
+# RQ2: measured psychometric value
 x = 0.265
-rr(ax, x + 0.012, 0.620, 0.072, 0.095, C["green2"], C["green"], r=0.010)
-rr(ax, x + 0.125, 0.620, 0.072, 0.095, C["gold2"], C["gold"], r=0.010)
-tx(ax, x + 0.048, 0.668, "C3\ntrue", 7.1, "bold")
-tx(ax, x + 0.161, 0.668, "C4\nshuffled", 7.1, "bold")
-ar(ax, x + 0.086, 0.668, x + 0.120, 0.668, C["gold"], 1.0)
-tx(ax, x + 0.112, 0.565, "PVA = U(C3) − U(C4)", 8.0, "bold")
-tx(ax, x + 0.030, 0.505, "3 measured-personality datasets", 6.7, "bold", ha="left")
-tx(ax, x + 0.030, 0.465, "• whole-profile derangement", 6.2, ha="left")
-tx(ax, x + 0.030, 0.430, "• C5 one-trait interventions", 6.2, ha="left")
-tx(ax, x + 0.030, 0.390, "measured psychometrics only", 5.9, c=C["muted"], ha="left")
-tx(ax, x + 0.030, 0.330, "Primary inference", 6.4, "bold", C["green"], ha="left")
-tx(ax, x + 0.030, 0.292, "same paired user-level stack", 6.1, ha="left")
+tx(ax, x + 0.025, 0.725, "MEASURED CONTROL", 5.7, "bold", C["muted"], ha="left")
+rr(ax, x + 0.022, 0.605, 0.070, 0.090, C["green2"], C["green"], r=0.010)
+rr(ax, x + 0.133, 0.605, 0.070, 0.090, C["gold2"], C["gold"], r=0.010)
+tx(ax, x + 0.057, 0.650, "C3\ntrue", 6.9, "bold")
+tx(ax, x + 0.168, 0.650, "C4\nshuffled", 6.9, "bold")
+ar(ax, x + 0.096, 0.650, x + 0.128, 0.650, C["gold"], 1.0)
+tx(ax, x + 0.1125, 0.557, "PVA = U(C3) − U(C4)", 7.8, "bold")
+rr(ax, x + 0.022, 0.446, 0.181, 0.073, C["panel"], C["line2"], r=0.009)
+tx(ax, x + 0.034, 0.493, "Scope", 5.8, "bold", C["green"], ha="left")
+tx(ax, x + 0.034, 0.465, "3 measured-personality datasets", 5.9, ha="left")
+tx(ax, x + 0.028, 0.403, "whole-profile derangement  •  C5 one-trait", 5.55, ha="left")
+tx(ax, x + 0.028, 0.363, "dataset-native psychometrics only", 5.6, c=C["muted"], ha="left")
+tx(ax, x + 0.028, 0.307, "Inference", 5.9, "bold", C["green"], ha="left")
+tx(ax, x + 0.028, 0.275, "same paired user-level stack", 5.8, ha="left")
+tx(ax, x + 0.028, 0.239, "true vs shuffled is primary", 5.6, c=C["muted"], ha="left")
 
-# RQ3
+# RQ3: registered robustness factors
 x = 0.510
-tx(ax, x + 0.030, 0.695, "Registered factors", 6.8, "bold", C["blue"], ha="left")
-for i, (k, v) in enumerate([("Prompt", "3 paraphrases"), ("Cue", "3 realizations"), ("Order", "3 permutations"), ("K", "5 / 10 / 20"), ("Repeat", "3 main; 10 stress")]):
-    yy = 0.635 - i * 0.057
-    rr(ax, x + 0.026, yy - 0.022, 0.070, 0.043, C["panel"], C["line"], r=0.008)
-    tx(ax, x + 0.061, yy, k, 6.0, "bold")
-    tx(ax, x + 0.102, yy, v, 5.9, ha="left")
-rr(ax, x + 0.026, 0.260, 0.160, 0.105, C["cyan2"], C["cyan"], r=0.010)
-tx(ax, x + 0.041, 0.340, "FairSynth-360", 6.7, "bold", C["cyan"], ha="left")
-tx(ax, x + 0.041, 0.313, "identity irrelevance known", 5.9, ha="left")
-tx(ax, x + 0.041, 0.286, "real / synthetic reported separately", 5.7, c=C["muted"], ha="left")
+tx(ax, x + 0.025, 0.725, "REGISTERED FACTORS", 5.7, "bold", C["muted"], ha="left")
+factor_rows = [
+    ("Prompt", "3 paraphrases"),
+    ("Cue", "3 realizations"),
+    ("Order", "3 permutations"),
+    ("K", "5 / 10 / 20"),
+    ("Repeat", "3 main; 10 stress"),
+]
+for i, (k, v) in enumerate(factor_rows):
+    yy = 0.665 - i * 0.061
+    rr(ax, x + 0.022, yy - 0.022, 0.073, 0.043, C["blue2"] if i < 3 else C["panel"], C["line"], r=0.008)
+    tx(ax, x + 0.0585, yy, k, 5.9, "bold", C["blue"] if i < 3 else C["ink"])
+    tx(ax, x + 0.104, yy, v, 5.8, ha="left")
+rr(ax, x + 0.022, 0.274, 0.181, 0.108, C["cyan2"], C["cyan"], r=0.010)
+tx(ax, x + 0.036, 0.351, "FairSynth-360 sanity layer", 6.2, "bold", C["cyan"], ha="left")
+tx(ax, x + 0.036, 0.322, "A/B/C identity has no relevance effect", 5.65, ha="left")
+tx(ax, x + 0.036, 0.294, "real / synthetic reported separately", 5.5, c=C["muted"], ha="left")
+tx(ax, x + 0.028, 0.229, "No best-prompt selection", 5.8, "bold", C["blue"], ha="left")
 
-# RQ4
+# RQ4: mitigation comparison and validation-only operating point
 x = 0.755
-shield(ax, x + 0.050, 0.680, 0.024, C["violet"])
-tx(ax, x + 0.080, 0.697, "3-way mitigation comparison", 6.7, "bold", ha="left")
-for i, label in enumerate(["unmitigated audit", "identity-irrelevance prompt", "contextual PAIR"]):
-    yy = 0.620 - i * 0.052
-    tx(ax, x + 0.035, yy, f"{i+1}", 6.0, "bold", C["violet"])
-    tx(ax, x + 0.055, yy, label, 5.9, ha="left")
-rr(ax, x + 0.026, 0.375, 0.160, 0.105, C["violet2"], C["violet"], r=0.010)
-tx(ax, x + 0.041, 0.450, "Validation-only selection", 6.5, "bold", C["violet"], ha="left")
-tx(ax, x + 0.041, 0.420, "≥95% baseline validation nDCG", 5.9, ha="left")
-tx(ax, x + 0.041, 0.393, "then minimize |CUG|", 5.9, ha="left")
-tx(ax, x + 0.030, 0.335, "No test-set point selection", 6.1, "bold", C["red"], ha="left")
-tx(ax, x + 0.030, 0.302, "report ‘no eligible point’ if needed", 5.8, c=C["muted"], ha="left")
+tx(ax, x + 0.025, 0.725, "MITIGATION FRONTIER", 5.7, "bold", C["muted"], ha="left")
+flow_y = 0.645
+flow = [
+    (x + 0.028, "Audit", C["panel"], C["slate"]),
+    (x + 0.090, "Prompt", C["violet2"], C["violet"]),
+    (x + 0.152, "PAIR", C["red2"], C["red"]),
+]
+for bx, label, fc, ec in flow:
+    rr(ax, bx, flow_y - 0.035, 0.050, 0.070, fc, ec, r=0.009)
+    tx(ax, bx + 0.025, flow_y, label, 5.8, "bold", ec)
+ar(ax, x + 0.080, flow_y, x + 0.088, flow_y, C["muted"], 0.9, 7)
+ar(ax, x + 0.142, flow_y, x + 0.150, flow_y, C["muted"], 0.9, 7)
+rr(ax, x + 0.022, 0.450, 0.181, 0.130, C["violet2"], C["violet"], r=0.010)
+tx(ax, x + 0.036, 0.548, "Validation-only selection", 6.2, "bold", C["violet"], ha="left")
+tx(ax, x + 0.036, 0.514, "≥95% baseline validation nDCG", 5.7, ha="left")
+tx(ax, x + 0.036, 0.484, "then minimize |CUG|", 5.7, ha="left")
+tx(ax, x + 0.036, 0.455, "freeze (α, λ) before test", 5.55, c=C["muted"], ha="left")
+tx(ax, x + 0.028, 0.394, "No test-set point selection", 5.9, "bold", C["red"], ha="left")
+tx(ax, x + 0.028, 0.358, "report “no eligible point” if needed", 5.6, ha="left")
+tx(ax, x + 0.028, 0.309, "Goal", 5.8, "bold", C["violet"], ha="left")
+tx(ax, x + 0.028, 0.278, "reduce harmful gap without", 5.7, ha="left")
+tx(ax, x + 0.028, 0.250, "erasing useful personalization", 5.7, ha="left")
 
-ax.plot([0.025, 0.975], [0.120, 0.120], c=C["line"], lw=0.8)
-tx(ax, 0.025, 0.075, "Shared contract: user is the unit • frozen prompt/candidate task • repeated generations • invalid-output accounting • Holm within pre-registered families.", 7.0, "bold", ha="left")
+ax.plot([0.025, 0.975], [0.115, 0.115], c=C["line"], lw=0.8)
+tx(
+    ax,
+    0.025,
+    0.073,
+    "Shared contract  •  frozen prompt + candidates  •  repeated generations  •  invalid-output accounting  •  paired user-level inference  •  Holm correction",
+    6.8,
+    "bold",
+    ha="left",
+)
 save(fig, "faireval_conditions")
 
 # ---------------------------------------------------------------------------
-# Fig. 3 — provenance / analysis pipeline.
+# Fig. 3 — provenance / analysis pipeline. Main path + two explicitly separated
+# side branches, with larger typography for LNCS print readability.
 # ---------------------------------------------------------------------------
-fig, ax = setup((12.8, 4.65))
-tx(ax, 0.02, 0.940, "From frozen benchmark cell to auditable paper claim", 11.4, "bold", ha="left")
-tx(ax, 0.02, 0.900, "All paper numbers flow through hashed artifacts; result figures remain data-generated, while the conceptual figures have editable SVG sources.", 7.7, c=C["muted"], ha="left")
-steps = [
-    (0.025, 0.135, "Frozen\ninstance", "release • split • candidates", C["blue2"], C["blue"]),
-    (0.190, 0.145, "Immutable\nrun cell", "prompt • model • seed • K", C["panel"], C["slate"]),
-    (0.360, 0.145, "Validated\nranking", "exact K • IDs • repair audit", C["green2"], C["green"]),
-    (0.535, 0.145, "User-level\nestimand", "CUG • PVA • IOD • RBO", C["gold2"], C["gold"]),
-    (0.710, 0.145, "Inference\nartifact", "CI • permutation • Holm", C["violet2"], C["violet"]),
-    (0.885, 0.095, "Paper\nclaim", "generated table / figure", C["white"], C["ink"]),
+fig, ax = setup((12.8, 4.95))
+tx(ax, 0.02, 0.952, "From frozen benchmark cell to auditable paper claim", 11.5, "bold", ha="left")
+tx(
+    ax,
+    0.02,
+    0.912,
+    "Every empirical paper cell follows one hashed path; white-box internals and mitigation selection remain explicit side branches.",
+    7.8,
+    c=C["muted"],
+    ha="left",
+)
+
+# Main six-stage path
+main_y = 0.535
+box_h = 0.205
+box_w = 0.135
+xs = [0.020, 0.180, 0.340, 0.500, 0.660, 0.820]
+main_steps = [
+    ("1", "Frozen\nbenchmark", "release • split\ncandidates", C["blue2"], C["blue"]),
+    ("2", "Immutable\nexecution", "prompt • model\nseed • K", C["panel"], C["slate"]),
+    ("3", "Strict\nvalidation", "JSON • exact K\ncandidate IDs", C["green2"], C["green"]),
+    ("4", "User-level\nestimand", "CUG • PVA\nIOD • RBO", C["gold2"], C["gold"]),
+    ("5", "Inference\nartifact", "bootstrap CI\npermutation • Holm", C["violet2"], C["violet"]),
+    ("6", "Paper-facing\nclaim", "generated table\nor figure", C["white"], C["ink"]),
 ]
-for x, w, head, sub, fc, ec in steps:
-    rr(ax, x, 0.470, w, 0.190, fc, ec, lw=0.95, r=0.014)
-    tx(ax, x + w / 2, 0.590, head, 7.9, "bold")
-    tx(ax, x + w / 2, 0.532, sub, 5.8, c=C["muted"])
-for a, b in [(0.160, 0.190), (0.335, 0.360), (0.505, 0.535), (0.680, 0.710), (0.855, 0.885)]:
-    ar(ax, a, 0.565, b, 0.565, C["muted"], 1.05)
-rr(ax, 0.195, 0.165, 0.300, 0.155, C["cyan2"], C["cyan"], r=0.012)
-model(ax, 0.225, 0.250, 0.016, C["cyan"])
-tx(ax, 0.253, 0.309, "Local white-box side channel", 6.9, "bold", C["cyan"], ha="left")
-tx(ax, 0.253, 0.274, "token log-p • NLL • perplexity • margin", 5.9, ha="left")
-tx(ax, 0.253, 0.247, "auxiliary and explicitly uncalibrated", 5.8, c=C["muted"], ha="left")
-tx(ax, 0.253, 0.216, "never pooled with unavailable hosted internals", 5.8, c=C["muted"], ha="left")
-ar(ax, 0.435, 0.468, 0.350, 0.324, C["cyan"], 0.9)
-rr(ax, 0.555, 0.165, 0.390, 0.155, C["red2"], C["red"], r=0.012)
-shield(ax, 0.585, 0.250, 0.016, C["red"])
-tx(ax, 0.618, 0.309, "RQ4 validation-frozen mitigation branch", 6.9, "bold", C["red"], ha="left")
-tx(ax, 0.618, 0.274, "PAIRₐ(i) = α b(i) + (1−α) rₐ(i) − λ Varₐ′ rₐ′(i)", 5.9, ha="left")
-tx(ax, 0.618, 0.247, "(α, λ) selected on validation only, then frozen for test", 5.8, c=C["muted"], ha="left")
-tx(ax, 0.618, 0.216, "test outcomes never choose the operating point", 5.8, c=C["muted"], ha="left")
-ar(ax, 0.610, 0.468, 0.690, 0.324, C["red"], 0.9)
+for x, (num, head, sub, fc, ec) in zip(xs, main_steps):
+    rr(ax, x, main_y, box_w, box_h, fc, ec, lw=0.95, r=0.014)
+    ax.add_patch(Circle((x + 0.020, main_y + box_h - 0.028), 0.014, fc=ec, ec="none", zorder=4))
+    tx(ax, x + 0.020, main_y + box_h - 0.028, num, 5.8, "bold", C["white"])
+    tx(ax, x + box_w / 2, main_y + 0.124, head, 7.6, "bold")
+    tx(ax, x + box_w / 2, main_y + 0.055, sub, 5.9, c=C["muted"])
+for a, b in zip(xs[:-1], xs[1:]):
+    ar(ax, a + box_w + 0.004, main_y + box_h / 2, b - 0.006, main_y + box_h / 2, C["muted"], 1.0, 8)
+
+# Small audit bar under main path
+rr(ax, 0.020, 0.450, 0.935, 0.052, C["panel"], C["line2"], r=0.009)
+tx(
+    ax,
+    0.034,
+    0.476,
+    "Audit trail: release / split / candidate hashes  →  model + prompt + seed provenance  →  validator log  →  analysis artifact  →  generated manuscript asset",
+    5.85,
+    "bold",
+    C["slate"],
+    ha="left",
+)
+
+# White-box branch
+rr(ax, 0.150, 0.165, 0.335, 0.205, C["cyan2"], C["cyan"], lw=0.9, r=0.012)
+model(ax, 0.180, 0.288, 0.018, C["cyan"])
+tx(ax, 0.210, 0.332, "Local white-box diagnostics", 7.0, "bold", C["cyan"], ha="left")
+tx(ax, 0.210, 0.295, "token log-p  •  NLL  •  perplexity  •  score margin", 5.9, ha="left")
+tx(ax, 0.210, 0.260, "descriptive + explicitly uncalibrated", 5.7, c=C["muted"], ha="left")
+tx(ax, 0.210, 0.226, "reported as a separate stratum; never imputed for hosted APIs", 5.55, c=C["muted"], ha="left")
+ar(ax, 0.407, main_y - 0.004, 0.320, 0.375, C["cyan"], 0.9, 8)
+tx(ax, 0.165, 0.190, "branch from validated local generations", 5.35, c=C["cyan"], ha="left")
+
+# Mitigation branch
+rr(ax, 0.535, 0.165, 0.420, 0.205, C["red2"], C["red"], lw=0.9, r=0.012)
+shield(ax, 0.565, 0.288, 0.018, C["red"])
+tx(ax, 0.595, 0.332, "RQ4 validation-frozen mitigation", 7.0, "bold", C["red"], ha="left")
+tx(ax, 0.595, 0.295, "audit  →  identity-irrelevance prompt  →  contextual PAIR", 5.9, ha="left")
+tx(ax, 0.595, 0.260, "(α, λ) chosen on validation only, then frozen before test", 5.7, c=C["muted"], ha="left")
+tx(ax, 0.595, 0.226, "test outcomes never choose or relax the operating point", 5.55, c=C["muted"], ha="left")
+ar(ax, 0.570, main_y - 0.004, 0.690, 0.375, C["red"], 0.9, 8)
+tx(ax, 0.550, 0.190, "branch from registered user-level consequences", 5.35, c=C["red"], ha="left")
+
+ax.plot([0.02, 0.955], [0.112, 0.112], c=C["line"], lw=0.8)
+tx(
+    ax,
+    0.02,
+    0.070,
+    "No manual result entry: empirical tables and result figures are regenerated only from audited analysis artifacts.",
+    6.8,
+    "bold",
+    ha="left",
+)
 save(fig, "faireval_evaluation_pipeline")
 
 print(OUT)
