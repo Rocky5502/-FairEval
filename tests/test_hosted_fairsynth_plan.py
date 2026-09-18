@@ -51,3 +51,27 @@ def test_hosted_fairsynth_plan_is_balanced_and_six_family(tmp_path: Path) -> Non
         "qwen3.8-max",
         "llama-4-maverick",
     }
+
+
+def test_default_hosted_fairsynth_geometry_is_1080(tmp_path: Path) -> None:
+    freeze_root = tmp_path / "frozen"
+    freeze_dataset(
+        FairSynth360Adapter(),
+        tmp_path / "unused",
+        freeze_root / "fairsynth360",
+        users=30,
+        candidate_set_size=30,
+        max_history_items=8,
+        seed=1729,
+    )
+
+    cells, manifest = compile_hosted_fairsynth_plan(
+        freeze_root=freeze_root,
+        models_yaml=ROOT / "configs" / "models.yaml",
+    )
+
+    assert len(cells) == 1080
+    assert manifest["planned_api_cells"] == 1080
+    assert manifest["instances_selected"] == 30
+    assert manifest["repetitions"] == 1
+    assert manifest["identity_group_counts"] == {"A": 10, "B": 10, "C": 10}
