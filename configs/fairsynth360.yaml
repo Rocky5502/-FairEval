@@ -37,11 +37,13 @@ execution:
     models: [qwen25_local, phi35_local]
     repetitions: 3
   all_eight_model_cross_family_subset:
-    users: 120
+    users: 30
     selection: deterministic_balanced_hash_subset
     hosted_models: [openai, anthropic, google, deepseek, qwen, meta]
     local_models: [qwen25_local, phi35_local]
     repetitions: 1
+    hosted_planned_calls: 1080
+    rationale: budgeted_auxiliary_cross_family_sanity_not_primary_real_world_inference
 
 conditions:
   - C0_preference_only
