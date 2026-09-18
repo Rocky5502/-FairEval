@@ -32,7 +32,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--plan-dir",
-        default="results/plans/hosted-fairsynth-budget-v1",
+        default="results/plans/hosted-fairsynth-lean-v1",
     )
     parser.add_argument(
         "--freeze-root",
@@ -40,15 +40,15 @@ def main() -> int:
     )
     parser.add_argument(
         "--output-jsonl",
-        default="results/runs/hosted-fairsynth-budget-v1.jsonl",
+        default="results/runs/hosted-fairsynth-lean-v1.jsonl",
     )
     parser.add_argument(
         "--budget-ledger",
-        default="results/budget/hosted_zzz_v1.json",
+        default="results/budget/hosted_zzz_lean_v1.json",
     )
     parser.add_argument(
         "--analysis-dir",
-        default="results/analysis/fairsynth360-hosted-v1",
+        default="results/analysis/fairsynth360-hosted-lean-v1",
     )
     parser.add_argument(
         "--paper-table",
@@ -64,7 +64,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--sync-manifest",
-        default="results/paper_sync/hosted_fairsynth_v1.json",
+        default="results/paper_sync/hosted_fairsynth_lean_v1.json",
     )
     args = parser.parse_args()
 
