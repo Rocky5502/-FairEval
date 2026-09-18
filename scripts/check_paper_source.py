@@ -196,7 +196,17 @@ def main() -> int:
     print("paper preflight: six hosted gateway IDs + lean 1,080-call hosted FairSynth + full-scale local white-box stratum synchronized")
     print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
     print("paper preflight: no atomic provider-side spend-cap claim")
-    for token in ("Hosted gateway operational pilot (not inferential evidence)", "99 of 1,080 planned cells", "64.9362 RMB", "generated/hosted_pilot_operational_table.tex", "figures/hosted_pilot_cost_profile.pdf"):\n        if token not in main_text:\n            raise SystemExit(f"hosted pilot operational reporting missing: {token}")\n\n    print("paper preflight: generated hosted/local result tables are artifact-only")
+    for token in (
+        "Hosted gateway operational pilot (not inferential evidence)",
+        "99 of 1,080 planned cells",
+        "64.9362 RMB",
+        "generated/hosted_pilot_operational_table.tex",
+        "figures/hosted_pilot_cost_profile.pdf",
+    ):
+        if token not in main_text:
+            raise SystemExit(f"hosted pilot operational reporting missing: {token}")
+
+    print("paper preflight: generated hosted/local result tables are artifact-only")
     print("paper preflight: hosted pilot operational reporting is outcome-blind and explicitly non-inferential")
     print("paper preflight: RQ4 validation/no-test-selection rule synchronized")
     print("paper preflight: double-blind and invalid-output guards present")
