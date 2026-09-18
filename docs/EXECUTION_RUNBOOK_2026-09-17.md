@@ -29,6 +29,16 @@ git status --short
 
 `git status --short` should be empty before the seal and before the first real execution. If it is not empty, preserve/review the local changes rather than resetting blindly.
 
+Install the canonical Windows/CPU/hosted environment through the repository-level requirements entry point:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+`requirements.txt` is part of the sealed scientific specification. The separate `requirements-local-gpu.txt` includes this base environment and adds the white-box Transformers stack; CUDA-matched PyTorch remains machine-specific and must be installed for the selected GPU image.
+
 ## 2. Build the zero-call scientific seal
 
 This is mandatory before either evidence lane:
@@ -140,7 +150,7 @@ When hosted execution is complete/stopped by policy, update the paper only throu
 python scripts\finalize_hosted_fairsynth.py
 ```
 
-That path audits the run and renders artifact-derived FairSynth content. If coverage is insufficient for a particular contrast, report that coverage limitation rather than fabricating a complete panel.
+That path audits the run, runs the frozen FairSynth analysis, renders the artifact-derived LaTeX results table, renders `paper/figures/fairsynth_hosted_effects.pdf` directly from the same inference artifact, and rebuilds the anonymous Overleaf ZIP. No result number or plotted coordinate is copied into the paper by hand. If coverage is insufficient for a particular contrast, report that coverage limitation rather than fabricating a complete panel.
 
 ## 5. AI Galaxy large-GPU white-box environment
 
