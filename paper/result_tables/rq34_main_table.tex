@@ -7,7 +7,7 @@
 \setlength{\tabcolsep}{3.0pt}
 \renewcommand{\arraystretch}{1.08}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llcccc}
+\begin{tabular}{@{}llcccc@{}}
 \toprule
 Block & Comparison & $N$ strata/users & Utility/stability & Gap consequence & Decision \\
 \midrule
@@ -22,4 +22,6 @@ RQ4 & Identity-irrelevance prompting & \tbd & \tbd & \tbd & pre-registered basel
 RQ4 & Contextual PAIR, one global validation-frozen point & \tbd & \tbd & \tbd & $\geq95\%$ validation utility floor \\
 \bottomrule
 \end{tabular}}
+\vspace{0.4mm}
+\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} RQ3 reports all registered factor levels; RQ4 reports only validation-frozen interventions. Test outcomes never choose the mitigation operating point.}
 \end{table}
