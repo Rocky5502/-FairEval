@@ -48,6 +48,6 @@ def test_hosted_fairsynth_plan_is_balanced_and_six_family(tmp_path: Path) -> Non
         "claude-sonnet-5",
         "gemini-3.8-flash",
         "deepseek-v4.1-flash",
-        "qwen3.8-2.4t-a95b",
+        "qwen3.8-max",
         "llama-4-maverick",
     }
