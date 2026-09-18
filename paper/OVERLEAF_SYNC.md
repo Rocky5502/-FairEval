@@ -138,7 +138,7 @@ RQ4 identity-irrelevance prompting runs through its own derived immutable plan (
 
 ## Figures
 
-Methodology PDFs are generated from `scripts/build_paper_figures.py`. Result PDFs are generated only from frozen analysis artifacts by `scripts/build_result_figures.py`; until then `main.tex` renders explicit placeholders.
+Conceptual/non-result figures are generated from `scripts/build_paper_figures.py` as matched publication PDFs and editable SVG companions. The current conceptual set is `faireval_framework`, `faireval_conditions`, and `faireval_evaluation_pipeline`; the SVGs preserve text as text and are bundled with the PDFs for Overleaf handoff. Figure 1 is the motivating matched-context example, Figure 2 summarizes the registered RQ geometry, and Figure 3 documents the artifact-to-claim audit path. Result PDFs are generated only from frozen analysis artifacts by `scripts/build_result_figures.py`; until then `main.tex` renders explicit placeholders. Styling changes to empirical result figures must be made in the renderer and regenerated from the same audited artifact rather than by editing plotted values or geometry manually.
 
 ## Double blind and integrity
 
