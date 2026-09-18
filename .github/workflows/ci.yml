@@ -84,10 +84,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
             paper/figures/faireval_framework.pdf \
-            paper/figures/faireval_framework.svg \
             paper/figures/faireval_conditions.pdf \
+            paper/figures/faireval_evaluation_pipeline.pdf
+          git add -f \
+            paper/figures/faireval_framework.svg \
             paper/figures/faireval_conditions.svg \
-            paper/figures/faireval_evaluation_pipeline.pdf \
             paper/figures/faireval_evaluation_pipeline.svg
           if git diff --cached --quiet; then
             echo "Conceptual figure assets already synchronized."
