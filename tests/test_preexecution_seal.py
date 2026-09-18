@@ -21,6 +21,7 @@ def test_preexecution_spec_hash_set_covers_scientific_sources() -> None:
         "scripts/run_whitebox_family.py",
         "paper/main.tex",
         "pyproject.toml",
+        "requirements.txt",
     }
     assert required.issubset(hashes)
     assert not any(path.startswith("paper/generated/") for path in hashes)
