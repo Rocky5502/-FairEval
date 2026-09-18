@@ -145,6 +145,7 @@ def main() -> int:
         "generation-score diagnostics",
         "application unverified",
         "12,960",
+        "1,080",
         "200 RMB",
         "250 RMB client-side emergency stop threshold",
         "not an atomic provider-side spend cap",
@@ -192,7 +193,7 @@ def main() -> int:
         f"{len(bib_targets)} bibliography files"
     )
     print("paper preflight: LaTeX inputs and required vector/table assets present")
-    print("paper preflight: six hosted gateway IDs + full-scale local white-box stratum synchronized")
+    print("paper preflight: six hosted gateway IDs + lean 1,080-call hosted FairSynth + full-scale local white-box stratum synchronized")
     print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
     print("paper preflight: no atomic provider-side spend-cap claim")
     print("paper preflight: generated hosted/local result tables are artifact-only")
