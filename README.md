@@ -86,7 +86,7 @@ Current hosted panel:
 - Anthropic: `claude-sonnet-5`
 - Google: `gemini-3.8-flash`
 - DeepSeek: `deepseek-v4.1-flash`
-- Alibaba Qwen: `qwen3.8-2.4t-a95b`
+- Alibaba Qwen: `qwen3.8-max`
 - Meta: `llama-4-maverick`
 
 Hosted environment:
@@ -97,7 +97,7 @@ ZZZ_BASE_URL=https://api.zhizengzeng.com/v1
 ZZZ_API_KEY=<secret>
 ```
 
-The runner performs a live `GET /v1/models` exact-ID gate before paid generation. If an exact frozen ID is absent, execution is blocked before generation; a nearby model is never substituted silently.
+The runner performs a live `GET /v1/models` exact-ID gate before paid generation. The 2026-09-18 experiment-key preflight rejected the earlier Qwen pre-run ID before any paid call; the manifest was then versioned to the actually exposed `qwen3.8-max`. Future mismatches are handled the same way: block first, version explicitly, never substitute silently.
 
 The hosted budget policy is a **200 RMB normal stop target**, **250 RMB client-side emergency stop threshold**, and **2 RMB pre-cell reserve**. FairEval does **not** claim the 250 RMB threshold is an atomic provider-side spending cap. The client normally stops around 200 RMB, leaving roughly 50 RMB of operational headroom, and reconciles experiment spend from account-balance movement before and after every persisted cell.
 
