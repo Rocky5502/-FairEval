@@ -177,7 +177,7 @@ Every response is parsed against the same schema and checked for exact $K$, uniq
 \end{figure}
 
 \section{Mitigation: Preference-Aligned Identity Re-ranking}
-RQ4 compares (i) the unmitigated audit prompt, (ii) an identity-irrelevance/counterfactually fair prompting baseline motivated by prior work \cite{hua2024up5}, and (iii) a lightweight re-ranker, \textbf{PAIR} (Preference-Aligned Identity Re-ranking).
+RQ4 compares three interventions: (i) the unmitigated audit prompt; (ii) identity-irrelevance prompting, motivated by prior counterfactually fair prompting work \cite{hua2024up5}; and (iii) a lightweight re-ranker, \textbf{PAIR} (Preference-Aligned Identity Re-ranking).
 
 For item $i$, let $b(i)$ be normalized rank support under preference-only evidence, let $r_a(i)$ be support under the focal demographic context $a$, and let $A$ denote the pre-registered identity contexts. Contextual PAIR is
 \begin{align}
