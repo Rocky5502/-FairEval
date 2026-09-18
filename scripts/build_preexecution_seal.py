@@ -24,6 +24,7 @@ SPEC_PREFIXES = (
 )
 SPEC_EXACT = {
     "pyproject.toml",
+    "requirements.txt",
     "requirements-local-gpu.txt",
     "README.md",
     ".github/workflows/ci.yml",
