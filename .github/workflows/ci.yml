@@ -86,10 +86,6 @@ jobs:
             paper/figures/faireval_framework.pdf \
             paper/figures/faireval_conditions.pdf \
             paper/figures/faireval_evaluation_pipeline.pdf
-          git add -f \
-            paper/figures/faireval_framework.svg \
-            paper/figures/faireval_conditions.svg \
-            paper/figures/faireval_evaluation_pipeline.svg
           if git diff --cached --quiet; then
             echo "Conceptual figure assets already synchronized."
             exit 0
