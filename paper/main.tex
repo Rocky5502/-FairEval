@@ -204,6 +204,8 @@ Paper-facing numerical content is generated directly from audited frozen analysi
 \subsection{Controlled Synthetic and Full-Scale Local White-Box Analyses}
 FairSynth-360 reports spurious identity-conditioned gaps under known identity-irrelevant ground truth and a separate true-versus-shuffled synthetic-personality sanity contrast. These results are not pooled with RQ1/RQ2. The six hosted families provide a budget-bounded black-box sanity layer, while the two frozen local models execute the complete 12,960-generation FairSynth matrix and, after exact real-world freezes exist, replicate the executable RQ1--RQ4 protocol. Local internal generation-score associations are reported separately and remain exploratory and uncalibrated.
 
+\resultfigure{figures/fairsynth_hosted_effects.pdf}{0.95}{Hosted FairSynth-360 controlled sanity effects by model family. The meaningless identity A/B/C intervention and the true-versus-shuffled synthetic OCEAN contrast are shown with paired nDCG@10 effects and uncertainty intervals. These synthetic controls are reported separately from real-world fairness and measured-human-personality evidence.}
+
 \subsection{RQ4: Can We Mitigate Harm Without Erasing Personalization?}
 \resultfigure{figures/rq4_pareto.pdf}{0.94}{RQ4 planned utility--fairness Pareto frontier comparing the unmitigated audit, identity-irrelevance prompting baseline, and contextual PAIR.}
 
