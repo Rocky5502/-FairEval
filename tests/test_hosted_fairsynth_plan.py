@@ -59,7 +59,7 @@ def test_default_hosted_fairsynth_geometry_is_1080(tmp_path: Path) -> None:
         FairSynth360Adapter(),
         tmp_path / "unused",
         freeze_root / "fairsynth360",
-        users=30,
+        users=360,
         candidate_set_size=30,
         max_history_items=8,
         seed=1729,
