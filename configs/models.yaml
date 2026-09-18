@@ -25,7 +25,7 @@ models:
     reasoning_or_thinking_setting: gateway_native_control_unverified
     sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_completion_tokens
-    verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
     notes: >-
       Gateway catalog lists GPT-5.6 Terra. FairEval uses the gateway's
       OpenAI-compatible endpoint. The resolved model string returned by the
@@ -41,7 +41,7 @@ models:
     reasoning_or_thinking_setting: gateway_native_control_unverified
     sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
-    verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
     notes: >-
       Gateway catalog lists Claude Sonnet 5. This execution uses the common
       OpenAI-compatible gateway path rather than Anthropic's native API, so
@@ -57,7 +57,7 @@ models:
     sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_output_tokens
     gateway_wire_output_token_parameter: max_tokens
-    verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
     notes: >-
       Gateway catalog lists Gemini 3.8 Flash. FairEval retains the provider-native
       max_output_tokens field as the frozen study contract, while the unified
@@ -74,26 +74,27 @@ models:
     reasoning_or_thinking_setting: gateway_native_control_unverified
     sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
-    verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
     notes: >-
       Gateway catalog explicitly lists DeepSeek V4.1 Flash. Use the explicit
       v4.1 identifier rather than the moving deepseek-flash alias. Native
       thinking-control application through the gateway is not assumed.
 
   - family: qwen
-    name: qwen3.8-2.4t-a95b
-    model_id: qwen3.8-2.4t-a95b
+    name: qwen3.8-max
+    model_id: qwen3.8-max
     api_key_env: ZZZ_API_KEY
     enabled: true
     provider: zhizengzeng
     reasoning_or_thinking_setting: gateway_native_control_unverified
     sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
-    verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
     notes: >-
-      The previous pre-run label qwen3.8-max-0902 was not retained. The current
-      gateway catalog lists qwen3.8-2.4t-a95b; that exact gateway ID is frozen,
-      subject to live /v1/models confirmation on the experiment key.
+      The earlier pre-run ID qwen3.8-2.4t-a95b was rejected by the mandatory
+      live /v1/models preflight on the experiment key on 2026-09-18. The same
+      live account exposed qwen3.8-max, a general-purpose Qwen 3.8 endpoint;
+      FairEval versions the manifest to that exact ID before any paid generation.
 
   - family: meta
     name: llama-4-maverick
@@ -104,7 +105,7 @@ models:
     reasoning_or_thinking_setting: gateway_native_control_unverified
     sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
     output_token_parameter: max_tokens
-    verification: zhizengzeng_public_catalog_2026-09-17_plus_live_models_preflight_required
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
     notes: >-
       Gateway catalog lists llama-4-maverick directly. The previously unresolved
       Llama hosting-provider blocker is replaced by explicit gateway provenance,
