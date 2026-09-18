@@ -24,6 +24,25 @@ policy:
     truncates deterministic plan coverage; it never selects cells based on
     interim empirical results.
 
+lean_fairsynth_campaign:
+  version: hosted-fairsynth-lean-v1
+  planned_calls: 1080
+  users: 30
+  identity_groups: {A: 10, B: 10, C: 10}
+  conditions_per_user: 6
+  hosted_families: 6
+  repetitions: 1
+  runtime_target_rmb: 65.0
+  runtime_emergency_threshold_rmb: 75.0
+  decision_basis: six_family_operational_canary_cost_and_scope_only
+  empirical_outcomes_used_for_redesign: false
+  notes: >-
+    The 65/75 RMB runtime thresholds are stricter than the project-wide
+    200/250 RMB safety ceilings. The lean hosted FairSynth redesign was made
+    after six one-cell operational canaries and before analysis of recommendation
+    outcomes; the canaries are treated as pilot/provenance rows, not part of the
+    lean confirmatory run.
+
 # Conservative public price references captured 2026-09-17. These values are
 # used for planning/audit only; the source of record for experiment spend is
 # observed gateway balance movement. Foreign-provider RMB conversions use
