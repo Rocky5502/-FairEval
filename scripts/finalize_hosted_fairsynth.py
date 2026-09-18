@@ -66,6 +66,11 @@ def main() -> int:
         "--sync-manifest",
         default="results/paper_sync/hosted_fairsynth_lean_v1.json",
     )
+    parser.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help="Explicitly allow a budget-truncated hosted artifact. Default refuses partial coverage.",
+    )
     args = parser.parse_args()
 
     plan_dir = Path(args.plan_dir)
@@ -86,6 +91,14 @@ def main() -> int:
     completed = completed_cell_ids(run_path)
     if not completed:
         raise ValueError("hosted run log contains no persisted planned cells")
+
+    if len(completed) != len(cells) and not args.allow_partial:
+        raise RuntimeError(
+            "hosted FairSynth finalization refused partial coverage: "
+            f"completed={len(completed)} planned={len(cells)}. "
+            "Run scripts/audit_hosted_progress.py first. "
+            "Use --allow-partial only for an explicitly labeled budget-truncated artifact."
+        )
 
     _run(
         "scripts/audit_run_log.py",
