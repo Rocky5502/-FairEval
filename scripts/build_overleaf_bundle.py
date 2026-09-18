@@ -49,6 +49,7 @@ OPTIONAL_RESULT_FILES = (
     "generated/rq34_results_table.tex",
     "generated/fairsynth_hosted_table.tex",
     "generated/whitebox_summary_table.tex",
+    "generated/hosted_pilot_operational_table.tex",
     # Artifact-generated result figures. These intentionally remain analysis-
     # generated outputs rather than manually editable artwork.
     "figures/rq1_quadrant.pdf",
@@ -56,6 +57,7 @@ OPTIONAL_RESULT_FILES = (
     "figures/rq3_variance.pdf",
     "figures/rq4_pareto.pdf",
     "figures/fairsynth_hosted_effects.pdf",
+    "figures/hosted_pilot_cost_profile.pdf",
 )
 
 
