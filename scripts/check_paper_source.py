@@ -85,6 +85,7 @@ def main() -> int:
         "DeepSeek V4 Flash, Qwen 3.8 Max",
         "DeepSeek V4 Flash,",
         "qwen3.8-max-0902",
+        "qwen3.8-2.4t-a95b",
         "deepseek-flash",
         "Pending exact host/revision",
         "spans six recommendation datasets and six LLM families",
