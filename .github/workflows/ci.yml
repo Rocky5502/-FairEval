@@ -47,20 +47,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in \
-            paper/figures/faireval_framework.pdf \
-            paper/figures/faireval_conditions.pdf \
-            paper/figures/faireval_evaluation_pipeline.pdf; do
-            test -s "$f"
-            python - "$f" <<'PY'
+          for stem in \
+            faireval_framework \
+            faireval_conditions \
+            faireval_evaluation_pipeline; do
+            pdf="paper/figures/\${stem}.pdf"
+            svg="paper/figures/\${stem}.svg"
+            test -s "$pdf"
+            test -s "$svg"
+            python - "$pdf" "$svg" <<'PY'
           import pathlib, sys
-          path = pathlib.Path(sys.argv[1])
-          data = path.read_bytes()
-          if not data.startswith(b"%PDF-"):
-              raise SystemExit(f"not a PDF: {path}")
-          if len(data) < 5000:
-              raise SystemExit(f"suspiciously small figure: {path} ({len(data)} bytes)")
-          print(f"verified {path}: {len(data)} bytes")
+          pdf = pathlib.Path(sys.argv[1])
+          svg = pathlib.Path(sys.argv[2])
+          pdata = pdf.read_bytes()
+          sdata = svg.read_text(encoding="utf-8")
+          if not pdata.startswith(b"%PDF-"):
+              raise SystemExit(f"not a PDF: {pdf}")
+          if len(pdata) < 5000:
+              raise SystemExit(f"suspiciously small figure: {pdf} ({len(pdata)} bytes)")
+          if "<svg" not in sdata or "</svg>" not in sdata:
+              raise SystemExit(f"not an editable SVG: {svg}")
+          if "<text" not in sdata:
+              raise SystemExit(f"SVG text was converted to paths: {svg}")
+          print(f"verified PDF+editable SVG: {pdf.name}, {svg.name}")
           PY
           done
       - name: Manuscript source preflight
