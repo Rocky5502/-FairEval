@@ -202,10 +202,10 @@ tx(ax, 0.088, 0.718, "candidate-constrained\ntop-K ranking", 6.3, c=C["muted"], 
 history_icon(ax, 0.058, 0.655, 0.021, C["slate"])
 tx(ax, 0.088, 0.665, "preference history", 7.4, "bold", ha="left")
 tx(ax, 0.088, 0.637, "same Hᵤ + same candidates Cᵤ", 6.5, c=C["muted"], ha="left")
-rr(ax, 0.040, 0.500, 0.150, 0.096, C["white"], r=0.010)
+rr(ax, 0.040, 0.490, 0.150, 0.106, C["white"], r=0.010)
 tx(ax, 0.052, 0.570, "Held-out relevance", 7.0, "bold", ha="left")
-for i, t in enumerate(["A12  ★", "B04  ★", "C19", "D07  ★"]):
-    tx(ax, 0.055, 0.545 - i * 0.020, t, 6.2, ha="left")
+for i, t in enumerate(["A12  ★", "B04  ★", "D07  ★"]):
+    tx(ax, 0.055, 0.542 - i * 0.022, t, 6.2, ha="left")
 rr(ax, 0.040, 0.300, 0.150, 0.145, C["white"], r=0.010)
 tx(ax, 0.052, 0.418, "Frozen controls", 7.0, "bold", ha="left")
 for i, t in enumerate(["task wording", "candidate order", "sampling policy", "model / revision"]):
@@ -230,9 +230,9 @@ for y, ctag, title, prompt, color, bg in [
     ar(ax, lane_x + 0.145, y + 0.075, lane_x + 0.150, y + 0.075, color, 0.9, 8)
     ar(ax, lane_x + 0.194, y + 0.075, lane_x + 0.210, y + 0.075, color, 0.9, 8)
 
-ranking(ax, 0.460, 0.656, 0.122, 0.124, ["A12 ★", "D07 ★", "B04 ★", "C19", "F03"], title="Ranking R(C1)")
-ranking(ax, 0.460, 0.431, 0.122, 0.124, ["F03", "C19", "D07 ★", "A12 ★", "B04 ★"], title="Ranking R(C2)")
-ranking(ax, 0.460, 0.206, 0.122, 0.124, ["A12 ★", "B04 ★", "D07 ★", "F03", "C19"], title="R(C3) / R(C4)")
+ranking(ax, 0.460, 0.656, 0.122, 0.124, ["A12 ★", "D07 ★", "B04 ★"], title="R(C1) · top-3")
+ranking(ax, 0.460, 0.431, 0.122, 0.124, ["F03", "C19", "D07 ★"], title="R(C2) · top-3")
+ranking(ax, 0.460, 0.206, 0.122, 0.124, ["A12 ★", "B04 ★", "D07 ★"], title="R(C3/C4) · top-3")
 
 # Consequence interpretation
 rr(ax, 0.635, 0.17, 0.345, 0.69, C["panel"])
