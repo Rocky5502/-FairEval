@@ -1,0 +1,45 @@
+version: whitebox-v1
+
+models:
+
+  qwen25_7b:
+    hf_id: Qwen/Qwen2.5-7B-Instruct
+    family: qwen
+    quantization: 4bit
+
+  mistral7b:
+    hf_id: mistralai/Mistral-7B-Instruct-v0.3
+    family: mistral
+    quantization: 4bit
+
+  phi35:
+    hf_id: microsoft/Phi-3.5-mini-instruct
+    family: phi
+    quantization: 4bit
+
+generation:
+
+  max_new_tokens: 512
+
+  temperatures:
+    - 0.2
+    - 0.7
+    - 1.0
+
+  seeds:
+    - 1
+    - 2
+    - 3
+
+
+benchmark:
+
+  users: 360
+
+  conditions:
+    - neutral
+    - identity_positive
+    - identity_negative
+    - identity_counterfactual
+    - personality_true
+    - personality_shuffle
