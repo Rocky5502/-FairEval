@@ -51,8 +51,8 @@ jobs:
             faireval_framework \
             faireval_conditions \
             faireval_evaluation_pipeline; do
-            pdf="paper/figures/\${stem}.pdf"
-            svg="paper/figures/\${stem}.svg"
+            pdf="paper/figures/${stem}.pdf"
+            svg="paper/figures/${stem}.svg"
             test -s "$pdf"
             test -s "$svg"
             python - "$pdf" "$svg" <<'PY'
