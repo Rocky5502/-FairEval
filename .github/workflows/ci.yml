@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -72,6 +75,26 @@ jobs:
           print(f"verified PDF+editable SVG: {pdf.name}, {svg.name}")
           PY
           done
+      - name: One-shot sync generated conceptual figures
+        if: github.event_name == 'push' && github.ref == 'refs/heads/ecir-2027-redesign' && github.actor != 'github-actions[bot]'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            paper/figures/faireval_framework.pdf \
+            paper/figures/faireval_framework.svg \
+            paper/figures/faireval_conditions.pdf \
+            paper/figures/faireval_conditions.svg \
+            paper/figures/faireval_evaluation_pipeline.pdf \
+            paper/figures/faireval_evaluation_pipeline.svg
+          if git diff --cached --quiet; then
+            echo "Conceptual figure assets already synchronized."
+            exit 0
+          fi
+          git commit -m "Sync generated conceptual figure assets"
+          git push origin HEAD:ecir-2027-redesign
       - name: Manuscript source preflight
         run: python scripts/check_paper_source.py
       - name: Result-table contract preflight
