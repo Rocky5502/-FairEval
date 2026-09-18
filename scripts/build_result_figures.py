@@ -20,6 +20,33 @@ FAMILY_LABELS = {
 }
 FACTOR_ORDER = ("prompt", "cue", "candidate_order", "cutoff", "stochasticity")
 
+RESULT_C = {
+    "ink": "#182235",
+    "muted": "#66758C",
+    "line": "#D7DFE8",
+    "slate": "#475569",
+    "blue": "#1D4ED8",
+    "green": "#15803D",
+    "red": "#C02518",
+    "gold": "#AD6800",
+    "violet": "#6D28D9",
+    "cyan": "#087A97",
+}
+FAMILY_COLORS = dict(
+    zip(
+        FAMILY_ORDER,
+        (
+            RESULT_C["blue"],
+            RESULT_C["violet"],
+            RESULT_C["green"],
+            RESULT_C["red"],
+            RESULT_C["gold"],
+            RESULT_C["cyan"],
+        ),
+        strict=True,
+    )
+)
+
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -53,6 +80,14 @@ def _configure_pdf_fonts() -> None:
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "axes.linewidth": 0.8,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.edgecolor": RESULT_C["slate"],
+            "axes.labelcolor": RESULT_C["ink"],
+            "text.color": RESULT_C["ink"],
+            "xtick.color": RESULT_C["slate"],
+            "ytick.color": RESULT_C["slate"],
+            "grid.color": RESULT_C["line"],
         }
     )
 
@@ -78,9 +113,9 @@ def build_rq1_quadrant(rq1_pairs: Path, output: Path) -> None:
             continue
         x = [float(row["mean_one_minus_rbo"]) for row in family_rows]
         y = [float(row["delta_ndcg"]) for row in family_rows]
-        ax.scatter(x, y, marker=marker, alpha=0.55, s=24, label=FAMILY_LABELS[family])
+        ax.scatter(\n            x,\n            y,\n            marker=marker,\n            color=FAMILY_COLORS[family],\n            alpha=0.72,\n            s=28,\n            linewidths=0.45,\n            label=FAMILY_LABELS[family],\n        )
 
-    ax.axhline(0.0, linewidth=0.9, linestyle="--")
+    ax.axhline(0.0, linewidth=0.9, linestyle="--", color=RESULT_C["slate"])
     ax.set_xlabel("Behavioral ranking change (1 - RBO@K)")
     ax.set_ylabel("Counterfactual utility gap: nDCG(observed) - nDCG(counterfactual)")
     ax.set_title("RQ1: ranking change is not itself a fairness verdict", loc="left", fontweight="bold")
@@ -93,7 +128,7 @@ def build_rq1_quadrant(rq1_pairs: Path, output: Path) -> None:
         va="top",
         fontsize=7.2,
     )
-    ax.grid(axis="both", linewidth=0.35, alpha=0.25)
+    ax.grid(axis="both", linewidth=0.45, alpha=0.65)
     ax.legend(frameon=False, ncol=3, fontsize=7.2, loc="lower right")
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -133,14 +168,12 @@ def build_rq2_forest(inference_jsonl: Path, output: Path) -> None:
         fmt="o",
         markersize=4.2,
         capsize=2.2,
-        linewidth=0.9,
-    )
-    ax.axvline(0.0, linewidth=0.9, linestyle="--")
+        linewidth=0.9,\n        color=RESULT_C["blue"],\n        ecolor=RESULT_C["slate"],\n    )\n    ax.axvline(0.0, linewidth=0.9, linestyle="--", color=RESULT_C["slate"])
     ax.set_yticks(y, labels)
     ax.invert_yaxis()
     ax.set_xlabel("PVA in nDCG@10: true measured profile - shuffled profile")
     ax.set_title("RQ2: user-specific value of measured personality", loc="left", fontweight="bold")
-    ax.grid(axis="x", linewidth=0.35, alpha=0.25)
+    ax.grid(axis="x", linewidth=0.45, alpha=0.65)
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, bbox_inches="tight", pad_inches=0.04)
@@ -175,9 +208,7 @@ def build_rq3_variance(rq3_summary: Path, output: Path) -> None:
             x,
             y,
             marker=family_marker[family],
-            alpha=0.62,
-            s=26,
-            label=FAMILY_LABELS[family],
+            color=FAMILY_COLORS[family],\n            alpha=0.74,\n            s=28,\n            linewidths=0.45,\n            label=FAMILY_LABELS[family],
         )
 
     ax.set_xticks(
@@ -186,7 +217,7 @@ def build_rq3_variance(rq3_summary: Path, output: Path) -> None:
     )
     ax.set_ylabel("Mean within-user SD of nDCG@10")
     ax.set_title("RQ3: reliability under one-factor-at-a-time perturbations", loc="left", fontweight="bold")
-    ax.grid(axis="y", linewidth=0.35, alpha=0.25)
+    ax.grid(axis="y", linewidth=0.45, alpha=0.65)
     ax.legend(frameon=False, ncol=3, fontsize=7.2, loc="upper left")
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -240,17 +271,13 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
         ax.scatter(
             [float(row["pair_identity_ndcg_mean_system"]) for row in ineligible],
             [float(row["pair_abs_cug_ndcg_on_available"]) for row in ineligible],
-            marker="x",
-            alpha=0.45,
-            s=30,
+            marker="x",\n            color=RESULT_C["muted"],\n            alpha=0.60,\n            s=30,
             label=f"Validation: below {utility_floor:.0%} utility floor",
         )
     ax.scatter(
         [float(row["pair_identity_ndcg_mean_system"]) for row in eligible],
         [float(row["pair_abs_cug_ndcg_on_available"]) for row in eligible],
-        marker="o",
-        alpha=0.65,
-        s=32,
+        marker="o",\n        color=RESULT_C["blue"],\n        alpha=0.72,\n        s=34,
         label="Validation: eligible grid points",
     )
 
@@ -260,8 +287,7 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
     ax.scatter(
         [float(chosen_validation["pair_identity_ndcg_mean_system"])],
         [float(chosen_validation["pair_abs_cug_ndcg_on_available"])],
-        marker="*",
-        s=120,
+        marker="*",\n        color=RESULT_C["violet"],\n        s=125,
         label="Frozen validation operating point",
         zorder=4,
     )
@@ -272,8 +298,7 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
     ax.scatter(
         [float(test_summary["pair_identity_ndcg_mean_system"])],
         [float(test_cug)],
-        marker="D",
-        s=52,
+        marker="D",\n        color=RESULT_C["red"],\n        s=54,
         label="Held-out test result at frozen point",
         zorder=5,
     )
@@ -293,7 +318,7 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
         va="top",
         fontsize=7.2,
     )
-    ax.grid(axis="both", linewidth=0.35, alpha=0.25)
+    ax.grid(axis="both", linewidth=0.45, alpha=0.65)
     ax.legend(frameon=False, fontsize=7.0, loc="best")
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
