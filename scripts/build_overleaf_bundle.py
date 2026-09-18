@@ -55,6 +55,7 @@ OPTIONAL_RESULT_FILES = (
     "figures/rq2_personality_forest.pdf",
     "figures/rq3_variance.pdf",
     "figures/rq4_pareto.pdf",
+    "figures/fairsynth_hosted_effects.pdf",
 )
 
 
