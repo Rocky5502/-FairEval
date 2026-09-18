@@ -153,7 +153,7 @@ def main() -> int:
         if token not in benchmark:
             raise SystemExit(f"benchmark/model table missing required token: {token}")
 
-    for token in ("figures/faireval_evaluation_pipeline.pdf", r"\\label{fig:audit-pipeline}"):
+    for token in ("figures/faireval_evaluation_pipeline.pdf", r"\label{fig:audit-pipeline}"):
         if token not in main_text:
             raise SystemExit(
                 f"auditable artifact-to-claim pipeline missing from manuscript: {token}"
