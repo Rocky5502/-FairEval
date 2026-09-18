@@ -143,7 +143,7 @@ def main() -> int:
         "Qwen/Qwen2.5-7B-Instruct",
         "microsoft/Phi-3.5-mini-instruct",
         "generation-score diagnostics",
-        "native application unverified",
+        "application unverified",
         "12,960",
         "200 RMB",
         "250 RMB client-side emergency stop threshold",
