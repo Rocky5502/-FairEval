@@ -55,6 +55,10 @@ def main() -> int:
         default="paper/generated/fairsynth_hosted_table.tex",
     )
     parser.add_argument(
+        "--paper-figure",
+        default="paper/figures/fairsynth_hosted_effects.pdf",
+    )
+    parser.add_argument(
         "--overleaf-zip",
         default="dist/FairEval_ECIR2027_Overleaf_HOSTED_RESULTS.zip",
     )
@@ -69,6 +73,7 @@ def main() -> int:
     ledger_path = Path(args.budget_ledger)
     analysis_dir = Path(args.analysis_dir)
     paper_table = Path(args.paper_table)
+    paper_figure = Path(args.paper_figure)
     bundle = Path(args.overleaf_zip)
     sync_path = Path(args.sync_manifest)
 
@@ -109,6 +114,15 @@ def main() -> int:
         "--output",
         str(paper_table),
     )
+    _run(
+        "scripts/build_result_figures.py",
+        "--fairsynth-inference",
+        str(inference_path),
+        "--output-dir",
+        str(paper_figure.parent),
+    )
+    if not paper_figure.is_file():
+        raise FileNotFoundError(f"hosted FairSynth paper figure not generated: {paper_figure}")
     _run("scripts/check_paper_source.py")
     _run("scripts/check_result_table_contracts.py")
     _run(
@@ -135,6 +149,7 @@ def main() -> int:
         "analysis_manifest_sha256": file_sha256(analysis_dir / "manifest.json"),
         "inference_sha256": file_sha256(inference_path),
         "paper_table_sha256": file_sha256(paper_table),
+        "paper_figure_sha256": file_sha256(paper_figure),
         "overleaf_zip_sha256": file_sha256(bundle),
         "analysis_scope": analysis_manifest.get("scope"),
         "real_world_claim_allowed": analysis_manifest.get("real_world_claim_allowed"),
