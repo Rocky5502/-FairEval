@@ -234,7 +234,7 @@ def main() -> int:
             [
                 "scripts/plan_hosted_fairsynth.py",
                 "--output-dir",
-                "results/plans/hosted-fairsynth-budget-v1",
+                "results/plans/hosted-fairsynth-lean-v1",
             ],
         ),
         (
@@ -263,7 +263,7 @@ def main() -> int:
     assert_clean_scientific_worktree()
 
     whitebox_manifest_path = ROOT / "results/plans/whitebox-full-v1/core/plan_manifest.json"
-    hosted_manifest_path = ROOT / "results/plans/hosted-fairsynth-budget-v1/plan_manifest.json"
+    hosted_manifest_path = ROOT / "results/plans/hosted-fairsynth-lean-v1/plan_manifest.json"
     fairsynth_manifest_path = ROOT / "data/frozen/fairsynth360/manifest.json"
     whitebox_manifest = _load_json(whitebox_manifest_path)
     hosted_manifest = _load_json(hosted_manifest_path)
@@ -283,8 +283,8 @@ def main() -> int:
         )
     if whitebox_cells != 12960:
         raise RuntimeError(f"white-box FairSynth geometry drift: expected 12960, got {whitebox_cells}")
-    if hosted_cells != 12960:
-        raise RuntimeError(f"hosted FairSynth geometry drift: expected 12960, got {hosted_cells}")
+    if hosted_cells != 1080:
+        raise RuntimeError(f"hosted FairSynth geometry drift: expected 1080, got {hosted_cells}")
 
     spec_hashes = collect_spec_hashes()
     blockers = dataset_release_blockers()
