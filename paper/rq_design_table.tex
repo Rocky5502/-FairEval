@@ -2,25 +2,56 @@
 % configs/local_models.yaml, configs/fairsynth360.yaml, and configs/analysis.yaml.
 \begin{table}[t]
 \centering
-\caption{Pre-registered research-question, estimand, inference, and robustness contract. Real-world claims remain separated from the FairSynth-360 controlled stress test and the local white-box stratum.}
+\caption{Pre-registered FairEval research-question contract. Each row fixes the intervention, evidence scope, user-level estimand, inference rule, and robustness analysis before any empirical result is inspected.}
 \label{tab:rq-design}
 \scriptsize
-\setlength{\tabcolsep}{2.15pt}
+\setlength{\tabcolsep}{2.20pt}
 \renewcommand{\arraystretch}{1.16}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}p{0.75cm}p{3.55cm}p{2.55cm}p{3.00cm}p{3.35cm}p{3.55cm}p{3.55cm}@{}}
+\begin{tabular}{@{}p{0.72cm}p{3.80cm}p{2.65cm}p{4.30cm}p{4.30cm}p{4.45cm}@{}}
 \toprule
-\textbf{RQ} & \textbf{Frozen contrast / intervention} & \textbf{Primary scope} & \textbf{Primary estimand} & \textbf{Supporting outcomes} & \textbf{Inference / decision rule} & \textbf{Pre-registered robustness} \\
+\textbf{RQ}
+& \textbf{Frozen contrast / intervention}
+& \textbf{Primary scope}
+& \textbf{Estimand + supporting outcomes}
+& \textbf{Inference / decision rule}
+& \textbf{Pre-registered robustness} \\
 \midrule
-\textbf{RQ1} & $C_1$ observed demographic vs. matched $C_2$ one-field demographic counterfactual; preference history, candidates, task and prompt structure fixed & MovieLens-1M; Last.fm-1K; eight-model reporting where executable & signed user-level $\CUG$: $\Delta$ nDCG@10; harmfulness requires consequence evidence & Recall@10; $\IOD$; $\GUD$; $\CEG$ only under complete auditable top-$K$ item-group metadata; RBO/Jaccard diagnostic only & mean repetitions within user-condition; paired bootstrap CI; paired sign-flip permutation primary; Wilcoxon sensitivity + matched rank-biserial; Holm within RQ$\times$metric$\times$contrast & age-group robustness; prompt/cue variants; candidate order; $K\in\{5,10,20\}$; repeated generations; hosted-vs-local stratification \\
+
+\textbf{RQ1}
+& $C_1$ observed demographic vs. matched $C_2$ one-field counterfactual; preference history, candidates, task, and prompt structure fixed
+& MovieLens-1M; Last.fm-1K; eight-model reporting where executable
+& signed user-level $\CUG=\Delta$ nDCG@10; Recall@10, $\IOD$, $\GUD$; $\CEG$ only with complete auditable top-$K$ item-group metadata; RBO/Jaccard diagnostic only
+& mean repetitions within user-condition; paired bootstrap CI; paired sign-flip permutation primary; Wilcoxon sensitivity + matched rank-biserial; Holm within RQ$\times$metric$\times$contrast
+& age-group robustness; prompt/cue variants; candidate order; $K\in\{5,10,20\}$; repeated generations; hosted-vs-local stratification \\
+
 \addlinespace[1pt]
-\textbf{RQ2} & $C_3$ true measured personality vs. $C_4$ whole-profile deterministic derangement; secondary $C_3$ vs. $C_0$; $C_5$ one-trait observed-value intervention & Personality 2018; Music Master/BFI-2; REASONER; eight-model reporting where executable & $\PVA=U(C_3)-U(C_4)$ using nDCG@10; tests user-specific value beyond personality-shaped context & Recall@10; MRR sensitivity; $C_3-C_0$ incremental value; five one-trait robustness effects & same paired user-level inference stack as RQ1; dataset/model results preserved before any meta-summary & trait controls; prompt/order; repetitions; hosted-vs-local model generalization \\
+\textbf{RQ2}
+& $C_3$ true measured personality vs. $C_4$ whole-profile deterministic derangement; secondary $C_3$ vs. $C_0$; $C_5$ one-trait observed-value intervention
+& Personality 2018; Music Master/BFI-2; REASONER; eight-model reporting where executable
+& $\PVA=U(C_3)-U(C_4)$ using nDCG@10; Recall@10; MRR sensitivity; $C_3-C_0$ incremental value; five one-trait effects
+& same paired user-level inference stack as RQ1; dataset/model results preserved before any meta-summary
+& trait controls; prompt/order; repetitions; hosted-vs-local model generalization \\
+
 \addlinespace[1pt]
-\textbf{RQ3} & Hold semantic task fixed while varying model, dataset, task paraphrase, cue realization, candidate permutation, cutoff, and repeated generation & six real-world datasets + separately labeled FairSynth-360; six hosted + two local open-weight models & stability of RQ1/RQ2 sign, magnitude, and uncertainty under registered perturbations & factor-level variance/dispersion; invalid-output rate; rank/utility stability; local-only token log-probability/NLL/logit-margin diagnostics & no best-prompt selection; report factor-level distributions; variance-component/mixed model only when supported; white-box scores are auxiliary and uncalibrated & three task paraphrases; three cue forms; three candidate permutations; $K=5/10/20$; ten-generation subset; FairSynth known-ground-truth sanity test \\
+\textbf{RQ3}
+& hold semantic task fixed while varying model, dataset, task paraphrase, cue realization, candidate permutation, cutoff, and repeated generation
+& six real-world datasets + separately labeled FairSynth-360; six hosted + two local open-weight models
+& stability of RQ1/RQ2 sign, magnitude, and uncertainty; factor-level dispersion; invalid-output rate; rank/utility stability; local-only log-probability/NLL/logit-margin diagnostics
+& no best-prompt selection; report factor-level distributions; variance-component/mixed model only when supported; white-box scores remain auxiliary and uncalibrated
+& three task paraphrases; three cue forms; three candidate permutations; $K=5/10/20$; ten-generation subset; FairSynth known-ground-truth sanity test \\
+
 \addlinespace[1pt]
-\textbf{RQ4} & unmitigated audit vs. identity-irrelevance prompting vs. contextual PAIR re-ranking & MovieLens-1M; Last.fm-1K; local-model replication secondary & utility--fairness frontier: reduce harmful $|\CUG|/\IOD$ (and $\CEG$ where valid) without utility collapse & nDCG/Recall; PAIR availability; $\PVA$ preservation; counterfactual instability; intervention cost/coverage & deterministic 20\% validation split (seed 2027); one global $(\alpha,\lambda)$; require $\geq95\%$ unmitigated validation nDCG, then minimize $|\CUG|$; tie-break by higher utility, lower $\lambda$, lower $\alpha$; test outcomes never select the point & full pre-registered $\alpha\in\{.25,.5,.75\}$ and $\lambda\in\{0,.05,.1,.2,.4,.8,1.6\}$ frontier; model/dataset stratification; if no point meets 95\% floor, report no eligible PAIR point rather than relax post hoc \\
+\textbf{RQ4}
+& unmitigated audit vs. identity-irrelevance prompting vs. contextual PAIR re-ranking
+& MovieLens-1M; Last.fm-1K; local-model replication secondary
+& utility--fairness frontier: reduce harmful $|\CUG|/\IOD$ (and $\CEG$ where valid) without utility collapse; track nDCG/Recall, $\PVA$ preservation, instability, cost, and coverage
+& deterministic 20\% validation split (seed 2027); one global $(\alpha,\lambda)$; require $\geq95\%$ unmitigated validation nDCG, then minimize $|\CUG|$; tie-break by higher utility, lower $\lambda$, lower $\alpha$; test outcomes never select the point
+& full pre-registered $\alpha\in\{.25,.5,.75\}$ and $\lambda\in\{0,.05,.1,.2,.4,.8,1.6\}$ frontier; model/dataset stratification; if no point meets the 95\% floor, report no eligible PAIR point rather than relax post hoc \\
 \bottomrule
 \end{tabular}}
-\vspace{0.4mm}
-\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} Each row is a frozen design contract, not a result. User-level paired inference is primary where applicable; sensitivity diagnostics, white-box internals, and synthetic controls remain explicitly separated from confirmatory real-world claims.}
+
+\vspace{0.5mm}
+\parbox{0.985\textwidth}{\scriptsize
+\textit{Reading rule.} The table is a design contract, not a result table. Real-world confirmatory claims, the FairSynth-360 controlled sanity layer, and the local white-box replication remain separate reporting strata. Sensitivity metrics do not by themselves establish harmfulness.}
 \end{table}
