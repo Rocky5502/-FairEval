@@ -5,6 +5,9 @@
 # the experimental apparatus. Scientific/runtime libraries use bounded ranges;
 # record `python -m pip freeze` with every frozen pilot/confirmatory release.
 
+# Install the FairEval package itself so repository scripts can import `faireval`.
+-e .
+
 # Core
 numpy>=1.26,<3
 pandas>=2.1,<4
