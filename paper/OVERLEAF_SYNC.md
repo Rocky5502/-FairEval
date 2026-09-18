@@ -13,6 +13,8 @@ For RQ1/RQ2 and RQ3/RQ4 it prefers generated audited tables when they exist and 
 
 Hosted FairSynth is different: `generated/fairsynth_hosted_table.tex` is included **only if an audited hosted FairSynth inference artifact has actually been rendered**. There is no synthetic fake-number fallback.
 
+The 2026-09-18 budget-truncated hosted FairSynth run is reported separately as an **operational pilot only**. Its outcome-blind audit is rendered to `generated/hosted_pilot_operational_table.tex` and `figures/hosted_pilot_cost_profile.pdf`. These artifacts contain coverage and gateway balance movement only; they are not used for fairness, utility, ranking, or personality-effect inference. The inferential hosted FairSynth table remains pending unless a separately qualified artifact exists.
+
 The full-scale local white-box stratum follows the same artifact-only rule. `generated/whitebox_summary_table.tex` is included only after audited local output has been analyzed and rendered. White-box numerical values are never typed into the manuscript by hand and are never pooled with unavailable hosted-model internals.
 
 The bundle also carries the compact supporting result contracts:
@@ -48,7 +50,7 @@ The current black-box phase uses the Zhizengzeng OpenAI-compatible gateway and t
 - gateway balance reconciliation before/after every persisted hosted cell;
 - an exact pre-execution seal and Git-SHA match.
 
-The 250 RMB value is deliberately **not represented as an atomic provider-side spend cap**. FairEval normally stops around 200 RMB and keeps roughly 50 RMB of operational headroom because a provider could, in principle, charge an in-flight request before the next balance reconciliation. The budget remains outcome-independent: cells execute in immutable plan order and the budget is never expanded after inspecting results. Any budget-truncated coverage is reported as incomplete planned coverage rather than evidence for or against an RQ.
+The 250 RMB value is deliberately **not represented as an atomic provider-side spend cap**. The project-wide 200/250 RMB values are safety ceilings, not a spending objective. The versioned lean FairSynth pilot used stricter 65/75 RMB runtime thresholds and stopped automatically after 99/1,080 planned cells, with 64.9362 RMB ledger-wide spend. The budget remains outcome-independent: cells execute in immutable plan order and the budget is never expanded after inspecting results. Budget-truncated coverage is reported as operational/incomplete coverage rather than evidence for or against an RQ.
 
 The first hosted executable evidence layer is the deterministic A/B/C-balanced FairSynth subset compiled by `scripts/plan_hosted_fairsynth.py`. Real-world hosted RQ1/RQ2 remains blocked until exact third-party raw releases are frozen.
 
