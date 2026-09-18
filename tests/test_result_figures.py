@@ -7,6 +7,7 @@ import pytest
 matplotlib.use("Agg")
 
 from scripts.build_result_figures import (
+    build_fairsynth_effects,
     build_rq1_quadrant,
     build_rq2_forest,
     build_rq3_variance,
@@ -134,6 +135,45 @@ def test_build_rq3_variance_writes_vector_pdf(tmp_path: Path):
     assert data.startswith(b"%PDF-")
     assert len(data) > 3000
 
+
+
+def test_build_fairsynth_effects_writes_vector_pdf(tmp_path: Path):
+    source = tmp_path / "fairsynth_inference.jsonl"
+    rows = []
+    for family, identity, personality in [
+        ("openai", 0.01, 0.06),
+        ("anthropic", -0.02, 0.04),
+    ]:
+        rows.extend(
+            [
+                {
+                    "rq": "SYNTH-ID",
+                    "contrast": "observed_identity_vs_mean_counterfactual_identity",
+                    "metric": "ndcg",
+                    "dataset": "fairsynth360",
+                    "model_family": family,
+                    "mean_paired_difference": identity,
+                    "bootstrap_ci_low": identity - 0.02,
+                    "bootstrap_ci_high": identity + 0.02,
+                },
+                {
+                    "rq": "SYNTH-PERSONALITY",
+                    "contrast": "true_synthetic_ocean_vs_shuffled_profile",
+                    "metric": "ndcg",
+                    "dataset": "fairsynth360",
+                    "model_family": family,
+                    "mean_paired_difference": personality,
+                    "bootstrap_ci_low": personality - 0.02,
+                    "bootstrap_ci_high": personality + 0.02,
+                },
+            ]
+        )
+    _write_jsonl(source, rows)
+    output = tmp_path / "fairsynth.pdf"
+    build_fairsynth_effects(source, output)
+    data = output.read_bytes()
+    assert data.startswith(b"%PDF-")
+    assert len(data) > 3000
 
 def _rq4_artifact() -> dict:
     return {
