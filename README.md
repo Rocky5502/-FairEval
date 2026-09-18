@@ -76,7 +76,7 @@ Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hash
 
 The six-real-dataset hosted core plan remains gated on exact third-party dataset freezes. The immediately executable project-owned control is FairSynth-360.
 
-## Hosted API execution — 200 RMB normal stop / 250 RMB emergency threshold
+## Hosted API execution — lean 1,080-call FairSynth campaign
 
 The black-box track uses the Zhizengzeng OpenAI-compatible gateway with a single gateway key. The gateway/model freeze is in `configs/models.yaml`; spend policy is in `configs/hosted_budget.yaml`.
 
@@ -99,17 +99,17 @@ ZZZ_API_KEY=<secret>
 
 The runner performs a live `GET /v1/models` exact-ID gate before paid generation. The 2026-09-18 experiment-key preflight rejected the earlier Qwen pre-run ID before any paid call; the manifest was then versioned to the actually exposed `qwen3.8-max`. Future mismatches are handled the same way: block first, version explicitly, never substitute silently.
 
-The hosted budget policy is a **200 RMB normal stop target**, **250 RMB client-side emergency stop threshold**, and **2 RMB pre-cell reserve**. FairEval does **not** claim the 250 RMB threshold is an atomic provider-side spending cap. The client normally stops around 200 RMB, leaving roughly 50 RMB of operational headroom, and reconciles experiment spend from account-balance movement before and after every persisted cell.
+The project-wide safety ceiling remains a **200 RMB normal stop target**, **250 RMB client-side emergency stop threshold**, and **2 RMB pre-cell reserve**; these are ceilings, not a spending objective. After six one-cell operational canaries (0.3041 RMB total observed balance movement), and before analyzing recommendation outcomes, the hosted FairSynth campaign was versioned to a stricter **65 RMB runtime target / 75 RMB emergency threshold**.
 
-The sealed hosted FairSynth plan has 12,960 immutable planned cells: 120 balanced users × 6 FairSynth conditions × 6 hosted families × 3 repetitions. Budget truncation is reported as incomplete planned coverage; the execution order never adapts to observed results.
+The canonical hosted FairSynth plan now has **1,080 immutable calls**: 30 deterministically selected balanced users (10 per A/B/C identity group) × 6 registered FairSynth conditions × 6 hosted families × 1 generation. FairSynth is an auxiliary controlled sanity layer, so this design preserves all registered synthetic contrasts while avoiding redundant hosted repeats. Budget truncation is reported as incomplete planned coverage; the execution order never adapts to observed results.
 
 Dry-run first:
 
 ```bash
 python scripts/run_hosted_budgeted.py \
-  --plan-dir results/plans/hosted-fairsynth-budget-v1 \
+  --plan-dir results/plans/hosted-fairsynth-lean-v1 \
   --freeze-root data/frozen \
-  --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl \
+  --output-jsonl results/runs/hosted-fairsynth-lean-v1.jsonl \
   --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json
 ```
 
@@ -118,13 +118,13 @@ Real execution additionally requires the exact checked-out SHA:
 ```bash
 SHA=$(git rev-parse HEAD)
 python scripts/run_hosted_budgeted.py \
-  --plan-dir results/plans/hosted-fairsynth-budget-v1 \
+  --plan-dir results/plans/hosted-fairsynth-lean-v1 \
   --freeze-root data/frozen \
-  --output-jsonl results/runs/hosted-fairsynth-budget-v1.jsonl \
-  --ledger results/budget/hosted_zzz_v1.json \
+  --output-jsonl results/runs/hosted-fairsynth-lean-v1.jsonl \
+  --ledger results/budget/hosted_zzz_lean_v1.json \
   --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json \
-  --target-rmb 200 \
-  --hard-cap-rmb 250 \
+  --target-rmb 65 \
+  --hard-cap-rmb 75 \
   --request-reserve-rmb 2 \
   --max-cells 12 \
   --code-commit-sha "$SHA" \
