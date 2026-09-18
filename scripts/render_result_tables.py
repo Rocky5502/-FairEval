@@ -137,7 +137,7 @@ def render_rq12_main(inference_rows: Sequence[Mapping[str, Any]] | None) -> str:
         "\\setlength{\\tabcolsep}{2.15pt}",
         "\\renewcommand{\\arraystretch}{1.08}",
         "\\resizebox{\\textwidth}{!}{%",
-        "\\begin{tabular}{lccccc}",
+        "\\begin{tabular}{@{}lccccc@{}}",
         "\\toprule",
         "Model & RQ1 MovieLens-1M & RQ1 Last.fm-1K & RQ2 Personality 2018 & RQ2 Music Master & RQ2 REASONER \\\\",
         "\\midrule",
@@ -218,7 +218,7 @@ def render_rq34_main(
         "\\setlength{\\tabcolsep}{3.0pt}",
         "\\renewcommand{\\arraystretch}{1.08}",
         "\\resizebox{\\textwidth}{!}{%",
-        "\\begin{tabular}{llcccc}",
+        "\\begin{tabular}{@{}llcccc@{}}",
         "\\toprule",
         "Block & Comparison & $N$ strata/users & Utility/stability & Gap consequence & Decision \\\\",
         "\\midrule",
@@ -297,7 +297,7 @@ def render_rq34_main(
                 _fmt(validation.get("utility_retention")),
             )
         )
-    lines.extend(["\\bottomrule", "\\end{tabular}}", "\\end{table*}", ""])
+    lines.extend(["\\bottomrule", "\\end{tabular}}", "\\vspace{0.4mm}", "\\parbox{0.985\\textwidth}{\\scriptsize\\textit{Reading rule.} RQ3 reports all registered factor levels; RQ4 reports only validation-frozen interventions. Test outcomes never choose the mitigation operating point.}", "\\end{table*}", ""])
     return "\n".join(lines)
 
 
@@ -309,7 +309,9 @@ def render_coverage(user_condition_rows: Sequence[Mapping[str, Any]] | None) -> 
         "\\caption{Execution coverage and persistent-invalid output rate after user-condition aggregation. FairSynth remains separate from real-world claims.}",
         "\\label{tab:coverage-results}",
         "\\scriptsize",
-        "\\begin{tabular}{lrrrr}",
+        "\\setlength{\\tabcolsep}{4.0pt}",
+        "\\renewcommand{\\arraystretch}{1.10}",
+        "\\begin{tabular}{@{}lrrrr@{}}",
         "\\toprule Dataset & Users & Models & Conditions & Invalid rate \\\\",
         "\\midrule",
     ]
@@ -348,7 +350,9 @@ def render_trait_table(trait_rows: Sequence[Mapping[str, Any]] | None) -> str:
         "\\caption{RQ2 one-trait robustness. Each row summarizes pre-registered dataset$\\times$model hypotheses for true measured personality minus the corresponding one-trait observed-value intervention.}",
         "\\label{tab:trait-ablation-results}",
         "\\scriptsize",
-        "\\begin{tabular}{lrrr}",
+        "\\setlength{\\tabcolsep}{5.0pt}",
+        "\\renewcommand{\\arraystretch}{1.10}",
+        "\\begin{tabular}{@{}lrrr@{}}",
         "\\toprule Trait & Hypotheses & Median $\\Delta$nDCG & Range \\\\",
         "\\midrule",
     ]
@@ -380,7 +384,9 @@ def render_fairsynth_table(rows: Sequence[Mapping[str, Any]] | None) -> str:
         "\\caption{FairSynth-360 controlled sanity checks. Synthetic A/B/C identity is relevance-invariant by construction; synthetic OCEAN is not human psychometric measurement.}",
         "\\label{tab:fairsynth-results}",
         "\\scriptsize",
-        "\\begin{tabular}{lrrr}",
+        "\\setlength{\\tabcolsep}{5.0pt}",
+        "\\renewcommand{\\arraystretch}{1.10}",
+        "\\begin{tabular}{@{}lrrr@{}}",
         "\\toprule Contrast / stratum & Hypotheses & Median $\\Delta$nDCG & Range \\\\",
         "\\midrule",
     ]
@@ -430,7 +436,9 @@ def render_whitebox_table(rows: Sequence[Mapping[str, Any]] | None) -> str:
         "\\caption{Exploratory local white-box diagnostics. Correlations are descriptive and uncalibrated; they are not confirmatory uncertainty evidence.}",
         "\\label{tab:whitebox-results}",
         "\\scriptsize",
-        "\\begin{tabular}{lrrr}",
+        "\\setlength{\\tabcolsep}{5.0pt}",
+        "\\renewcommand{\\arraystretch}{1.10}",
+        "\\begin{tabular}{@{}lrrr@{}}",
         "\\toprule Diagnostic & Strata & Median $\\rho$(nDCG) & Range \\\\",
         "\\midrule",
     ]
