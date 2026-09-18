@@ -4,10 +4,10 @@ This document is the operational handoff from the repository-ready checkpoint to
 
 The two evidence lanes are separate:
 
-- **hosted black-box:** six frozen families through the Zhizengzeng OpenAI-compatible gateway, with a 200 RMB normal-stop target and a 250 RMB client-side emergency stop threshold;
+- **hosted black-box:** six frozen families through the Zhizengzeng OpenAI-compatible gateway; the project-wide 200/250 RMB safety ceiling remains available, while the versioned lean FairSynth campaign uses 1,080 calls with stricter 65/75 RMB runtime thresholds;
 - **local white-box:** two exact Hugging Face revisions on a large CUDA GPU, with no token-budget constraint and a canonical 12,960-generation FairSynth campaign before real-dataset replication.
 
-FairEval does not claim the 250 RMB value is an atomic provider-side spending cap. The hosted client normally stops around 200 RMB and retains roughly 50 RMB of operational headroom while reconciling balance before and after every persisted cell.
+FairEval does not claim the 250 RMB value is an atomic provider-side spending cap. For the lean FairSynth campaign, the runner is invoked with a 65 RMB normal stop and 75 RMB emergency threshold; both remain client-side and below the project-wide ceiling.
 
 No numerical paper result is typed by hand. Audited artifacts are the only path into `paper/generated/`.
 
@@ -80,7 +80,7 @@ Paid execution must not start unless all six exact IDs in `configs/models.yaml` 
 
 ## 4. Hosted dry run, six-family canary, then budgeted continuation
 
-The seal already generated `results/plans/hosted-fairsynth-budget-v1`. Dry-run first; no generation call:
+The seal already generated `results/plans/hosted-fairsynth-lean-v1`. Dry-run first; no generation call:
 
 ```powershell
 python scripts\run_hosted_budgeted.py `
@@ -90,8 +90,8 @@ python scripts\run_hosted_budgeted.py `
   --ledger results\budget\hosted_zzz_v1.json `
   --preexecution-seal results\preexecution\seal-v1\PREEXECUTION_SEAL.json `
   --env-file .env `
-  --target-rmb 200 `
-  --hard-cap-rmb 250 `
+  --target-rmb 65 `
+  --hard-cap-rmb 75 `
   --request-reserve-rmb 2 `
   --max-cells 12
 ```
@@ -111,8 +111,8 @@ foreach ($family in $families) {
     --env-file .env `
     --family $family `
     --max-cells 1 `
-    --target-rmb 200 `
-    --hard-cap-rmb 250 `
+    --target-rmb 65 `
+    --hard-cap-rmb 75 `
     --request-reserve-rmb 2 `
     --code-commit-sha $SHA `
     --execute
@@ -123,7 +123,7 @@ foreach ($family in $families) {
 
 Exit code `10` means the client-side budget policy intentionally stopped execution. Do not work around it.
 
-If the six-family canary is clean, continue in deterministic batches using the **same log, ledger, seal, and commit**:
+If the six-family canary is clean, treat those six rows as the operational pilot only. The versioned lean confirmatory campaign starts from its own new log/ledger/seal and contains 1,080 calls (30 balanced users × 6 conditions × 6 families × 1 generation). Continue it in deterministic batches:
 
 ```powershell
 $SHA = (git rev-parse HEAD).Trim()
@@ -135,14 +135,14 @@ python scripts\run_hosted_budgeted.py `
   --preexecution-seal results\preexecution\seal-v1\PREEXECUTION_SEAL.json `
   --env-file .env `
   --max-cells 250 `
-  --target-rmb 200 `
-  --hard-cap-rmb 250 `
+  --target-rmb 65 `
+  --hard-cap-rmb 75 `
   --request-reserve-rmb 2 `
   --code-commit-sha $SHA `
   --execute
 ```
 
-Repeat that batch command while the budget guard permits. The ledger reconciles experiment spend from gateway balance movement before/after persisted cells; do not estimate remaining allowance manually, create a new ledger to evade the frozen policy, or describe the 250 RMB threshold as provider-enforced atomic billing protection.
+Repeat that batch command until the 1,080-cell lean plan completes or the budget guard stops it. The ledger reconciles experiment spend from gateway balance movement before/after persisted cells; do not estimate remaining allowance manually, create a new ledger to evade the frozen policy, or describe the 250 RMB threshold as provider-enforced atomic billing protection.
 
 When hosted execution is complete/stopped by policy, update the paper only through:
 
