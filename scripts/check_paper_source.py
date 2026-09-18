@@ -138,7 +138,7 @@ def main() -> int:
         "claude-sonnet-5",
         "gemini-3.8-flash",
         "deepseek-v4.1-flash",
-        "qwen3.8-2.4t-a95b",
+        "qwen3.8-max",
         "llama-4-maverick",
         "Qwen/Qwen2.5-7B-Instruct",
         "microsoft/Phi-3.5-mini-instruct",
