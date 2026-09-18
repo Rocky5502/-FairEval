@@ -40,3 +40,7 @@ def test_build_overleaf_bundle_contains_required_anonymous_sources(tmp_path: Pat
 
 def test_generated_whitebox_table_is_an_optional_artifact_input():
     assert "generated/whitebox_summary_table.tex" in OPTIONAL_RESULT_FILES
+
+
+def test_generated_fairsynth_figure_is_an_optional_artifact_input():
+    assert "figures/fairsynth_hosted_effects.pdf" in OPTIONAL_RESULT_FILES
