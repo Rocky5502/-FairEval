@@ -64,6 +64,8 @@ We ask four research questions:
 
 Our contributions are therefore not simply a larger model sweep. They are (i) a consequence-aware reformulation of fairness auditing, (ii) psychometrically grounded personality controls, (iii) a reliability protocol spanning prompts, cues, order, models, domains, and stochastic generations, and (iv) mitigation evaluated by whether it reduces harmful gaps \emph{without collapsing useful personalization}. We make no empirical claim that a particular model is fairer or that personality improves recommendation until the frozen experiments support it.
 
+Figure~\ref{fig:framework} uses the matched-context motivating pattern familiar from counterfactual LLM-recommendation auditing~\cite{zhang2023fairllm}, but changes the interpretation: a ranking shift is treated first as sensitivity, and only preference-conditioned consequence evidence can support a harmful-disparity claim.
+
 \begin{figure}[t]
 \centering
 \IfFileExists{figures/faireval_framework.pdf}{%
