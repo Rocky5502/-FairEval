@@ -44,3 +44,8 @@ def test_generated_whitebox_table_is_an_optional_artifact_input():
 
 def test_generated_fairsynth_figure_is_an_optional_artifact_input():
     assert "figures/fairsynth_hosted_effects.pdf" in OPTIONAL_RESULT_FILES
+
+
+def test_hosted_pilot_operational_artifacts_are_optional_bundle_inputs():
+    assert "generated/hosted_pilot_operational_table.tex" in OPTIONAL_RESULT_FILES
+    assert "figures/hosted_pilot_cost_profile.pdf" in OPTIONAL_RESULT_FILES
