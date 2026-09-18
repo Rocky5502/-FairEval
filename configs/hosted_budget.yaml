@@ -59,11 +59,12 @@ pricing_reference:
       input_rmb_per_million_conservative: 2.0
       output_rmb_per_million_conservative: 8.0
       note: upper end of published 1-2 RMB input and 4-8 RMB output ranges
-    qwen3.8-2.4t-a95b:
+    qwen3.8-max:
       family: qwen
-      input_rmb_per_million_conservative: 12.0
-      output_rmb_per_million_conservative: 36.0
-      note: published tiered price shown as 0.012/1k input and 0.036/1k output
+      note: >-
+        Live-frozen on the experiment key after the earlier Qwen ID was absent.
+        No catalog price is transplanted from the rejected model ID; observed
+        Zhizengzeng balance movement remains the source of record.
     llama-4-maverick:
       family: meta
       input_usd_per_million: 0.18
