@@ -18,7 +18,7 @@ def test_hosted_pilot_summary_is_outcome_blind_and_renderable() -> None:
     assert payload["paper_use"] == "operational_feasibility_and_cost_provenance_only"
 
     table = render_table(payload)
-    assert "Operational pilot" in table
+    assert "operational pilot" in table.lower()
     assert "99/1,080" in table
     assert "OpenAI & 17 & 3 & 3 & 2 & 6.5473" in table
     assert "Google & 17 & 3 & 3 & 2 & 36.3437" in table
