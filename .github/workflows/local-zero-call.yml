@@ -69,7 +69,7 @@ jobs:
           assert s['fairsynth_freeze']['dataset_id'] == 'fairsynth360'
           assert s['fairsynth_freeze']['instances'] == 360
           assert s['plans']['whitebox_core']['planned_cells'] == 12960
-          assert s['plans']['hosted_fairsynth']['planned_cells'] == 12960
+          assert s['plans']['hosted_fairsynth']['planned_cells'] == 1080
           print('pre-execution seal invariants: PASS')
           PY
       - name: Upload zero-call provenance artifacts
