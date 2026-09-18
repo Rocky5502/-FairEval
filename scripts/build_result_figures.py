@@ -113,7 +113,16 @@ def build_rq1_quadrant(rq1_pairs: Path, output: Path) -> None:
             continue
         x = [float(row["mean_one_minus_rbo"]) for row in family_rows]
         y = [float(row["delta_ndcg"]) for row in family_rows]
-        ax.scatter(\n            x,\n            y,\n            marker=marker,\n            color=FAMILY_COLORS[family],\n            alpha=0.72,\n            s=28,\n            linewidths=0.45,\n            label=FAMILY_LABELS[family],\n        )
+        ax.scatter(
+            x,
+            y,
+            marker=marker,
+            color=FAMILY_COLORS[family],
+            alpha=0.72,
+            s=28,
+            linewidths=0.45,
+            label=FAMILY_LABELS[family],
+        )
 
     ax.axhline(0.0, linewidth=0.9, linestyle="--", color=RESULT_C["slate"])
     ax.set_xlabel("Behavioral ranking change (1 - RBO@K)")
@@ -168,7 +177,11 @@ def build_rq2_forest(inference_jsonl: Path, output: Path) -> None:
         fmt="o",
         markersize=4.2,
         capsize=2.2,
-        linewidth=0.9,\n        color=RESULT_C["blue"],\n        ecolor=RESULT_C["slate"],\n    )\n    ax.axvline(0.0, linewidth=0.9, linestyle="--", color=RESULT_C["slate"])
+        linewidth=0.9,
+        color=RESULT_C["blue"],
+        ecolor=RESULT_C["slate"],
+    )
+    ax.axvline(0.0, linewidth=0.9, linestyle="--", color=RESULT_C["slate"])
     ax.set_yticks(y, labels)
     ax.invert_yaxis()
     ax.set_xlabel("PVA in nDCG@10: true measured profile - shuffled profile")
@@ -208,7 +221,11 @@ def build_rq3_variance(rq3_summary: Path, output: Path) -> None:
             x,
             y,
             marker=family_marker[family],
-            color=FAMILY_COLORS[family],\n            alpha=0.74,\n            s=28,\n            linewidths=0.45,\n            label=FAMILY_LABELS[family],
+            color=FAMILY_COLORS[family],
+            alpha=0.74,
+            s=28,
+            linewidths=0.45,
+            label=FAMILY_LABELS[family],
         )
 
     ax.set_xticks(
@@ -271,13 +288,19 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
         ax.scatter(
             [float(row["pair_identity_ndcg_mean_system"]) for row in ineligible],
             [float(row["pair_abs_cug_ndcg_on_available"]) for row in ineligible],
-            marker="x",\n            color=RESULT_C["muted"],\n            alpha=0.60,\n            s=30,
+            marker="x",
+            color=RESULT_C["muted"],
+            alpha=0.60,
+            s=30,
             label=f"Validation: below {utility_floor:.0%} utility floor",
         )
     ax.scatter(
         [float(row["pair_identity_ndcg_mean_system"]) for row in eligible],
         [float(row["pair_abs_cug_ndcg_on_available"]) for row in eligible],
-        marker="o",\n        color=RESULT_C["blue"],\n        alpha=0.72,\n        s=34,
+        marker="o",
+        color=RESULT_C["blue"],
+        alpha=0.72,
+        s=34,
         label="Validation: eligible grid points",
     )
 
@@ -287,7 +310,9 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
     ax.scatter(
         [float(chosen_validation["pair_identity_ndcg_mean_system"])],
         [float(chosen_validation["pair_abs_cug_ndcg_on_available"])],
-        marker="*",\n        color=RESULT_C["violet"],\n        s=125,
+        marker="*",
+        color=RESULT_C["violet"],
+        s=125,
         label="Frozen validation operating point",
         zorder=4,
     )
@@ -298,7 +323,9 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
     ax.scatter(
         [float(test_summary["pair_identity_ndcg_mean_system"])],
         [float(test_cug)],
-        marker="D",\n        color=RESULT_C["red"],\n        s=54,
+        marker="D",
+        color=RESULT_C["red"],
+        s=54,
         label="Held-out test result at frozen point",
         zorder=5,
     )
