@@ -71,7 +71,7 @@ Our contributions are therefore not simply a larger model sweep. They are (i) a 
 }{%
   \fbox{\parbox[c][42mm][c]{0.94\linewidth}{\centering Run \texttt{python scripts/build\_paper\_figures.py} to generate the vector FairEval framework.}}%
 }
-\caption{FairEval framework. Dataset evidence is transformed into matched demographic and psychographic conditions, audited under frozen prompt/model controls, and evaluated using consequence-aware utility, exposure, personality-value, reliability, and mitigation criteria. Recommendation change is treated as sensitivity; harmfulness requires consequence evidence.}
+\caption{FairEval distinguishes ranking sensitivity from harmful disparity. The benchmark cell is held fixed, one registered context factor is changed, and any ranking shift is interpreted only through held-out consequence evidence and robustness checks.}
 \label{fig:framework}
 \end{figure}
 
@@ -131,7 +131,7 @@ The primary structured prompt keeps field names and field order fixed. Missing c
 \begin{figure}[t]
 \centering
 \IfFileExists{figures/faireval_conditions.pdf}{\includegraphics[width=\linewidth]{figures/faireval_conditions.pdf}}{}
-\caption{Experimental geometry. RQ1 isolates matched demographic consequences, RQ2 separates true psychometric value from shuffled and one-trait controls, and RQ3/RQ4 pre-register reliability and mitigation factors.}
+\caption{Registered FairEval experimental geometry. RQ1 isolates matched demographic consequences, RQ2 tests user-specific value from measured personality, RQ3 factorizes reliability under pre-registered perturbations, and RQ4 selects mitigation operating points on validation data only.}
 \label{fig:conditions}
 \end{figure}
 
@@ -162,6 +162,17 @@ We pre-specify user as the primary unit of inference. Repeated generations are a
 
 \subsection{Output Validation}
 Every response is parsed against the same schema and checked for exact $K$, uniqueness, and frozen candidate membership. The raw response is always retained and cryptographically hashed. At most one format-only repair is allowed; it may serialize existing choices but may not add, remove, replace, or reorder them. If repair succeeds, the authoritative repaired JSON is separately hashed and the final ranking must match it exactly. Persistent failures remain outcomes, receive zero primary system utility, and contribute to $\IOD$; they are never repeatedly regenerated until a valid answer appears. Run-log auditing additionally checks immutable plan linkage, requested versus applied deliberation/sampling semantics, candidate-order/cutoff agreement, code commit, and provider token-field semantics before any statistical analysis.
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/faireval_evaluation_pipeline.pdf}{%
+  \includegraphics[width=\linewidth]{figures/faireval_evaluation_pipeline.pdf}%
+}{%
+  \fbox{\parbox[c][36mm][c]{0.94\linewidth}{\centering Run \texttt{python scripts/build\_paper\_figures.py} to generate the editable-vector audit pipeline.}}%
+}
+\caption{Artifact-to-claim pipeline. FairEval separates frozen benchmark construction, immutable execution, strict validation, user-level estimands, and inferential artifacts before any paper-facing claim is generated. Local white-box diagnostics and validation-frozen mitigation remain explicitly separated side branches.}
+\label{fig:audit-pipeline}
+\end{figure}
 
 \section{Mitigation: Preference-Aligned Identity Re-ranking}
 RQ4 compares (i) the unmitigated audit prompt, (ii) an identity-irrelevance/counterfactually fair prompting baseline motivated by prior work \cite{hua2024up5}, and (iii) a lightweight re-ranker, \textbf{PAIR} (Preference-Aligned Identity Re-ranking).
