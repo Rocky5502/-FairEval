@@ -1,0 +1,73 @@
+{
+  "schema_version": "faireval-hosted-pilot-operational-summary-v1",
+  "campaign": "hosted-fairsynth-lean-v1",
+  "scope": "operational_pilot_only_no_scientific_outcome_claim",
+  "git_commit_sha_at_execution": "0a0a9a4cf2760f78929193dc06ecc30ad471d24b",
+  "plan_sha256": "9304f13b41c5caefc5f366fbe8a5646bb3170b3d46650f70779d424246132d14",
+  "planned_cells": 1080,
+  "completed_cells": 99,
+  "completion_fraction": 0.09166666666666666,
+  "unique_completed_users": 3,
+  "ledger_initial_balance_rmb": 105.4709,
+  "ledger_latest_available_rmb": 40.5347,
+  "ledger_latest_spent_rmb": 64.9362,
+  "families": {
+    "openai": {
+      "cells": 17,
+      "users_touched": 3,
+      "identity_complete_users": 3,
+      "personality_complete_users": 2,
+      "all_six_conditions_complete_users": 2,
+      "observed_request_window_cost_rmb": 6.5473,
+      "cost_observations": 17
+    },
+    "anthropic": {
+      "cells": 17,
+      "users_touched": 3,
+      "identity_complete_users": 3,
+      "personality_complete_users": 2,
+      "all_six_conditions_complete_users": 2,
+      "observed_request_window_cost_rmb": 14.9373,
+      "cost_observations": 17
+    },
+    "google": {
+      "cells": 17,
+      "users_touched": 3,
+      "identity_complete_users": 3,
+      "personality_complete_users": 2,
+      "all_six_conditions_complete_users": 2,
+      "observed_request_window_cost_rmb": 36.3437,
+      "cost_observations": 17
+    },
+    "deepseek": {
+      "cells": 16,
+      "users_touched": 3,
+      "identity_complete_users": 3,
+      "personality_complete_users": 2,
+      "all_six_conditions_complete_users": 2,
+      "observed_request_window_cost_rmb": 3.0694,
+      "cost_observations": 16
+    },
+    "qwen": {
+      "cells": 16,
+      "users_touched": 3,
+      "identity_complete_users": 3,
+      "personality_complete_users": 2,
+      "all_six_conditions_complete_users": 2,
+      "observed_request_window_cost_rmb": 1.7242,
+      "cost_observations": 16
+    },
+    "meta": {
+      "cells": 16,
+      "users_touched": 3,
+      "identity_complete_users": 3,
+      "personality_complete_users": 2,
+      "all_six_conditions_complete_users": 2,
+      "observed_request_window_cost_rmb": 0.1392,
+      "cost_observations": 16
+    }
+  },
+  "scientific_outcomes_inspected": false,
+  "paper_use": "operational_feasibility_and_cost_provenance_only",
+  "inference_exclusion_reason": "insufficient paired-user coverage for planned hosted FairSynth inference"
+}
