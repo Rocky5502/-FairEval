@@ -156,6 +156,21 @@ def main() -> int:
         }:
             raise SystemExit(f"model {family} lacks a recognized output_token_parameter")
 
+    expected_hosted_ids = {
+        "openai": "gpt-5.6-terra",
+        "anthropic": "claude-sonnet-5",
+        "google": "gemini-3.8-flash",
+        "deepseek": "deepseek-v4.1-flash",
+        "qwen": "qwen3.8-max",
+        "meta": "llama-4-maverick",
+    }
+    observed_hosted_ids = {str(row["family"]): str(row["model_id"]) for row in enabled_models}
+    if observed_hosted_ids != expected_hosted_ids:
+        raise SystemExit(
+            "hosted model ID freeze drifted: "
+            f"observed={observed_hosted_ids} expected={expected_hosted_ids}"
+        )
+
     by_family = {row["family"]: row for row in enabled_models}
     if by_family["openai"]["output_token_parameter"] != "max_completion_tokens":
         raise SystemExit("OpenAI core config must use current max_completion_tokens")
