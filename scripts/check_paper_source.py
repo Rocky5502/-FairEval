@@ -71,6 +71,7 @@ def main() -> int:
     required_assets = [
         PAPER / "figures" / "faireval_framework.pdf",
         PAPER / "figures" / "faireval_conditions.pdf",
+        PAPER / "figures" / "faireval_evaluation_pipeline.pdf",
         PAPER / "related_work_table.tex",
         PAPER / "benchmark_model_table.tex",
         PAPER / "rq_design_table.tex",
@@ -146,13 +147,13 @@ def main() -> int:
         "12,960",
         "200 RMB",
         "250 RMB client-side emergency stop threshold",
-        "do not claim an atomic provider-side spend cap",
+        "not an atomic provider-side spend cap",
     )
     for token in required_benchmark_tokens:
         if token not in benchmark:
             raise SystemExit(f"benchmark/model table missing required token: {token}")
 
-    if "FairSynth-360" not in main_text:
+    for token in ("figures/faireval_evaluation_pipeline.pdf", r"\\label{fig:audit-pipeline}"):\n        if token not in main_text:\n            raise SystemExit(f"auditable artifact-to-claim pipeline missing from manuscript: {token}")\n\n    if "FairSynth-360" not in main_text:
         raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
     if "Qwen2.5" not in main_text or "Phi-3.5" not in main_text:
         raise SystemExit("manuscript must explain the full-scale local open-weight models")
