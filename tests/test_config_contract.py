@@ -89,3 +89,20 @@ def test_primary_generation_contract_is_consistent():
     assert models["generation"]["main_repetitions"] == study["primary_generation"]["repetitions"]
     assert models["generation"]["temperature_main_requested"] == study["primary_generation"]["temperature_requested"]
     assert models["generation"]["top_p_main_requested"] == study["primary_generation"]["top_p_requested"]
+
+
+def test_hosted_model_ids_match_live_frozen_panel():
+    models = _yaml("models.yaml")
+    observed = {
+        str(row["family"]): str(row["model_id"])
+        for row in models["models"]
+        if row.get("enabled", True)
+    }
+    assert observed == {
+        "openai": "gpt-5.6-terra",
+        "anthropic": "claude-sonnet-5",
+        "google": "gemini-3.8-flash",
+        "deepseek": "deepseek-v4.1-flash",
+        "qwen": "qwen3.8-max",
+        "meta": "llama-4-maverick",
+    }
