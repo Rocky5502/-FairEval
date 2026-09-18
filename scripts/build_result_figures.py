@@ -353,6 +353,109 @@ def build_rq4_pareto(rq4_artifact: Path, output: Path) -> None:
     plt.close(fig)
 
 
+
+def build_fairsynth_effects(inference_jsonl: Path, output: Path) -> None:
+    """Render hosted FairSynth-360 identity and synthetic-personality effects.
+
+    This is a controlled synthetic sanity figure only. It deliberately keeps the
+    meaningless identity contrast separate from the synthetic OCEAN contrast and
+    never presents either as real-world demographic or human-psychometric evidence.
+    """
+    rows = [
+        row
+        for row in _read_jsonl(inference_jsonl)
+        if str(row.get("dataset")) == "fairsynth360"
+        and str(row.get("metric")) == "ndcg"
+        and str(row.get("rq")) in {"SYNTH-ID", "SYNTH-PERSONALITY"}
+    ]
+    if not rows:
+        raise ValueError("FairSynth inference artifact has no nDCG synthetic-control rows")
+
+    by_key = {
+        (str(row.get("rq")), str(row.get("model_family"))): row
+        for row in rows
+    }
+    families = [
+        family
+        for family in FAMILY_ORDER
+        if ("SYNTH-ID", family) in by_key or ("SYNTH-PERSONALITY", family) in by_key
+    ]
+    if not families:
+        raise ValueError("FairSynth inference artifact has no supported hosted families")
+
+    _configure_pdf_fonts()
+    fig, ax = plt.subplots(figsize=(6.9, 4.05))
+    y_base = list(range(len(families)))
+    offsets = {"SYNTH-ID": -0.14, "SYNTH-PERSONALITY": 0.14}
+    markers = {"SYNTH-ID": "o", "SYNTH-PERSONALITY": "s"}
+    labels = {
+        "SYNTH-ID": "Meaningless identity A/B/C contrast",
+        "SYNTH-PERSONALITY": "True vs shuffled synthetic OCEAN",
+    }
+
+    legend_handles = []
+    legend_labels = []
+    for rq in ("SYNTH-ID", "SYNTH-PERSONALITY"):
+        first_handle = None
+        for idx, family in enumerate(families):
+            row = by_key.get((rq, family))
+            if row is None:
+                continue
+            effect = float(row["mean_paired_difference"])
+            low = float(row["bootstrap_ci_low"])
+            high = float(row["bootstrap_ci_high"])
+            handle = ax.errorbar(
+                [effect],
+                [y_base[idx] + offsets[rq]],
+                xerr=[[effect - low], [high - effect]],
+                fmt=markers[rq],
+                markersize=5.0,
+                capsize=2.2,
+                linewidth=0.9,
+                color=FAMILY_COLORS[family],
+                ecolor=FAMILY_COLORS[family],
+                alpha=0.82,
+            )
+            if first_handle is None:
+                first_handle = handle
+        if first_handle is not None:
+            legend_handles.append(first_handle)
+            legend_labels.append(labels[rq])
+
+    ax.axvline(0.0, linewidth=0.9, linestyle="--", color=RESULT_C["slate"])
+    ax.set_yticks(y_base, [FAMILY_LABELS[f] for f in families])
+    ax.invert_yaxis()
+    ax.set_xlabel("Paired mean nDCG@10 difference with 95% bootstrap CI")
+    ax.set_title(
+        "Hosted FairSynth-360: controlled identity and personality sanity effects",
+        loc="left",
+        fontweight="bold",
+    )
+    ax.text(
+        0.99,
+        0.02,
+        "Synthetic control only - not real-world fairness or human psychometrics",
+        transform=ax.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=7.0,
+        color=RESULT_C["muted"],
+    )
+    ax.grid(axis="x", linewidth=0.45, alpha=0.65)
+    if legend_handles:
+        ax.legend(
+            legend_handles,
+            legend_labels,
+            frameon=False,
+            fontsize=7.1,
+            loc="upper right",
+        )
+    fig.tight_layout()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, bbox_inches="tight", pad_inches=0.04)
+    plt.close(fig)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Generate FairEval result PDFs strictly from frozen analysis artifacts"
@@ -361,6 +464,7 @@ def main() -> int:
     parser.add_argument("--inference", help="analysis/inference.jsonl")
     parser.add_argument("--rq3-artifact", help="RQ3 variation summary JSONL")
     parser.add_argument("--rq4-artifact", help="RQ4 contextual PAIR artifact JSON")
+    parser.add_argument("--fairsynth-inference", help="FairSynth inference JSONL")
     parser.add_argument("--output-dir", default="paper/figures")
     args = parser.parse_args()
 
@@ -381,6 +485,10 @@ def main() -> int:
     if args.rq4_artifact:
         path = output_dir / "rq4_pareto.pdf"
         build_rq4_pareto(Path(args.rq4_artifact), path)
+        built.append(str(path))
+    if args.fairsynth_inference:
+        path = output_dir / "fairsynth_hosted_effects.pdf"
+        build_fairsynth_effects(Path(args.fairsynth_inference), path)
         built.append(str(path))
 
     if not built:
