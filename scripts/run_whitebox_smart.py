@@ -32,7 +32,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--seal-dir",
-        default="results/preexecution/seal-v6",
+        default="results/preexecution/seal-v7",
     )
     parser.add_argument(
         "--output-dir",
