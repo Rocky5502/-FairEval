@@ -119,6 +119,9 @@ def build_provider(family: str):
             revision=QWEN25_LOCAL_REVISION,
             trust_remote_code=False,
             dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
+            quantization_policy="bitsandbytes_nf4_4bit",
+            attn_implementation="eager",
+            disable_kv_cache=False,
         )
     if family == "phi35_local":
         return LocalTransformersAdapter(
@@ -127,5 +130,8 @@ def build_provider(family: str):
             revision=PHI35_LOCAL_REVISION,
             trust_remote_code=True,
             dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
+            quantization_policy="bitsandbytes_nf4_4bit",
+            attn_implementation="eager",
+            disable_kv_cache=True,
         )
     raise ValueError(f"Unsupported model family: {family}")
