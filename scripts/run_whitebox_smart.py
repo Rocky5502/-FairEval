@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,11 +33,11 @@ def main() -> int:
     )
     parser.add_argument(
         "--seal-dir",
-        default="results/preexecution/seal-v8",
+        default="results/preexecution/seal-v9",
     )
     parser.add_argument(
         "--output-dir",
-        default="results/runs/whitebox-full-v3",
+        default="results/runs/whitebox-full-v4",
     )
     parser.add_argument(
         "--max-cells-per-family",
@@ -49,6 +50,11 @@ def main() -> int:
         help="Actually run GPU inference. Without this flag only the environment/seal/dry-run path executes.",
     )
     args = parser.parse_args()
+
+    # Pin bitsandbytes to the same CUDA runtime reported by the frozen PyTorch
+    # build. NVIDIA-SMI reports the driver capability (which may be newer), while
+    # the extension ABI must match torch.version.cuda.
+    os.environ.setdefault("BNB_CUDA_VERSION", "128")
 
     seal_dir = Path(args.seal_dir)
     seal_json = seal_dir / "PREEXECUTION_SEAL.json"
