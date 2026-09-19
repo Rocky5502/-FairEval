@@ -47,8 +47,12 @@ def load_local_model_panel(path: Path) -> list[dict[str, str]]:
             ).strip(),
             "sampling_policy": str(row.get("sampling_policy", "")).strip(),
             "output_token_parameter": str(row.get("output_token_parameter", "")).strip(),
+            "quantization_policy": str(row.get("quantization_policy", "none")).strip(),
+            "attn_implementation": str(row.get("attn_implementation", "")).strip(),
+            "kv_cache_policy": str(row.get("kv_cache_policy", "")).strip(),
         }
-        if not all(payload.values()):
+        required = ("family", "model_id", "reasoning_or_thinking_setting", "sampling_policy", "output_token_parameter", "quantization_policy", "attn_implementation", "kv_cache_policy")
+        if not all(payload[key] for key in required):
             raise ValueError(f"incomplete local model row: {row!r}")
         if payload["output_token_parameter"] != "max_new_tokens":
             raise ValueError("direct Transformers local models must use max_new_tokens")
