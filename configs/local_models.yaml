@@ -65,7 +65,7 @@ models:
     dtype_preference: bfloat16
     quantization_policy: bitsandbytes_nf4_4bit
     attn_implementation: eager
-    kv_cache_policy: disabled_for_transformers_compatibility
+    kv_cache_policy: enabled
     white_box_diagnostics:
       enabled: true
       fields:
@@ -76,7 +76,9 @@ models:
     notes: >-
       Compact Microsoft open-weight comparison model frozen to an exact Hugging
       Face commit. Repository-main drift after this freeze does not change the
-      experiment checkpoint.
+      experiment checkpoint. The pinned Transformers 4.44.2 stack keeps KV cache
+      enabled; the observed seen_tokens message is a deprecation warning, not a
+      runtime incompatibility on this frozen stack.
 
 hardware_profile:
   preferred_single_gpu:
