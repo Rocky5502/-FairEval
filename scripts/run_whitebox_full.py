@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -29,6 +30,8 @@ def _run_family(
     code_commit_sha: str,
     max_cells: int,
     execute: bool,
+    max_process_retries: int,
+    retry_cooldown_seconds: int,
 ) -> None:
     args = [
         sys.executable,
@@ -52,13 +55,33 @@ def _run_family(
     print("\n" + "=" * 88, flush=True)
     print(f"FAIREVAL CANONICAL WHITE-BOX FAMILY: {family}", flush=True)
     print("=" * 88, flush=True)
-    completed = subprocess.run(args, cwd=ROOT)
-    if completed.returncode != 0:
-        raise SystemExit(
-            f"canonical white-box execution stopped for {family} "
-            f"with exit code {completed.returncode}. Resume with the same command "
-            "after fixing the reported issue; completed planned_cell_id rows are preserved."
+
+    # Native CUDA libraries such as bitsandbytes can terminate the child process
+    # without raising a Python exception. Retrying the family process is safe
+    # because execute_plan resumes strictly by persisted planned_cell_id values:
+    # completed experimental outcomes are never regenerated, while the interrupted
+    # cell has no persisted row and remains pending.
+    attempts = max_process_retries + 1 if execute else 1
+    for attempt in range(1, attempts + 1):
+        completed = subprocess.run(args, cwd=ROOT)
+        if completed.returncode == 0:
+            return
+        if attempt >= attempts:
+            break
+        print(
+            f"{family}: child process exited {completed.returncode}; "
+            f"cooling down {retry_cooldown_seconds}s before exact-resume retry "
+            f"{attempt + 1}/{attempts}.",
+            flush=True,
         )
+        time.sleep(retry_cooldown_seconds)
+
+    raise SystemExit(
+        f"canonical white-box execution stopped for {family} "
+        f"with exit code {completed.returncode} after {attempts} attempt(s). "
+        "Completed planned_cell_id rows are preserved; diagnose the native runtime "
+        "before resuming."
+    )
 
 
 def main() -> int:
@@ -88,11 +111,29 @@ def main() -> int:
         default=6480,
         help="6480 completes one family for the 360x6x3 FairSynth core plan.",
     )
+    parser.add_argument(
+        "--max-process-retries",
+        type=int,
+        default=3,
+        help=(
+            "Retry a family child process after native-runtime termination. "
+            "Exact planned_cell_id resume prevents re-running persisted cells."
+        ),
+    )
+    parser.add_argument(
+        "--retry-cooldown-seconds",
+        type=int,
+        default=45,
+    )
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
     if args.max_cells_per_family <= 0:
         raise ValueError("--max-cells-per-family must be positive")
+    if args.max_process_retries < 0:
+        raise ValueError("--max-process-retries must be non-negative")
+    if args.retry_cooldown_seconds < 0:
+        raise ValueError("--retry-cooldown-seconds must be non-negative")
 
     head = _git_head()
     output_dir = Path(args.output_dir)
@@ -106,6 +147,8 @@ def main() -> int:
         "preexecution_seal": args.preexecution_seal,
         "families": list(FAMILIES),
         "max_cells_per_family": args.max_cells_per_family,
+        "max_process_retries": args.max_process_retries,
+        "retry_cooldown_seconds": args.retry_cooldown_seconds,
         "execute": bool(args.execute),
         "retired_smoke_outputs_used": False,
     }
@@ -124,6 +167,8 @@ def main() -> int:
             code_commit_sha=head,
             max_cells=args.max_cells_per_family,
             execute=args.execute,
+            max_process_retries=args.max_process_retries,
+            retry_cooldown_seconds=args.retry_cooldown_seconds,
         )
 
     print(
