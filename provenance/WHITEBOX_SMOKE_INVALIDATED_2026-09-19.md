@@ -36,8 +36,8 @@ The immutable FairSynth geometry remains:
 `360 users × 6 registered conditions × 3 seeded repetitions × 2 models = 12,960 cells`.
 
 The canonical 16 GB workstation path freezes bitsandbytes NF4 4-bit loading with
-bfloat16 compute, one model at a time. Phi-3.5 disables KV caching for compatibility
-with its frozen remote-code revision. These runtime policies are included in the
+bfloat16 compute, one model at a time. On the pinned Transformers 4.44.2 stack,
+both canonical models keep KV caching enabled; Phi-3.5 uses eager attention. These runtime policies are included in the
 scientific specification and require a fresh pre-execution seal before canonical
 GPU execution.
 
