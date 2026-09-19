@@ -132,6 +132,6 @@ def build_provider(family: str):
             dtype_preference=os.environ.get("FAIREVAL_LOCAL_DTYPE", "bfloat16"),
             quantization_policy="bitsandbytes_nf4_4bit",
             attn_implementation="eager",
-            disable_kv_cache=True,
+            disable_kv_cache=False,
         )
     raise ValueError(f"Unsupported model family: {family}")
