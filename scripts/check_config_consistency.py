@@ -220,12 +220,9 @@ def main() -> int:
             raise SystemExit(f"{family} must freeze eager attention for the canonical Windows GPU path")
     if local_by_family["qwen25_local"].get("kv_cache_policy") != "enabled":
         raise SystemExit("qwen25_local must keep KV cache enabled")
-    if (
-        local_by_family["phi35_local"].get("kv_cache_policy")
-        != "disabled_for_transformers_compatibility"
-    ):
+    if local_by_family["phi35_local"].get("kv_cache_policy") != "enabled":
         raise SystemExit(
-            "phi35_local must disable KV cache for the frozen Transformers compatibility path"
+            "phi35_local must keep KV cache enabled on the pinned Transformers 4.44.2 path"
         )
 
     hardware = local_models.get("hardware_profile", {}).get("preferred_single_gpu", {})
