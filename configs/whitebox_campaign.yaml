@@ -94,7 +94,7 @@ execution:
   stop_on_plan_hash_mismatch: true
   stop_on_model_revision_mismatch: true
   stop_on_cuda_unavailable: true
-  quantization_for_canonical_run: false
+  quantization_for_canonical_run: bitsandbytes_nf4_4bit
 
 paper:
   source_of_truth: audited_machine_readable_artifacts
