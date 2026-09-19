@@ -31,6 +31,9 @@ models:
     sampling_policy: explicit_temperature_and_top_p
     output_token_parameter: max_new_tokens
     dtype_preference: bfloat16
+    quantization_policy: bitsandbytes_nf4_4bit
+    attn_implementation: eager
+    kv_cache_policy: enabled
     white_box_diagnostics:
       enabled: true
       fields:
@@ -60,6 +63,9 @@ models:
     sampling_policy: explicit_temperature_and_top_p
     output_token_parameter: max_new_tokens
     dtype_preference: bfloat16
+    quantization_policy: bitsandbytes_nf4_4bit
+    attn_implementation: eager
+    kv_cache_policy: disabled_for_transformers_compatibility
     white_box_diagnostics:
       enabled: true
       fields:
@@ -74,13 +80,14 @@ models:
 
 hardware_profile:
   preferred_single_gpu:
-    gpu: NVIDIA GeForce RTX 5090
-    vram_gb: 32
-    precision: bfloat16
+    gpu: NVIDIA GeForce RTX 5070 Ti
+    vram_gb: 16
+    precision: bitsandbytes_nf4_4bit_with_bfloat16_compute
     rationale: >-
-      Both checkpoints fit for sequential single-model BF16 inference on a
-      32 GB-class GPU. Larger 48--80 GB GPUs are encouraged for throughput but
-      do not change the frozen model revisions or evaluation design.
+      The canonical local execution profile is the available 16 GB RTX 5070 Ti,
+      with one model loaded at a time using fixed NF4 4-bit quantization and
+      bfloat16 compute. This preserves the frozen model revisions while making
+      the complete FairSynth campaign executable on the recorded workstation.
   acceptable_alternatives:
     - NVIDIA RTX 6000 Ada 48GB
     - NVIDIA L40S 48GB
