@@ -170,6 +170,24 @@ def _verify_provider_contract(row: Mapping[str, Any], provider: ProviderAdapter)
             f"plan={expected_token_field!r}, runtime={actual_token_field!r}"
         )
 
+    optional_contracts = {
+        "quantization_policy": str(getattr(provider, "quantization_policy", "")).strip(),
+        "attn_implementation": str(getattr(provider, "attn_implementation", "") or "").strip(),
+        "kv_cache_policy": (
+            "disabled_for_transformers_compatibility"
+            if bool(getattr(provider, "disable_kv_cache", False))
+            else "enabled"
+        ),
+    }
+    for key, actual in optional_contracts.items():
+        if key not in row:
+            continue
+        expected = str(row.get(key, "")).strip()
+        if expected != actual:
+            raise ValueError(
+                f"cell {cell_id} {key} drift: plan={expected!r}, runtime={actual!r}"
+            )
+
 
 def execute_plan(
     *,
