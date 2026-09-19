@@ -122,10 +122,13 @@ class LocalTransformersAdapter(ProviderAdapter):
         encoded = {key: value.to(first_device) for key, value in encoded.items()}
         input_len = int(encoded["input_ids"].shape[1])
 
-        generator = None
-        if request.seed is not None:
-            generator = torch.Generator(device=first_device)
-            generator.manual_seed(int(request.seed))
+        # Transformers 4.44.x does not accept a `generator=` kwarg for all
+        # causal LM implementations. Seed the PyTorch RNG in an isolated context
+        # instead so the requested per-cell seed remains deterministic without
+        # leaking RNG state across cells.
+        rng_devices: list[int] = []
+        if first_device.type == "cuda" and first_device.index is not None:
+            rng_devices = [int(first_device.index)]
 
         do_sample = float(request.temperature) > 0.0
         kwargs: dict[str, Any] = {
@@ -140,11 +143,16 @@ class LocalTransformersAdapter(ProviderAdapter):
         if do_sample:
             kwargs["temperature"] = float(request.temperature)
             kwargs["top_p"] = float(request.top_p)
-        if generator is not None:
-            kwargs["generator"] = generator
-
-        with torch.inference_mode():
-            generated = model.generate(**kwargs)
+        with torch.random.fork_rng(
+            devices=rng_devices,
+            enabled=request.seed is not None,
+        ):
+            if request.seed is not None:
+                torch.manual_seed(int(request.seed))
+                if first_device.type == "cuda":
+                    torch.cuda.manual_seed_all(int(request.seed))
+            with torch.inference_mode():
+                generated = model.generate(**kwargs)
 
         sequence = generated.sequences[0]
         new_ids = sequence[input_len:]
@@ -186,6 +194,7 @@ class LocalTransformersAdapter(ProviderAdapter):
                 "top_p": request.top_p,
             },
             "sampling_controls_applied": True,
+            "seed_applied_via_torch_rng_context": request.seed is not None,
             "sampling_policy": "explicit_temperature_and_top_p",
             "output_token_parameter": self.output_token_parameter,
             "reasoning_or_thinking_applied": request.reasoning_or_thinking_setting,
