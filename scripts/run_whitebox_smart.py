@@ -32,11 +32,11 @@ def main() -> int:
     )
     parser.add_argument(
         "--seal-dir",
-        default="results/preexecution/seal-v7",
+        default="results/preexecution/seal-v8",
     )
     parser.add_argument(
         "--output-dir",
-        default="results/runs/whitebox-full-v2",
+        default="results/runs/whitebox-full-v3",
     )
     parser.add_argument(
         "--max-cells-per-family",
