@@ -353,6 +353,13 @@ def expand_core_run_cells(
                     "top_p": float(top_p),
                     "max_output_tokens": int(max_output_tokens),
                 }
+                for optional_key in (
+                    "quantization_policy",
+                    "attn_implementation",
+                    "kv_cache_policy",
+                ):
+                    if model.get(optional_key) not in {None, ""}:
+                        row[optional_key] = str(model[optional_key])
                 row["cell_id"] = _sha256_json(row)
                 rows.append(row)
     return rows
