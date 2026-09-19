@@ -28,6 +28,12 @@ def test_local_model_manifest_is_exact_two_model_panel():
         "microsoft/Phi-3.5-mini-instruct",
     }
     assert {row["output_token_parameter"] for row in panel} == {"max_new_tokens"}
+    assert {row["quantization_policy"] for row in panel} == {"bitsandbytes_nf4_4bit"}
+    assert {row["attn_implementation"] for row in panel} == {"eager"}
+    assert {row["kv_cache_policy"] for row in panel} == {
+        "enabled",
+        "disabled_for_transformers_compatibility",
+    }
 
 
 def test_local_provider_factory_is_lazy_and_white_box_capable():
@@ -39,6 +45,12 @@ def test_local_provider_factory_is_lazy_and_white_box_capable():
     assert phi.output_token_parameter == "max_new_tokens"
     assert qwen.supports_seed() is True
     assert phi.supports_seed() is True
+    assert qwen.quantization_policy == "bitsandbytes_nf4_4bit"
+    assert phi.quantization_policy == "bitsandbytes_nf4_4bit"
+    assert qwen.attn_implementation == "eager"
+    assert phi.attn_implementation == "eager"
+    assert qwen.disable_kv_cache is False
+    assert phi.disable_kv_cache is True
     # Construction must not load multi-GB weights in unit tests/CI.
     assert qwen._model is None
     assert phi._model is None
