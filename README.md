@@ -141,7 +141,7 @@ The canonical FairSynth white-box plan contains exactly **12,960 generations**:
 360 users × 6 conditions × 3 seeded repetitions × 2 frozen models
 ```
 
-The canonical local execution profile is a single 16 GB RTX 5070 Ti with one model loaded at a time using fixed bitsandbytes NF4 4-bit quantization and bfloat16 compute. Phi-3.5 additionally disables KV-cache use for compatibility with its frozen remote-code revision. These execution choices are frozen in `configs/local_models.yaml`, persisted into the immutable plan, and rechecked against the runtime provider.
+The canonical local execution profile is a single 16 GB RTX 5070 Ti with one model loaded at a time using fixed bitsandbytes NF4 4-bit quantization and bfloat16 compute. On the pinned Transformers 4.44.2 stack, both Qwen2.5 and Phi-3.5 keep KV caching enabled; Phi uses eager attention and may emit a `seen_tokens` deprecation warning, which is not treated as a runtime failure. These execution choices are frozen in `configs/local_models.yaml`, persisted into the immutable plan, and rechecked against the runtime provider.
 
 The two model families can be run individually through `scripts/run_whitebox_family.py`, or end-to-end through `scripts/run_whitebox_full.py`. Real GPU execution requires the exact checked-out Git SHA and matching pre-execution seal. The older `scripts/run_whitebox_campaign.py` generic-prompt engineering runner is retired: its Qwen/Mistral/Phi outputs are smoke artifacts only and must not be used as ECIR empirical results because they did not execute the immutable six-condition FairEval plan.
 
