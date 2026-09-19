@@ -90,7 +90,9 @@ extension_tracks:
     local_internal_diagnostics: true
     internal_diagnostics_are_calibrated_uncertainty: false
     exact_huggingface_revision_required_before_pilot: true
-    preferred_gpu: NVIDIA_GeForce_RTX_5090_32GB
+    preferred_gpu: NVIDIA_GeForce_RTX_5070_Ti_16GB
+    quantization_policy: bitsandbytes_nf4_4bit
+    compute_dtype: bfloat16
     load_models_concurrently: false
 
   fairsynth360:
