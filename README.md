@@ -147,14 +147,15 @@ The two model families can be run individually through `scripts/run_whitebox_fam
 
 `scripts/finalize_whitebox.py` refuses partial/mixed coverage, merges both audited canonical family logs in immutable plan order, computes the declared diagnostics, renders `paper/generated/whitebox_summary_table.tex`, and rebuilds the anonymous Overleaf bundle.
 
-Canonical one-command execution after building a fresh matching seal:
+Preferred guarded one-command execution:
 
 ```bash
-python scripts/run_whitebox_full.py \
-  --preexecution-seal results/preexecution/seal-v5/PREEXECUTION_SEAL.json \
-  --max-cells-per-family 6480 \
-  --execute
+python scripts/run_whitebox_smart.py --execute
 ```
+
+This launcher first checks the exact local package/GPU environment, builds a fresh scientific seal, runs one real canonical cell per family as a non-wasted canary, resumes directly into the full 12,960-cell campaign only if both canaries pass, and then audits/analyzes the completed logs and rebuilds the Overleaf bundle automatically.
+
+Lower-level execution remains available through `scripts/run_whitebox_full.py` when manual control is needed.
 
 Once all real-world release locks are complete, a separately versioned campaign extends the same two local models to the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path.
 
