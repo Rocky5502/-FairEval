@@ -30,6 +30,9 @@ class LocalTransformersAdapter(ProviderAdapter):
         revision: str | None = None,
         trust_remote_code: bool = False,
         dtype_preference: str = "bfloat16",
+        quantization_policy: str = "none",
+        attn_implementation: str | None = None,
+        disable_kv_cache: bool = False,
     ) -> None:
         self.family = family
         self.provider_name = "local_transformers"
@@ -37,6 +40,9 @@ class LocalTransformersAdapter(ProviderAdapter):
         self.revision = None if revision in {None, "", "pin_exact_huggingface_commit_before_pilot"} else revision
         self.trust_remote_code = bool(trust_remote_code)
         self.dtype_preference = dtype_preference
+        self.quantization_policy = str(quantization_policy)
+        self.attn_implementation = attn_implementation
+        self.disable_kv_cache = bool(disable_kv_cache)
         self._tokenizer = None
         self._model = None
 
@@ -48,7 +54,7 @@ class LocalTransformersAdapter(ProviderAdapter):
             return self._tokenizer, self._model
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
         except ImportError as exc:  # pragma: no cover - environment dependent
             raise RuntimeError(
                 "Install a CUDA-matched PyTorch build and requirements-local-gpu.txt"
@@ -68,12 +74,29 @@ class LocalTransformersAdapter(ProviderAdapter):
         dtype = getattr(torch, self.dtype_preference, None)
         if dtype is None:
             raise ValueError(f"unsupported torch dtype preference {self.dtype_preference!r}")
+        model_kwargs: dict[str, Any] = {
+            "revision": self.revision,
+            "trust_remote_code": self.trust_remote_code,
+            "torch_dtype": dtype,
+            "device_map": "auto",
+        }
+        if self.attn_implementation:
+            model_kwargs["attn_implementation"] = self.attn_implementation
+        if self.quantization_policy == "bitsandbytes_nf4_4bit":
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=dtype,
+                bnb_4bit_use_double_quant=True,
+            )
+        elif self.quantization_policy != "none":
+            raise ValueError(
+                f"unsupported local quantization policy {self.quantization_policy!r}"
+            )
+
         model = AutoModelForCausalLM.from_pretrained(
             self.model_id,
-            revision=self.revision,
-            trust_remote_code=self.trust_remote_code,
-            torch_dtype=dtype,
-            device_map="auto",
+            **model_kwargs,
         )
         model.eval()
         self._tokenizer, self._model = tokenizer, model
@@ -112,6 +135,7 @@ class LocalTransformersAdapter(ProviderAdapter):
             "return_dict_in_generate": True,
             "output_scores": True,
             "pad_token_id": tokenizer.pad_token_id or tokenizer.eos_token_id,
+            "use_cache": not self.disable_kv_cache,
         }
         if do_sample:
             kwargs["temperature"] = float(request.temperature)
@@ -177,6 +201,9 @@ class LocalTransformersAdapter(ProviderAdapter):
             "gpu_name": gpu_name,
             "gpu_vram_bytes": vram_total,
             "dtype": str(next(model.parameters()).dtype),
+            "quantization_policy": self.quantization_policy,
+            "attn_implementation": self.attn_implementation,
+            "kv_cache_enabled": not self.disable_kv_cache,
         }
         return GenerationResponse(
             text=decoded,
