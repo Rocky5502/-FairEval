@@ -213,9 +213,31 @@ def main() -> int:
         }:
             raise SystemExit(f"{family} lacks an auditable revision_source")
 
+    for family, row in local_by_family.items():
+        if row.get("quantization_policy") != "bitsandbytes_nf4_4bit":
+            raise SystemExit(f"{family} must freeze bitsandbytes NF4 4-bit quantization")
+        if row.get("attn_implementation") != "eager":
+            raise SystemExit(f"{family} must freeze eager attention for the canonical Windows GPU path")
+    if local_by_family["qwen25_local"].get("kv_cache_policy") != "enabled":
+        raise SystemExit("qwen25_local must keep KV cache enabled")
+    if (
+        local_by_family["phi35_local"].get("kv_cache_policy")
+        != "disabled_for_transformers_compatibility"
+    ):
+        raise SystemExit(
+            "phi35_local must disable KV cache for the frozen Transformers compatibility path"
+        )
+
     hardware = local_models.get("hardware_profile", {}).get("preferred_single_gpu", {})
-    if hardware.get("gpu") != "NVIDIA GeForce RTX 5090" or hardware.get("vram_gb") != 32:
-        raise SystemExit("local hardware profile must describe the official RTX 5090 32GB target")
+    if (
+        hardware.get("gpu") != "NVIDIA GeForce RTX 5070 Ti"
+        or hardware.get("vram_gb") != 16
+        or hardware.get("precision") != "bitsandbytes_nf4_4bit_with_bfloat16_compute"
+    ):
+        raise SystemExit(
+            "local hardware profile must describe the canonical RTX 5070 Ti 16GB "
+            "NF4/bfloat16 execution path"
+        )
 
     if set(AUXILIARY_DATASET_IDS) != {"fairsynth360"}:
         raise SystemExit("unexpected auxiliary dataset registry drift")
