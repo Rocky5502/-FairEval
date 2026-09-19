@@ -141,7 +141,20 @@ The canonical FairSynth white-box plan contains exactly **12,960 generations**:
 360 users × 6 conditions × 3 seeded repetitions × 2 frozen models
 ```
 
-The two model families run sequentially through `scripts/run_whitebox_family.py`. Real GPU execution requires the exact checked-out Git SHA and matching pre-execution seal. `scripts/finalize_whitebox.py` refuses partial/mixed coverage, merges both audited family logs in immutable plan order, computes the declared diagnostics, renders `paper/generated/whitebox_summary_table.tex`, and rebuilds the anonymous Overleaf bundle.
+The canonical local execution profile is a single 16 GB RTX 5070 Ti with one model loaded at a time using fixed bitsandbytes NF4 4-bit quantization and bfloat16 compute. Phi-3.5 additionally disables KV-cache use for compatibility with its frozen remote-code revision. These execution choices are frozen in `configs/local_models.yaml`, persisted into the immutable plan, and rechecked against the runtime provider.
+
+The two model families can be run individually through `scripts/run_whitebox_family.py`, or end-to-end through `scripts/run_whitebox_full.py`. Real GPU execution requires the exact checked-out Git SHA and matching pre-execution seal. The older `scripts/run_whitebox_campaign.py` generic-prompt engineering runner is retired: its Qwen/Mistral/Phi outputs are smoke artifacts only and must not be used as ECIR empirical results because they did not execute the immutable six-condition FairEval plan.
+
+`scripts/finalize_whitebox.py` refuses partial/mixed coverage, merges both audited canonical family logs in immutable plan order, computes the declared diagnostics, renders `paper/generated/whitebox_summary_table.tex`, and rebuilds the anonymous Overleaf bundle.
+
+Canonical one-command execution after building a fresh matching seal:
+
+```bash
+python scripts/run_whitebox_full.py \
+  --preexecution-seal results/preexecution/seal-v5/PREEXECUTION_SEAL.json \
+  --max-cells-per-family 6480 \
+  --execute
+```
 
 Once all real-world release locks are complete, a separately versioned campaign extends the same two local models to the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path.
 
