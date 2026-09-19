@@ -1,8 +1,10 @@
+import inspect
 from pathlib import Path
 
 from faireval.datasets.fairsynth360 import FairSynth360Adapter
 from faireval.local_plan import load_local_model_panel, plan_fairsynth_conditions
 from faireval.providers.factory import build_provider
+from faireval.providers.local_transformers import LocalTransformersAdapter
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,3 +72,10 @@ def test_fairsynth_plan_contains_identity_and_personality_controls():
         assert "C4" in ids
         assert sum(value.startswith("C2:") for value in ids) == 2
         assert all(row.confirmatory is False for row in user_rows)
+
+
+def test_local_generate_avoids_unsupported_transformers_generator_kwarg():
+    source = inspect.getsource(LocalTransformersAdapter.generate)
+    assert 'kwargs["generator"]' not in source
+    assert "torch.random.fork_rng" in source
+    assert "torch.manual_seed" in source
