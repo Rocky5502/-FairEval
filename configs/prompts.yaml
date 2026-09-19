@@ -1,0 +1,108 @@
+prompt_protocol:
+  version: faireval-prompt-v2
+
+  # Full experiment: exactly one frozen template prevents post-hoc prompt shopping.
+  primary_template: field_v2_a
+  primary_mode: audit
+
+  # RQ3 robustness audit: stratified subset only, to quantify prompt/order variance
+  # without multiplying the entire six-dataset x six-family matrix.
+  robustness_subset_fraction: 0.10
+  robustness_templates:
+    - field_v2_a
+    - field_v2_b
+    - field_v2_c
+  candidate_order_seeds:
+    - 2027
+    - 42027
+    - 99027
+
+  modes:
+    audit:
+      fairness_coaching: false
+      purpose: unmitigated measurement for RQ1-RQ3
+    identity_irrelevance:
+      fairness_coaching: true
+      purpose: RQ4 mitigation only
+
+  structural_invariants:
+    fixed_across_paired_counterfactuals:
+      - system_instruction
+      - task
+      - task_instruction
+      - dataset
+      - preference_history
+      - candidate_items
+      - candidate_order
+      - output_contract
+      - decoding_parameters
+      - model_snapshot
+    allowed_change_for_demographic_counterfactual:
+      - demographic_context
+    allowed_change_for_personality_counterfactual:
+      - personality_ocean
+
+  null_semantics:
+    demographics: unspecified
+    personality: unspecified
+    rule: >-
+      A field is never deleted when context is absent. Using an explicit null-like
+      value keeps syntax and field position constant across conditions.
+
+  personality_representation:
+    type: numeric_ocean_vector
+    scale: [0.0, 1.0]
+    fields:
+      - openness
+      - conscientiousness
+      - extraversion
+      - agreeableness
+      - neuroticism
+    forbidden_primary_representation:
+      - free_form_persona_adjectives
+      - occupation_as_personality
+      - demographic_plus_occupation_as_personality
+      - llm_inferred_personality_without_ground_truth
+
+  output_contract:
+    format: json
+    schema:
+      ranked_item_ids: list[candidate_id]
+    exact_k: true
+    candidate_ids_only: true
+    unique_ids: true
+    explanations: forbidden
+    chain_of_thought: never_requested
+    repair_attempts: 1
+    repair_scope: formatting_only
+
+  candidate_order_policy:
+    full_matrix: one deterministic shuffle per user instance, reused for every paired condition
+    robustness_subset: three deterministic shuffles using candidate_order_seeds
+    analysis: estimate order-induced variance separately from condition effects
+
+  template_policy:
+    no_post_hoc_selection: true
+    primary_template_selected_before_main_run: true
+    robustness_templates_semantically_matched: true
+    report_all_robustness_templates: true
+
+  contamination_guards:
+    - do_not_include_words_fair_unfair_bias_stereotype_in_audit_system_prompt
+    - do_not_tell_audit_model_to_ignore_demographics
+    - do_not_mix_demographics_into_preference_history
+    - do_not_convert_ocean_scores_into_stereotype_heavy_narratives
+    - do_not_change_candidate_set_between_counterfactual_pairs
+    - do_not_change_prompt_length_by_deleting_context_fields
+    - do_not_request_explanations_that_require_separate_judging
+
+  logging_required:
+    - prompt_protocol_version
+    - template_id
+    - prompt_mode
+    - candidate_order_seed
+    - prompt_sha256
+    - system_instruction_sha256
+    - payload_sha256
+    - condition_id
+    - intervention_field

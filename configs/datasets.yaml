@@ -1,0 +1,111 @@
+datasets:
+  personality2018:
+    track: personality_grounded
+    domain: movies
+    source: https://grouplens.org/datasets/personality-2018/
+    license: verify_upstream_readme_before_use
+    observed_fields:
+      - movie_interactions_or_ratings
+      - measured_personality
+    forbidden_inference:
+      - infer_protected_attributes_from_names_or_text
+    notes: Use the official GroupLens release and preserve raw psychometric scores.
+
+  music_master_bfi2:
+    track: personality_grounded
+    domain: music
+    source: https://figshare.com/articles/dataset/19678962
+    license: CC-BY-4.0
+    observed_fields:
+      - song_ratings
+      - BFI
+      - BFI_2_facets
+      - audio_features
+    notes: 279 participants and 745-song pool reported by the associated paper.
+
+  reasoner:
+    track: personality_grounded
+    domain: short_video
+    source: https://github.com/REASONER2023/reasoner2023.github.io
+    license: verify_upstream_before_use
+    observed_fields:
+      - interactions
+      - user_metadata
+      - video_metadata
+      - CBF_PI_15_responses
+    notes: bigfive.csv stores responses to a 15-item Big Five instrument.
+
+  movielens_1m:
+    track: demographic_counterfactual
+    domain: movies
+    source: https://grouplens.org/datasets/movielens/1m/
+    license: verify_upstream_readme_before_use
+    observed_fields:
+      - ratings
+      - gender
+      - age
+      - occupation
+      - zip_code
+      - movie_metadata
+    primary_counterfactual_fields:
+      - gender
+    robustness_only_fields:
+      - age_group
+    excluded_primary_fields:
+      occupation: preference_relevant_and_not_interpreted_as_protected_identity
+      zip_code: never_expose_or_use_as_identity_proxy
+    notes: Pin the MovieLens 1M release; do not substitute ml-latest.
+
+  lastfm_1k:
+    track: demographic_counterfactual
+    domain: music
+    source: https://github.com/eifuentes/lastfm-dataset-1K
+    release_id: lastfm_dataset_1k
+    license: verify_upstream_noncommercial_terms_before_use
+    observed_fields:
+      - listening_events
+      - gender_if_present
+      - age_if_present
+      - country_if_present
+    primary_counterfactual_fields:
+      - gender
+    robustness_only_fields:
+      - age_group
+    excluded_primary_fields:
+      country: high_cardinality_and_potentially_preference_relevant
+    notes: >-
+      The executable FairEval adapter ID is lastfm_1k. Do not silently substitute
+      HETRec Last.fm or another release after the dataset freeze; a release change
+      requires a new manifest and experiment version.
+
+  mind:
+    track: generalization_only
+    domain: news
+    source: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-microsoft-news
+    license: Microsoft-Research-License-Terms
+    observed_fields:
+      - click_history
+      - logged_impressions
+      - news_text_and_categories
+    not_observed:
+      - demographics
+      - personality
+    core_conditions:
+      - preference_only
+    notes: >-
+      The frozen core planner uses MIND for candidate-constrained utility and
+      reliability generalization only. Any future demographic/personality
+      manipulation must be a separately versioned synthetic stress test and must
+      never be pooled with observed-demographic fairness estimates.
+
+adapter_requirements:
+  - source_version
+  - download_date_utc
+  - source_checksum_if_available
+  - raw_schema
+  - observed_vs_derived_vs_counterfactual_fields
+  - filtering_counts
+  - missingness_by_field
+  - user_split_hash
+  - candidate_generation_hash
+  - license_note

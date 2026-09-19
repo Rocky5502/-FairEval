@@ -1,0 +1,101 @@
+version: faireval-hosted-budget-v2
+currency: CNY
+gateway: zhizengzeng
+base_url: https://api.zhizengzeng.com/v1
+
+policy:
+  planning_target_rmb: 200.0
+  hard_cap_rmb: 250.0
+  hard_cap_semantics: client_side_emergency_stop_threshold
+  provider_side_atomic_spend_cap_claimed: false
+  per_request_reserve_rmb: 2.0
+  balance_reconciliation: true
+  balance_endpoint: /dashboard/billing/credit_grants
+  stop_before_request_when_remaining_lte_reserve: true
+  bypass_allowed: false
+  notes: >-
+    The 200 RMB value is the normal hosted execution stop target. The runner
+    stops launching new cells when the remaining target budget is at or below
+    the 2 RMB reserve. The 250 RMB value is an emergency client-side stop
+    threshold that leaves roughly 50 RMB of safety headroom under normal
+    execution; FairEval does not represent it as an atomic provider-side spend
+    cap. Zhizengzeng available balance is reconciled before and after every
+    persisted hosted cell and written to the experiment ledger. Budget exhaustion
+    truncates deterministic plan coverage; it never selects cells based on
+    interim empirical results.
+
+lean_fairsynth_campaign:
+  version: hosted-fairsynth-lean-v1
+  planned_calls: 1080
+  users: 30
+  identity_groups: {A: 10, B: 10, C: 10}
+  conditions_per_user: 6
+  hosted_families: 6
+  repetitions: 1
+  runtime_target_rmb: 65.0
+  runtime_emergency_threshold_rmb: 75.0
+  decision_basis: six_family_operational_canary_cost_and_scope_only
+  empirical_outcomes_used_for_redesign: false
+  notes: >-
+    The 65/75 RMB runtime thresholds are stricter than the project-wide
+    200/250 RMB safety ceilings. The lean hosted FairSynth redesign was made
+    after six one-cell operational canaries and before analysis of recommendation
+    outcomes; the canaries are treated as pilot/provenance rows, not part of the
+    lean confirmatory run.
+
+# Conservative public price references captured 2026-09-17. These values are
+# used for planning/audit only; the source of record for experiment spend is
+# observed gateway balance movement. Foreign-provider RMB conversions use
+# 7.2 RMB/USD * 1.05, following the gateway's documented billing example.
+# Domestic entries use the upper end of published tier/range pricing where
+# applicable. Pricing can change, so live balance movement remains authoritative.
+pricing_reference:
+  captured_date: 2026-09-17
+  usd_to_rmb: 7.2
+  foreign_gateway_multiplier: 1.05
+  models:
+    gpt-5.6-terra:
+      family: openai
+      input_usd_per_million: 2.0
+      output_usd_per_million: 12.0
+      input_rmb_per_million_conservative: 15.12
+      output_rmb_per_million_conservative: 90.72
+    claude-sonnet-5:
+      family: anthropic
+      input_usd_per_million: 2.0
+      output_usd_per_million_conservative: 15.0
+      input_rmb_per_million_conservative: 15.12
+      output_rmb_per_million_conservative: 113.4
+      note: gateway page states Sonnet 5 output price changes to 15 USD/M after September 1
+    gemini-3.8-flash:
+      family: google
+      input_usd_per_million: 0.75
+      output_usd_per_million: 3.75
+      input_rmb_per_million_conservative: 5.67
+      output_rmb_per_million_conservative: 28.35
+    deepseek-v4.1-flash:
+      family: deepseek
+      input_rmb_per_million_conservative: 2.0
+      output_rmb_per_million_conservative: 8.0
+      note: upper end of published 1-2 RMB input and 4-8 RMB output ranges
+    qwen3.8-max:
+      family: qwen
+      note: >-
+        Live-frozen on the experiment key after the earlier Qwen ID was absent.
+        No catalog price is transplanted from the rejected model ID; observed
+        Zhizengzeng balance movement remains the source of record.
+    llama-4-maverick:
+      family: meta
+      input_usd_per_million: 0.18
+      output_usd_per_million: 0.65
+      input_rmb_per_million_conservative: 1.3608
+      output_rmb_per_million_conservative: 4.914
+
+reporting:
+  record_initial_balance: true
+  record_pre_cell_balance: true
+  record_post_cell_balance: true
+  record_spend_from_balance_delta: true
+  include_budget_ledger_in_provenance: true
+  never_print_api_key: true
+  disclose_no_provider_atomic_cap: true

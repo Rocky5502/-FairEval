@@ -1,0 +1,26 @@
+% CONTRACT PLACEHOLDER. Overwrite only with scripts/render_result_tables.py after frozen analysis.
+\begin{table}[t]
+\centering
+\caption{Main RQ1--RQ2 results. Cells report the paired mean effect [95\% bootstrap CI] and Holm-adjusted paired-permutation $p_H$. RQ1 uses observed minus matched demographic-counterfactual nDCG@10; RQ2 uses true measured personality minus shuffled-profile nDCG@10 (PVA).}
+\label{tab:main-rq12-results}
+\scriptsize
+\setlength{\tabcolsep}{2.15pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Model & RQ1 MovieLens-1M & RQ1 Last.fm-1K & RQ2 Personality 2018 & RQ2 Music Master & RQ2 REASONER \\
+\midrule
+OpenAI & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Anthropic & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Google & \tbd & \tbd & \tbd & \tbd & \tbd \\
+DeepSeek & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Qwen API & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Llama & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Qwen2.5-7B local & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Phi-3.5-mini local & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}}
+\vspace{0.4mm}
+\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} Effect direction is descriptive; RBO/Jaccard are sensitivity diagnostics rather than fairness verdicts. Dataset-level hypotheses remain separate inside the pre-registered Holm families.}
+\end{table}

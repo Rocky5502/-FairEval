@@ -1,0 +1,30 @@
+version: whitebox-v2
+status: compatibility_alias_only
+canonical_manifest: configs/local_models.yaml
+canonical_runner: scripts/run_whitebox_full.py
+
+notes:
+  - This file is retained only because an early engineering smoke runner referenced it.
+  - The Mistral engineering-smoke branch is not part of the ECIR white-box study.
+  - Canonical empirical execution uses exactly Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct.
+  - Conditions, seeds, prompts, candidate order, revisions, and quantization are frozen by the immutable plan built from configs/local_models.yaml.
+
+models:
+  qwen25_local:
+    hf_id: Qwen/Qwen2.5-7B-Instruct
+    family: qwen25_local
+    quantization_policy: bitsandbytes_nf4_4bit
+
+  phi35_local:
+    hf_id: microsoft/Phi-3.5-mini-instruct
+    family: phi35_local
+    quantization_policy: bitsandbytes_nf4_4bit
+    kv_cache_policy: disabled_for_transformers_compatibility
+
+benchmark:
+  dataset: fairsynth360
+  users: 360
+  conditions_per_user: 6
+  repetitions: 3
+  model_count: 2
+  expected_cells: 12960

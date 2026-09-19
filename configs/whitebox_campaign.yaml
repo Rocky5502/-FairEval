@@ -1,0 +1,103 @@
+version: faireval-whitebox-campaign-v1
+seed: 1729
+
+scientific_scope:
+  model_panel_is_frozen: true
+  add_new_models_after_results: false
+  hosted_and_local_reported_separately: true
+  white_box_signals_are_uncalibrated: true
+
+phase_0_canary:
+  dataset: fairsynth360
+  users: 12
+  repetitions: 1
+  families:
+    - qwen25_local
+    - phi35_local
+  cells_per_family: 72
+  total_cells: 144
+  promotion_rule:
+    - run_log_audit_pass
+    - zero_duplicate_planned_cell_ids
+    - candidate_membership_validated
+    - frozen_model_commit_verified
+    - gpu_provenance_present
+    - white_box_fields_present
+
+phase_1_fairsynth_full:
+  dataset: fairsynth360
+  users: 360
+  conditions_per_user: 6
+  repetitions: 3
+  families:
+    - qwen25_local
+    - phi35_local
+  cells_per_family: 6480
+  total_cells: 12960
+  k: 10
+  temperature: 0.2
+  top_p: 1.0
+  max_new_tokens: 512
+  analyses:
+    - identity_irrelevance_sanity
+    - true_vs_shuffled_synthetic_personality
+    - invalid_output_rate
+    - repeated_generation_stability
+    - diagnostic_vs_ndcg
+    - diagnostic_vs_invalidity
+    - model_stratified_white_box_summary
+
+phase_2_real_world_core:
+  enabled_when_all_required_freezes_exist: true
+  repetitions: 3
+  families:
+    - qwen25_local
+    - phi35_local
+  datasets:
+    personality2018:
+      rq: [RQ2, RQ3]
+    music_master_bfi2:
+      rq: [RQ2, RQ3]
+    reasoner:
+      rq: [RQ2, RQ3]
+    movielens_1m:
+      rq: [RQ1, RQ3, RQ4]
+    lastfm_1k:
+      rq: [RQ1, RQ3, RQ4]
+    mind:
+      rq: [RQ3]
+
+phase_3_registered_robustness:
+  model_panel: local_open_weight
+  factors:
+    - task_paraphrase
+    - demographic_cue
+    - candidate_order
+    - ranking_cutoff
+    - stochastic_generation
+  no_best_prompt_selection: true
+
+phase_4_mitigation:
+  datasets:
+    - movielens_1m
+    - lastfm_1k
+  methods:
+    - unmitigated
+    - identity_irrelevance_prompting
+    - contextual_PAIR
+  operating_point_selected_on_validation_only: true
+
+execution:
+  one_model_family_per_process: true
+  recommended_resume_batch_cells: 250
+  persist_each_cell_before_next: true
+  stop_on_plan_hash_mismatch: true
+  stop_on_model_revision_mismatch: true
+  stop_on_cuda_unavailable: true
+  quantization_for_canonical_run: bitsandbytes_nf4_4bit
+
+paper:
+  source_of_truth: audited_machine_readable_artifacts
+  manual_numeric_editing: false
+  auto_render_white_box_table: paper/generated/whitebox_summary_table.tex
+  local_results_are_separate_stratum: true

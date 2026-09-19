@@ -1,84 +1,198 @@
-# FairEval — ECIR 2027 Reboot
+# FairEval
 
-**Working submission title:** *FairEval: Separating Personalization from Discrimination in Personality-Aware LLM Recommendations*
+> **ECIR 2027 redesign branch:** `ecir-2027-redesign`
 
-This repository is the clean-room research reboot of FairEval for **ECIR 2027**. The study is intentionally redesigned rather than treated as a cosmetic extension of the earlier paper.
+FairEval is a preference-conditioned benchmark for evaluating fairness in LLM-based recommendation with personality awareness. The central design principle is simple: **recommendation change is sensitivity; harmfulness requires consequence evidence**.
 
-## Core scientific change
+The ECIR 2027 redesign separates demographic counterfactual effects from beneficial personalization, grounds personality in measured Big Five profiles, freezes prompt/cue/order controls before execution, and reports hosted/API and local/open-weight evidence in separate strata.
 
-The old setup could interpret any recommendation-list change after adding identity/personality information as unfairness. The ECIR study instead separates:
+## Research questions
 
-1. **Behavioral shift** — did the ranked list change?
-2. **Preference alignment / utility** — did the change improve or harm held-out user preference utility?
-3. **Counterfactual identity effect** — does changing identity while holding preferences and candidates fixed change utility/exposure?
-4. **Grounded personality value** — does a *measured* Big Five profile help beyond a neutral prompt and a shuffled-personality negative control?
+- **RQ1 — Demographic consequence.** Holding observed preferences, candidates, task, and prompt structure fixed, when demographic context changes an LLM ranking, does the change improve held-out utility, leave utility effectively unchanged, or create a harmful counterfactual utility/exposure disparity?
+- **RQ2 — Grounded personality value.** Does measured Big Five personality provide user-specific recommendation value beyond observed preference history, and does that value survive shuffled-profile and one-trait counterfactual controls?
+- **RQ3 — Reliability and generalization.** How stable are FairEval conclusions across datasets, model families, task paraphrases, cue realizations, candidate order, ranking cutoffs, and repeated generations?
+- **RQ4 — Personalization-preserving mitigation.** Can instruction-based and counterfactual re-ranking interventions reduce harmful identity-conditioned gaps while preserving overall utility and beneficial personality-driven personalization?
 
-A changed list is therefore **not automatically labeled unfair**. A change may be legitimate personalization when it improves preference alignment; it becomes concerning when identity causes unjustified quality/exposure gaps, stereotype-linked shifts, or other counterfactual harms.
+## Benchmark design
 
-## Four research questions
+The real-world benchmark contains six datasets spanning personality-aware recommendation, demographic fairness, and domain generalization. FairSynth-360 is a project-generated 360-user controlled sanity benchmark whose synthetic A/B/C identity is independent of relevance by construction. Real and synthetic results are always reported separately.
 
-- **RQ1 — Personalization vs. discrimination.** When demographic or personality context changes an LLM ranking, when is the change preference-aligned personalization, and when does it create an unjustified counterfactual utility/exposure gap while user history and candidate items are fixed?
-- **RQ2 — Grounded personality.** Do measured Big Five traits provide recommendation value beyond preference history alone, and are any gains robust to shuffled-personality and one-trait counterfactual controls across personality strata?
-- **RQ3 — Generalization and reliability.** How stable are utility, behavioral-shift, and fairness conclusions across six datasets, six LLM families, prompt templates, cutoffs, and repeated generations?
-- **RQ4 — Mitigation.** Can lightweight identity-aware prompting and preference-aligned counterfactual re-ranking reduce harmful gaps while preserving recommendation utility and legitimate personality-driven gains?
+The primary matched conditions are `C0` preference history only, `C1` observed demographic context, `C2` matched one-field demographic counterfactual, `C3` true measured personality, `C4` deterministic whole-profile derangement, and `C5` one measured Big Five trait changed while the other four stay fixed.
 
-## Planned benchmark
+Candidates, history, task structure, and candidate ordering are frozen across matched conditions. The model must return exactly `K` unique candidate IDs from the supplied candidate set in structured JSON.
 
-### Datasets / domains
+## Metrics and inference
 
-The benchmark uses two complementary tracks.
+Primary utility uses nDCG@10 and Recall@10. RBO and Jaccard measure ranking sensitivity only. Fairness/personality estimands include Counterfactual Utility Gap (CUG), Group Utility Disparity (GUD), Counterfactual Exposure Gap (CEG) only where complete auditable metadata exists, Invalid Output Disparity (IOD), and Personality Value Added (PVA).
 
-**Personality-grounded track**
-- GroupLens Personality 2018 — movies + measured Big Five
-- Music Master / Beyond the Big Five — music + BFI/BFI-2
-- REASONER — short video + CBF-PI-15 Big Five responses
+User is the primary unit of inference. Repeated generations are averaged within user-condition before pairing. The main inference stack uses paired bootstrap confidence intervals, paired sign-flip permutation tests, Wilcoxon sensitivity analysis, matched rank-biserial effect size, and Holm correction inside pre-registered families.
 
-**Generalization / counterfactual track**
-- MovieLens-1M — movies + interaction history / demographic fields
-- Last.fm-1K or HetRec Last.fm — music + interaction history; profile fields where licensing/schema permit
-- MIND — news + real click histories and impression candidate sets
+Persistent invalid output after one permitted format-only repair receives zero primary system utility and remains an observable outcome; it is never regenerated repeatedly until valid.
 
-Every dataset adapter must preserve its license and document exactly which attributes are observed versus synthetically counterfactualized.
-
-### LLM families
-
-One pinned model snapshot per vendor family, selected before the main run:
-- OpenAI
-- Anthropic Claude
-- Google Gemini
-- DeepSeek
-- Alibaba Qwen
-- Meta Llama
-
-Exact model IDs, API dates, parameters, and provider revisions will be frozen in a run manifest. Provider adapters must not silently substitute newer aliases.
-
-## Evaluation principles
-
-- Candidate-constrained ranking: models choose only from auditable candidate item IDs.
-- Real preference histories and held-out relevance labels wherever the dataset permits.
-- Big Five/OCEAN numeric profiles, not ad-hoc adjectives such as “introverted engineer.”
-- Syntax-controlled prompt templates with explicit neutral/null fields.
-- Counterfactual pairs hold history, candidate set, task, and syntax constant.
-- Multiple generations; no single-pass conclusions.
-- Invalid/malformed outputs are logged and reported by model/condition/group, not silently discarded.
-- Utility and fairness are reported jointly; list similarity is a diagnostic, not a fairness definition.
-- Paired uncertainty intervals, multiple-comparison correction, effect sizes, and mixed-effects/variance analysis are planned before looking at headline results.
-
-## Repository layout
+## Repository structure
 
 ```text
-configs/          experiment/model manifests
-src/faireval/     benchmark implementation
-tests/            unit tests for metrics and prompt invariants
-docs/             ECIR research blueprint and reviewer-to-design traceability
-paper/            LNCS manuscript scaffold; numerical results remain TBD until generated
-results/          generated outputs only (not committed if large/sensitive)
+configs/                 frozen study/model/dataset/prompt contracts
+src/faireval/            benchmark, execution, provider and analysis code
+scripts/                 acquisition, freeze, planning, execution and paper tools
+data/                     project-owned + locally acquired data layout
+results/                  run plans, raw outputs, analysis artifacts and figures
+paper/                    LNCS/ECIR manuscript source
+provenance/               environment and execution records
 ```
 
-## Reproducibility rule
+## Environment
 
-No result is hand-entered into the paper. Final tables and figures must be generated from immutable result manifests containing dataset split hashes, prompt/template versions, model IDs, generation settings, random seeds (where supported), timestamps, parser failures, and code commit SHA.
+Create a Python 3.10+ environment and install the project:
 
-## Status
+```bash
+python -m pip install -e ".[analysis,dev,providers]"
+```
 
-Research-design reboot started September 2026. Current priority: freeze the ECIR design, implement the benchmark skeleton, run pilot validation, then execute the preregistered matrix before the ECIR full-paper deadline.
+Never commit API keys. Copy `.env.example` to `.env` and fill only the credentials required for the execution path you are using.
+
+## Dataset safety
+
+Third-party raw releases are not silently downloaded or substituted. Before a paid real-world pilot, acquire each exact upstream release under its documented terms, place it under the configured raw path, compute and record its hash, freeze deterministic benchmark instances, and verify hashes before compiling a run plan. FairEval never infers protected attributes from names, free text, embeddings, ZIP codes, or model guesses.
+
+`configs/dataset_releases.yaml` intentionally remains pre-freeze until the exact files exist locally. **Do not invent missing checksums or mark a license reviewed without checking the downloaded release.**
+
+## Pre-execution scientific seal
+
+Before any paid hosted generation or local-model inference, build the zero-call seal:
+
+```bash
+python scripts/build_preexecution_seal.py \
+  --output-dir results/preexecution/seal-v1
+```
+
+This step loads no model weights and makes no hosted generation calls. It regenerates the canonical FairSynth freeze, compiles the deterministic hosted and white-box FairSynth plans, renders pre-result paper contracts/figures, runs configuration/manuscript checks, hashes the tracked scientific specification, records unresolved real-dataset blockers, and creates a pre-result anonymous Overleaf ZIP.
+
+Both real launchers require the seal's Git commit and plan SHA to match the current checkout. A scientific-source or plan change therefore requires a new seal/version rather than silently continuing an old run log.
+
+## Immutable run plans
+
+Each JSONL cell contains a deterministic `cell_id`; the plan file itself is hashed and linked to a manifest. Execution verifies the plan hash and every cell ID before constructing a provider. Resume semantics are exact: already persisted `planned_cell_id` values are not regenerated, and invalidity remains an experimental outcome.
+
+The six-real-dataset hosted core plan remains gated on exact third-party dataset freezes. The immediately executable project-owned control is FairSynth-360.
+
+## Hosted API execution — lean 1,080-call FairSynth campaign
+
+The black-box track uses the Zhizengzeng OpenAI-compatible gateway with a single gateway key. The gateway/model freeze is in `configs/models.yaml`; spend policy is in `configs/hosted_budget.yaml`.
+
+Current hosted panel:
+
+- OpenAI: `gpt-5.6-terra`
+- Anthropic: `claude-sonnet-5`
+- Google: `gemini-3.8-flash`
+- DeepSeek: `deepseek-v4.1-flash`
+- Alibaba Qwen: `qwen3.8-max`
+- Meta: `llama-4-maverick`
+
+Hosted environment:
+
+```dotenv
+FAIREVAL_HOSTED_GATEWAY=zhizengzeng
+ZZZ_BASE_URL=https://api.zhizengzeng.com/v1
+ZZZ_API_KEY=<secret>
+```
+
+The runner performs a live `GET /v1/models` exact-ID gate before paid generation. The 2026-09-18 experiment-key preflight rejected the earlier Qwen pre-run ID before any paid call; the manifest was then versioned to the actually exposed `qwen3.8-max`. Future mismatches are handled the same way: block first, version explicitly, never substitute silently.
+
+The project-wide safety ceiling remains a **200 RMB normal stop target**, **250 RMB client-side emergency stop threshold**, and **2 RMB pre-cell reserve**; these are ceilings, not a spending objective. After six one-cell operational canaries (0.3041 RMB total observed balance movement), and before analyzing recommendation outcomes, the hosted FairSynth campaign was versioned to a stricter **65 RMB runtime target / 75 RMB emergency threshold**.
+
+The canonical hosted FairSynth plan now has **1,080 immutable calls**: 30 deterministically selected balanced users (10 per A/B/C identity group) × 6 registered FairSynth conditions × 6 hosted families × 1 generation. FairSynth is an auxiliary controlled sanity layer, so this design preserves all registered synthetic contrasts while avoiding redundant hosted repeats. Budget truncation is reported as incomplete planned coverage; the execution order never adapts to observed results.
+
+Dry-run first:
+
+```bash
+python scripts/run_hosted_budgeted.py \
+  --plan-dir results/plans/hosted-fairsynth-lean-v1 \
+  --freeze-root data/frozen \
+  --output-jsonl results/runs/hosted-fairsynth-lean-v1.jsonl \
+  --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json
+```
+
+Real execution additionally requires the exact checked-out SHA:
+
+```bash
+SHA=$(git rev-parse HEAD)
+python scripts/run_hosted_budgeted.py \
+  --plan-dir results/plans/hosted-fairsynth-lean-v1 \
+  --freeze-root data/frozen \
+  --output-jsonl results/runs/hosted-fairsynth-lean-v1.jsonl \
+  --ledger results/budget/hosted_zzz_lean_v1.json \
+  --preexecution-seal results/preexecution/seal-v1/PREEXECUTION_SEAL.json \
+  --target-rmb 65 \
+  --hard-cap-rmb 75 \
+  --request-reserve-rmb 2 \
+  --max-cells 12 \
+  --code-commit-sha "$SHA" \
+  --execute
+```
+
+## Full-scale local/open-weight white-box stratum
+
+The repository freezes Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct as a **required, separately reported replication stratum**. Hosted and local effects are never pooled merely because they answer the same RQ, and local token-score diagnostics are explicitly auxiliary and uncalibrated.
+
+The canonical FairSynth white-box plan contains exactly **12,960 generations**:
+
+```text
+360 users × 6 conditions × 3 seeded repetitions × 2 frozen models
+```
+
+The canonical local execution profile is a single 16 GB RTX 5070 Ti with one model loaded at a time using fixed bitsandbytes NF4 4-bit quantization and bfloat16 compute. On the pinned Transformers 4.44.2 stack, both Qwen2.5 and Phi-3.5 keep KV caching enabled; Phi uses eager attention and may emit a `seen_tokens` deprecation warning, which is not treated as a runtime failure. These execution choices are frozen in `configs/local_models.yaml`, persisted into the immutable plan, and rechecked against the runtime provider.
+
+The two model families can be run individually through `scripts/run_whitebox_family.py`, or end-to-end through `scripts/run_whitebox_full.py`. Real GPU execution requires the exact checked-out Git SHA and matching pre-execution seal. The older `scripts/run_whitebox_campaign.py` generic-prompt engineering runner is retired: its Qwen/Mistral/Phi outputs are smoke artifacts only and must not be used as ECIR empirical results because they did not execute the immutable six-condition FairEval plan.
+
+`scripts/finalize_whitebox.py` refuses partial/mixed coverage, merges both audited canonical family logs in immutable plan order, computes the declared diagnostics, renders `paper/generated/whitebox_summary_table.tex`, and rebuilds the anonymous Overleaf bundle.
+
+Preferred guarded one-command execution:
+
+```bash
+python scripts/run_whitebox_smart.py --execute
+```
+
+This launcher first checks the exact local package/GPU environment, builds a fresh scientific seal, runs one real canonical cell per family as a non-wasted canary, resumes directly into the full 12,960-cell campaign only if both canaries pass, and then audits/analyzes the completed logs and rebuilds the Overleaf bundle automatically.
+
+Lower-level execution remains available through `scripts/run_whitebox_full.py` when manual control is needed.
+
+Once all real-world release locks are complete, a separately versioned campaign extends the same two local models to the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path.
+
+## Analysis and direct paper synchronization
+
+Hosted FairSynth numerical results use this artifact-only path:
+
+```text
+hosted JSONL
+→ run-log audit
+→ FairSynth paired inference
+→ paper/generated/fairsynth_hosted_table.tex
+→ paper/results_contract_table.tex
+→ Overleaf ZIP
+```
+
+One command performs the hosted post-run pipeline:
+
+```bash
+python scripts/finalize_hosted_fairsynth.py
+```
+
+The full local path is similarly wrapped by `scripts/finalize_whitebox.py`. Until audited artifacts exist, corresponding paper cells remain explicitly pending; empirical numbers are never typed into the manuscript manually.
+
+## Reproducibility checks
+
+```bash
+python scripts/check_config_consistency.py
+python scripts/check_paper_source.py
+python scripts/check_result_table_contracts.py
+python scripts/check_pilot_readiness.py
+python scripts/build_preexecution_seal.py
+pytest -q
+```
+
+`check_pilot_readiness.py --strict` intentionally remains non-zero for the six-real-dataset confirmatory panel until exact third-party release locks and local raw paths are complete. That does not block the separately scoped project-owned FairSynth hosted/local control experiments.
+
+## Reporting discipline
+
+FairEval does not claim that one model is fairer than another, that measured personality necessarily improves recommendation, or that a mitigation works until the frozen pipeline produces validated evidence. Real-world, synthetic, hosted, and local evidence retain their declared scope throughout analysis and the paper.

@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Secrets
+.env
+*.key
+
+# Third-party/raw/generated/frozen data are provenance inputs, not source code.
+# Exact hashes/manifests are recorded by the experiment pipeline instead.
+data/raw/
+data/processed/
+data/generated/
+data/frozen/
+data/frozen-smoke/
+
+# Local/CI execution products. Paper-facing generated artifacts under
+# paper/generated/ are intentionally NOT ignored so audited final results can be
+# committed deliberately when the experiment is complete.
+results/*
+!results/.gitkeep
+dist/
+artifacts/
+
+# Paper build products
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.pdf
+
+# Conceptual figure SVGs are deterministic editable companions emitted by
+# scripts/build_paper_figures.py. They travel inside the Overleaf bundle but are
+# not tracked so figure regeneration never dirties the sealed source checkout.
+paper/figures/faireval_framework.svg
+paper/figures/faireval_conditions.svg
+paper/figures/faireval_evaluation_pipeline.svg
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

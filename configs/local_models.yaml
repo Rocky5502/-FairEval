@@ -1,0 +1,178 @@
+# FairEval local open-weight / white-box analysis track
+# Exact model commits frozen from the official Hugging Face repositories on 2026-09-16.
+# This track is complementary to the six hosted/API families in configs/models.yaml.
+# It is NOT pooled with the hosted-model confirmatory panel when discussing vendor effects.
+
+version: faireval-local-models-v2
+track_name: local_open_weight_whitebox
+purpose:
+  - reproducible_local_inference
+  - token_level_white_box_diagnostics
+  - hardware_controlled_robustness
+  - synthetic_stress_test_validation
+  - full_real_world_replication
+  - local_mitigation_replication
+
+models:
+  - family: qwen25_local
+    organization: Qwen
+    name: Qwen2.5-7B-Instruct
+    model_id: Qwen/Qwen2.5-7B-Instruct
+    revision: a09a35458c702b33eeacc393d103063234e8bc28
+    revision_frozen_utc: 2026-09-16
+    revision_source: official_huggingface_model_api
+    license: Apache-2.0
+    parameters: 7615600000
+    architecture: qwen2
+    serving_mode: direct_transformers
+    enabled: true
+    trust_remote_code: false
+    reasoning_or_thinking_setting: not_applicable
+    sampling_policy: explicit_temperature_and_top_p
+    output_token_parameter: max_new_tokens
+    dtype_preference: bfloat16
+    quantization_policy: bitsandbytes_nf4_4bit
+    attn_implementation: eager
+    kv_cache_policy: enabled
+    white_box_diagnostics:
+      enabled: true
+      fields:
+        - mean_generated_token_logprob
+        - generated_token_nll
+        - generated_token_perplexity
+        - mean_top1_top2_logit_margin
+    notes: >-
+      Open-weight local comparison model frozen to an exact Hugging Face commit.
+      The internal diagnostics are auxiliary white-box signals and are never
+      relabeled as calibrated uncertainty probabilities.
+
+  - family: phi35_local
+    organization: Microsoft
+    name: Phi-3.5-mini-instruct
+    model_id: microsoft/Phi-3.5-mini-instruct
+    revision: 2fe192450127e6a83f7441aef6e3ca586c338b77
+    revision_frozen_utc: 2026-09-16
+    revision_source: official_huggingface_commit_history
+    license: MIT
+    parameters: 3821100000
+    architecture: phi3
+    serving_mode: direct_transformers
+    enabled: true
+    trust_remote_code: true
+    reasoning_or_thinking_setting: not_applicable
+    sampling_policy: explicit_temperature_and_top_p
+    output_token_parameter: max_new_tokens
+    dtype_preference: bfloat16
+    quantization_policy: bitsandbytes_nf4_4bit
+    attn_implementation: eager
+    kv_cache_policy: enabled
+    white_box_diagnostics:
+      enabled: true
+      fields:
+        - mean_generated_token_logprob
+        - generated_token_nll
+        - generated_token_perplexity
+        - mean_top1_top2_logit_margin
+    notes: >-
+      Compact Microsoft open-weight comparison model frozen to an exact Hugging
+      Face commit. Repository-main drift after this freeze does not change the
+      experiment checkpoint. The pinned Transformers 4.44.2 stack keeps KV cache
+      enabled; the observed seen_tokens message is a deprecation warning, not a
+      runtime incompatibility on this frozen stack.
+
+hardware_profile:
+  preferred_single_gpu:
+    gpu: NVIDIA GeForce RTX 5070 Ti
+    vram_gb: 16
+    precision: bitsandbytes_nf4_4bit_with_bfloat16_compute
+    rationale: >-
+      The canonical local execution profile is the available 16 GB RTX 5070 Ti,
+      with one model loaded at a time using fixed NF4 4-bit quantization and
+      bfloat16 compute. This preserves the frozen model revisions while making
+      the complete FairSynth campaign executable on the recorded workstation.
+  acceptable_alternatives:
+    - NVIDIA RTX 6000 Ada 48GB
+    - NVIDIA L40S 48GB
+    - NVIDIA A100 40GB_or_80GB
+    - NVIDIA H100 80GB
+  execution_policy:
+    concurrent_model_loading: false
+    one_model_at_a_time: true
+    family_sequential_execution_required: true
+    record_gpu_name: true
+    record_vram_total: true
+    record_driver_version: true
+    record_cuda_version: true
+    record_torch_version: true
+
+full_scale_campaign:
+  experiment_seed: 1729
+  fairsynth360:
+    users: 360
+    conditions_per_user: 6
+    repetitions: 3
+    model_count: 2
+    expected_core_cells: 12960
+    primary_k: 10
+    temperature: 0.2
+    top_p: 1.0
+    max_new_tokens: 512
+    scope:
+      - synthetic_identity_sanity
+      - synthetic_personality_sanity
+      - stochastic_replication
+      - white_box_diagnostic_association
+  real_world:
+    enabled_after_exact_dataset_freeze: true
+    datasets:
+      - personality2018
+      - music_master_bfi2
+      - reasoner
+      - movielens_1m
+      - lastfm_1k
+      - mind
+    repetitions: 3
+    scope:
+      - rq1_demographic_replication
+      - rq2_personality_replication
+      - rq2_trait_ablation
+      - rq3_registered_robustness
+      - rq4_identity_irrelevance_prompting
+      - rq4_pair_secondary_replication
+  white_box_analysis:
+    group_by:
+      - dataset
+      - model_family
+      - condition_id
+    outcomes:
+      - ndcg
+      - recall
+      - mrr
+      - invalid_output
+    diagnostics:
+      - mean_generated_token_logprob
+      - generated_token_nll
+      - generated_token_perplexity
+      - mean_top1_top2_logit_margin
+    association_policy: exploratory_descriptive_only
+    calibrated_uncertainty_claimed: false
+  execution:
+    run_models_one_at_a_time: true
+    recommended_resume_batch_cells: 250
+    persist_every_cell: true
+    audit_before_scaling: true
+    paper_update_requires_audited_artifact: true
+
+reporting_policy:
+  label: local_open_weight_whitebox
+  headline_model_count: 8_total_6_hosted_plus_2_local
+  do_not_claim_exact_equivalence_with_hosted_apis: true
+  do_not_pool_white_box_confidence_with_api_models: true
+  status: required_separate_replication_stratum
+  primary_use:
+    - RQ3 reliability and reproducibility
+    - FairSynth-360 controlled stress test
+    - white-box uncertainty diagnostics
+  secondary_use:
+    - RQ1 and RQ2 replication on all executable real-world datasets
+    - RQ4 mitigation replication on MovieLens-1M and Last.fm-1K

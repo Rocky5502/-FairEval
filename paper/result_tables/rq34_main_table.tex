@@ -1,0 +1,27 @@
+% CONTRACT PLACEHOLDER. Overwrite only with scripts/render_result_tables.py after frozen analysis.
+\begin{table}[t]
+\centering
+\caption{Main RQ3--RQ4 reliability and mitigation results. RQ3 reports within-user nDCG@10 variation under pre-registered one-factor perturbations. RQ4 reports validation-frozen mitigation outcomes; test users never select or relax the operating point.}
+\label{tab:main-rq34-results}
+\scriptsize
+\setlength{\tabcolsep}{3.0pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Block & Comparison & $N$ strata/users & Utility/stability & Gap consequence & Decision \\
+\midrule
+RQ3 & Task wording & \tbd & \tbd & \tbd & report all registered levels \\
+RQ3 & Cue realization & \tbd & \tbd & \tbd & report all registered levels \\
+RQ3 & Candidate order & \tbd & \tbd & \tbd & report all registered levels \\
+RQ3 & Ranking cutoff $K$ & \tbd & \tbd & \tbd & report all registered levels \\
+RQ3 & Repeated generation & \tbd & \tbd & \tbd & report all registered levels \\
+\midrule
+RQ4 & Unmitigated identity-conditioned baseline & \tbd & \tbd & \tbd & reference \\
+RQ4 & Identity-irrelevance prompting & \tbd & \tbd & \tbd & pre-registered baseline \\
+RQ4 & Contextual PAIR, one global validation-frozen point & \tbd & \tbd & \tbd & $\geq95\%$ validation utility floor \\
+\bottomrule
+\end{tabular}}
+\vspace{0.4mm}
+\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} RQ3 reports all registered factor levels; RQ4 reports only validation-frozen interventions. Test outcomes never choose the mitigation operating point.}
+\end{table}

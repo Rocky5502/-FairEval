@@ -1,0 +1,104 @@
+# FairEval ECIR 2027 dataset release lock
+#
+# This file is intentionally PRE-FREEZE. Do not invent checksums. Replace each
+# pending value only after the exact raw release has been downloaded locally,
+# inspected, license-reviewed, and hashed. Public landing-page/README checks may
+# refine license_note, but they do NOT set license_reviewed=true for unseen bytes.
+# The strict pilot-readiness checker refuses full real-world execution while any
+# row remains pending.
+
+schema_version: faireval-dataset-releases-v1
+status: pre_freeze
+
+requirements:
+  checksum_algorithm: sha256
+  require_exact_release_identity: true
+  require_license_review_before_pilot: true
+  require_local_raw_path_before_pilot: true
+  prohibit_silent_release_substitution: true
+  prohibit_post_result_dataset_replacement: true
+
+datasets:
+  personality2018:
+    source: https://grouplens.org/datasets/personality-2018/
+    release_id: GroupLens_Personality_2018
+    raw_path: data/raw/personality2018
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: >-
+      Public official README verified 2026-09-17: research use is permitted with
+      acknowledgement; redistribution is prohibited without separate permission;
+      commercial/revenue-bearing use requires GroupLens permission. Reinspect the
+      README bundled with the exact downloaded release before setting reviewed=true.
+
+  music_master_bfi2:
+    source: https://figshare.com/articles/dataset/19678962
+    release_id: Music_Master_BFI2_figshare_19678962
+    raw_path: data/raw/music_master_bfi2
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: >-
+      Public official Figshare record verified 2026-09-17: CC BY 4.0; dataset usage
+      requires citation of the associated paper. Confirm the license metadata/file
+      identity on the exact downloaded release before setting reviewed=true.
+
+  reasoner:
+    source: https://github.com/REASONER2023/reasoner2023.github.io
+    release_id: REASONER_2023_release
+    raw_path: data/raw/reasoner
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: >-
+      Public official project repository verified 2026-09-17: CC BY-NC 4.0 with
+      additional terms referenced by the project. Inspect those additional terms
+      and the exact downloaded dataset release before setting reviewed=true.
+
+  movielens_1m:
+    source: https://grouplens.org/datasets/movielens/1m/
+    release_id: MovieLens_1M
+    raw_path: data/raw/movielens_1m
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: >-
+      Public official ml-1m README verified 2026-09-17: research use is permitted
+      with acknowledgement; redistribution is prohibited without separate
+      permission; commercial/revenue-bearing use requires GroupLens permission.
+      Reinspect the README bundled with the exact downloaded release before freeze.
+
+  lastfm_1k:
+    source: https://github.com/eifuentes/lastfm-dataset-1K
+    release_id: lastfm_dataset_1k
+    raw_path: data/raw/lastfm_1k
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: >-
+      Public preservation mirror checked 2026-09-17 reproduces the original terms:
+      data distributed with Last.fm permission and made available for non-commercial
+      use. Because this is a mirror, verify the terms included with the exact local
+      archive/upstream release before setting reviewed=true.
+
+  mind:
+    source: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-microsoft-news
+    release_id: MIND_release_to_be_frozen
+    raw_path: data/raw/mind
+    release_status: pending_local_freeze
+    raw_sha256: null
+    license_reviewed: false
+    license_note: >-
+      Public official MIND site/Microsoft documentation verified 2026-09-17: the
+      dataset is free for research under Microsoft Research License Terms and is
+      intended for non-commercial research. Freeze the exact selected MIND release
+      (small/large and train/dev/test scope), inspect its accompanying terms, and
+      record its release identity/hash before setting reviewed=true.
+
+promotion_rule: >-
+  A dataset may move to release_status=frozen only after raw_path exists locally,
+  raw_sha256 is a 64-character SHA-256 digest of a deterministic raw-release
+  archive or canonical directory manifest, license_reviewed=true, and the exact
+  source/release identity is recorded. A changed release requires a new study
+  version and new frozen instances.

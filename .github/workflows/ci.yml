@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main, ecir-2027-redesign]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install
+        run: python -m pip install -r requirements.txt
+      - name: Unit tests
+        run: pytest -q
+      - name: Lint critical package errors
+        run: ruff check src tests scripts --select E9,F63,F7,F82
+      - name: Configuration consistency preflight
+        run: python scripts/check_config_consistency.py
+      - name: Pilot-readiness schema preflight
+        run: python scripts/check_pilot_readiness.py
+      - name: Export FairSynth-360 dataset
+        run: python scripts/export_fairsynth360.py --output-dir data/generated/fairsynth360-v1
+      - name: Run FairSynth oracle sanity experiment
+        run: python scripts/run_fairsynth_oracle.py --output results/smoke/fairsynth_oracle_v1.json
+      - name: Validate Week-1 zero-call bootstrap
+        run: python scripts/week1_bootstrap.py --skip-tests --output results/bootstrap/week1_ci_status.json
+      - name: Upload FairSynth dataset and oracle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FairEval-FairSynth360-v1
+          path: |
+            data/generated/fairsynth360-v1
+            results/smoke/fairsynth_oracle_v1.json
+            results/bootstrap/week1_ci_status.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build vector paper figures
+        run: python scripts/build_paper_figures.py
+      - name: Verify vector paper assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for stem in \
+            faireval_framework \
+            faireval_conditions \
+            faireval_evaluation_pipeline; do
+            pdf="paper/figures/${stem}.pdf"
+            svg="paper/figures/${stem}.svg"
+            test -s "$pdf"
+            test -s "$svg"
+            python - "$pdf" "$svg" <<'PY'
+          import pathlib, sys
+          pdf = pathlib.Path(sys.argv[1])
+          svg = pathlib.Path(sys.argv[2])
+          pdata = pdf.read_bytes()
+          sdata = svg.read_text(encoding="utf-8")
+          if not pdata.startswith(b"%PDF-"):
+              raise SystemExit(f"not a PDF: {pdf}")
+          if len(pdata) < 5000:
+              raise SystemExit(f"suspiciously small figure: {pdf} ({len(pdata)} bytes)")
+          if "<svg" not in sdata or "</svg>" not in sdata:
+              raise SystemExit(f"not an editable SVG: {svg}")
+          if "<text" not in sdata:
+              raise SystemExit(f"SVG text was converted to paths: {svg}")
+          print(f"verified PDF+editable SVG: {pdf.name}, {svg.name}")
+          PY
+          done
+      - name: Manuscript source preflight
+        run: python scripts/check_paper_source.py
+      - name: Result-table contract preflight
+        run: python scripts/check_result_table_contracts.py
+      - name: Build anonymous Overleaf bundle
+        run: python scripts/build_overleaf_bundle.py --output dist/FairEval_ECIR2027_Overleaf.zip
+      - name: Upload Overleaf bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: FairEval-ECIR2027-Overleaf
+          path: dist/FairEval_ECIR2027_Overleaf.zip
+          if-no-files-found: error
+          retention-days: 14

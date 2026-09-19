@@ -1,0 +1,27 @@
+% Requires \usepackage{tikz} and \usetikzlibrary{positioning,arrows.meta}
+\begin{tikzpicture}[
+  font=\scriptsize,
+  >=Latex,
+  box/.style={draw,rounded corners=1.5pt,align=center,minimum height=9mm,text width=24mm,inner sep=3pt},
+  wide/.style={draw,rounded corners=1.5pt,align=center,minimum height=9mm,text width=31mm,inner sep=3pt},
+  arr/.style={->,thick}
+]
+  \node[wide] (data) {\textbf{6 datasets}\\history, candidates, held-out relevance};
+  \node[wide,right=5mm of data] (instance) {\textbf{Frozen instance}\\same user/history/candidates};
+  \node[wide,right=5mm of instance] (condition) {\textbf{Context conditions}\\neutral, identity CF, true/shuffled OCEAN};
+  \node[wide,right=5mm of condition] (models) {\textbf{6 LLM families}\\3 runs + stochasticity audit};
+
+  \draw[arr] (data) -- (instance);
+  \draw[arr] (instance) -- (condition);
+  \draw[arr] (condition) -- (models);
+
+  \node[wide,below=8mm of models] (validate) {\textbf{Strict validator}\\JSON, exact $K$, candidate IDs, failure log};
+  \node[wide,left=5mm of validate] (metrics) {\textbf{Joint evaluation}\\utility + shift + CUG/CEG/IOD + PVA};
+  \node[wide,left=5mm of metrics] (stats) {\textbf{Reliability}\\paired CIs, effect sizes, variance, $K$ sensitivity};
+  \node[wide,left=5mm of stats] (mitigate) {\textbf{Mitigation}\\prompt baselines + PAIR Pareto frontier};
+
+  \draw[arr] (models) -- (validate);
+  \draw[arr] (validate) -- (metrics);
+  \draw[arr] (metrics) -- (stats);
+  \draw[arr] (stats) -- (mitigate);
+\end{tikzpicture}

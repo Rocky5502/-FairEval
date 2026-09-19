@@ -1,0 +1,23 @@
+# FairEval local open-weight GPU track
+# Install the CUDA-matched PyTorch wheel for the target workstation FIRST,
+# following the official PyTorch/NVIDIA instructions for that machine.
+# Then install this file.
+-r requirements.txt
+
+transformers==4.44.2
+accelerate==0.34.2
+safetensors>=0.5,<1
+huggingface-hub>=0.27,<1
+sentencepiece>=0.2,<1
+protobuf>=5,<8
+bitsandbytes>=0.50,<1
+
+# Transformers 4.44.2 must be paired with Accelerate 0.34.2 here: newer
+# Accelerate dispatch can call model.to() for modern bitsandbytes 4-bit models,
+# while Transformers 4.44.2 intentionally rejects moving an already-quantized model.
+# Phi-3.5's frozen remote-code revision is exercised with Transformers 4.44.2;
+# newer DynamicCache APIs are not assumed compatible with that frozen revision.
+# The canonical 16 GB workstation path uses bitsandbytes NF4 4-bit loading.
+# Optional high-throughput serving on Linux/WSL can use vLLM, but the canonical
+# white-box path uses direct Transformers so token-level diagnostics remain
+# available. Keep vLLM out of the mandatory environment to avoid CUDA/OS lock-in.

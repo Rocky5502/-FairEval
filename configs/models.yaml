@@ -1,0 +1,162 @@
+# FairEval ECIR 2027 hosted/API model manifest
+# Gateway execution freeze updated 2026-09-17 for Zhizengzeng.
+#
+# This manifest is PRE-RUN. Model IDs are frozen before any paid confirmatory
+# execution. The live /v1/models preflight remains mandatory on the user's key;
+# if a frozen ID is absent, do not silently substitute a model after inspecting
+# results. Create a new experiment version instead.
+
+hosted_gateway:
+  name: zhizengzeng
+  base_url_env: ZZZ_BASE_URL
+  api_key_env: ZZZ_API_KEY
+  default_base_url: https://api.zhizengzeng.com/v1
+  interface: openai_compatible_chat_completions
+  balance_endpoint: /dashboard/billing/credit_grants
+  budget_config: configs/hosted_budget.yaml
+
+models:
+  - family: openai
+    name: gpt-5.6-terra
+    model_id: gpt-5.6-terra
+    api_key_env: ZZZ_API_KEY
+    enabled: true
+    provider: zhizengzeng
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
+    output_token_parameter: max_completion_tokens
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
+    notes: >-
+      Gateway catalog lists GPT-5.6 Terra. FairEval uses the gateway's
+      OpenAI-compatible endpoint. The resolved model string returned by the
+      service, request timestamp, and gateway provenance are logged. Native
+      reasoning-control application is not assumed unless gateway metadata proves it.
+
+  - family: anthropic
+    name: claude-sonnet-5
+    model_id: claude-sonnet-5
+    api_key_env: ZZZ_API_KEY
+    enabled: true
+    provider: zhizengzeng
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
+    output_token_parameter: max_tokens
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
+    notes: >-
+      Gateway catalog lists Claude Sonnet 5. This execution uses the common
+      OpenAI-compatible gateway path rather than Anthropic's native API, so
+      FairEval does not claim that native thinking controls were applied.
+
+  - family: google
+    name: gemini-3.8-flash
+    model_id: gemini-3.8-flash
+    api_key_env: ZZZ_API_KEY
+    enabled: true
+    provider: zhizengzeng
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
+    output_token_parameter: max_output_tokens
+    gateway_wire_output_token_parameter: max_tokens
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
+    notes: >-
+      Gateway catalog lists Gemini 3.8 Flash. FairEval retains the provider-native
+      max_output_tokens field as the frozen study contract, while the unified
+      OpenAI-compatible gateway normalizes the wire request to max_tokens. Both
+      contract and wire fields are recorded. Native Gemini thinking/sampling
+      application is not assumed from request acceptance alone.
+
+  - family: deepseek
+    name: deepseek-v4.1-flash
+    model_id: deepseek-v4.1-flash
+    api_key_env: ZZZ_API_KEY
+    enabled: true
+    provider: zhizengzeng
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
+    output_token_parameter: max_tokens
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
+    notes: >-
+      Gateway catalog explicitly lists DeepSeek V4.1 Flash. Use the explicit
+      v4.1 identifier rather than the moving deepseek-flash alias. Native
+      thinking-control application through the gateway is not assumed.
+
+  - family: qwen
+    name: qwen3.8-max
+    model_id: qwen3.8-max
+    api_key_env: ZZZ_API_KEY
+    enabled: true
+    provider: zhizengzeng
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
+    output_token_parameter: max_tokens
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
+    notes: >-
+      The earlier pre-run ID qwen3.8-2.4t-a95b was rejected by the mandatory
+      live /v1/models preflight on the experiment key on 2026-09-18. The same
+      live account exposed qwen3.8-max, a general-purpose Qwen 3.8 endpoint;
+      FairEval versions the manifest to that exact ID before any paid generation.
+
+  - family: meta
+    name: llama-4-maverick
+    model_id: llama-4-maverick
+    api_key_env: ZZZ_API_KEY
+    enabled: true
+    provider: zhizengzeng
+    reasoning_or_thinking_setting: gateway_native_control_unverified
+    sampling_policy: gateway_explicit_temperature_top_p_requested_unverified_native_application
+    output_token_parameter: max_tokens
+    verification: zhizengzeng_live_models_experiment_key_2026-09-18
+    notes: >-
+      Gateway catalog lists llama-4-maverick directly. The previously unresolved
+      Llama hosting-provider blocker is replaced by explicit gateway provenance,
+      while returned model metadata remains part of every request record.
+
+generation:
+  top_k: 10
+  max_output_tokens: 512
+  temperature_main_requested: 0.2
+  top_p_main_requested: 1.0
+  main_repetitions: 3
+  temperature_stochasticity_requested: 0.7
+  top_p_stochasticity_requested: 1.0
+  stochasticity_repetitions: 10
+  stochasticity_fraction: 0.10
+  structured_output: true
+  request_chain_of_thought: false
+  cross_provider_decoding_equivalence_claimed: false
+  deliberation_policy: >-
+    Under the unified gateway, vendor-native reasoning/thinking control is
+    treated as unverified unless returned gateway metadata establishes it.
+    FairEval requests a common low-variance temperature/top-p profile through
+    the OpenAI-compatible interface and logs that request without equating it to
+    verified native-vendor decoding mechanics.
+
+budget:
+  config: configs/hosted_budget.yaml
+  normal_stop_target_rmb: 200.0
+  hard_cap_rmb: 250.0
+  per_request_reserve_rmb: 2.0
+  source_of_record: gateway_balance_delta
+
+reproducibility_required_fields:
+  - provider
+  - model_family
+  - requested_model_id
+  - resolved_model_version
+  - request_utc
+  - temperature_requested
+  - top_p_requested
+  - sampling_controls_applied
+  - sampling_policy
+  - output_token_parameter
+  - max_output_tokens
+  - reasoning_or_thinking_setting
+  - seed_requested
+  - seed_supported
+  - prompt_template_id
+  - prompt_mode
+  - candidate_order_seed
+  - prompt_sha256
+  - request_sha256
+  - response_sha256
+  - code_commit_sha
