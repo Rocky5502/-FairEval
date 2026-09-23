@@ -44,6 +44,11 @@ def main() -> int:
         "--preexecution-seal",
         default="results/preexecution/seal-v1/PREEXECUTION_SEAL.json",
     )
+    parser.add_argument(
+        "--plan-key",
+        default="whitebox_core",
+        help="Plan block key inside the pre-execution seal.",
+    )
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
@@ -96,7 +101,7 @@ def main() -> int:
         Path(args.preexecution_seal),
         expected_commit_sha=checked_out_sha,
         plan_dir=Path(args.plan_dir),
-        plan_key="whitebox_core",
+        plan_key=args.plan_key,
     )
 
     summary = execute_plan(
