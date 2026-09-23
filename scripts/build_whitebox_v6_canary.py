@@ -57,6 +57,16 @@ def main() -> int:
         fairsynth_user_offset=V6_CANARY_USER_OFFSET,
         repetitions=EXPECTED_REPETITIONS,
     )
+    versioned_cells = []
+    for source in cells:
+        row = dict(source)
+        row.pop("cell_id", None)
+        row["run_schema_version"] = "faireval-run-v6"
+        row["prompt_interface_version"] = "faireval-prompt-interface-v6"
+        row["cell_id"] = hashlib.sha256(canonical_json(row).encode("utf-8")).hexdigest()
+        versioned_cells.append(row)
+    cells = versioned_cells
+
     if len(cells) != EXPECTED_TOTAL_CELLS:
         raise AssertionError(
             f"V6 canary geometry drift: expected {EXPECTED_TOTAL_CELLS}, got {len(cells)}"
