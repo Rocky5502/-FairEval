@@ -91,7 +91,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--output-dir",
-        default="results/preexecution/seal-v10",
+        default="results/preexecution/seal-v11",
     )
     parser.add_argument(
         "--plan-dir",
@@ -125,9 +125,9 @@ def main() -> int:
                 "-m",
                 "pytest",
                 "-q",
-                "tests/test_output_protocol_v6.py",
+                "tests/test_output_protocol_v5.py",
                 "tests/test_runner.py",
-                "tests/test_run_audit_v6.py",
+                "tests/test_run_audit_v5.py",
                 "tests/test_prompt_and_validation.py",
                 "tests/test_execute.py",
                 "tests/test_preexecution_verification.py",
