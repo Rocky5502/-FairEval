@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .output_protocol import analyze_ranking_output
-from .prompts import build_ranking_prompt, prompt_sha256
+from .prompts import build_ranking_prompt, candidate_selection_map, prompt_sha256
 from .providers.base import GenerationRequest, ProviderAdapter
 from .schema import PromptCondition, UserInstance
 
@@ -68,6 +68,7 @@ def run_one(
         prompt_mode=prompt_mode,
         cue_id=cue_id,
         candidate_order_seed=candidate_order_seed,
+        prompt_interface_version=prompt_interface_version,
     )
     request_utc = datetime.now(timezone.utc).isoformat()
     request = GenerationRequest(
@@ -82,13 +83,28 @@ def run_one(
     response = provider.generate(request)
     provider_metadata = dict(response.provider_metadata)
 
+    if prompt_interface_version == "faireval-prompt-interface-v7":
+        selection_map = candidate_selection_map(instance, candidate_order_seed)
+        protocol_candidate_ids = tuple(selection_map)
+    else:
+        selection_map = None
+        protocol_candidate_ids = instance.candidate_ids()
+
     protocol = analyze_ranking_output(
         response.text,
-        candidate_ids=instance.candidate_ids(),
+        candidate_ids=protocol_candidate_ids,
         k=k,
     )
     if protocol.candidate_id_mutation_detected:
         raise RuntimeError("deterministic output protocol reported candidate-ID mutation")
+
+    ranking_selection_ids = None if protocol.ranking is None else list(protocol.ranking)
+    if protocol.ranking is None:
+        decoded_ranking = None
+    elif selection_map is None:
+        decoded_ranking = list(protocol.ranking)
+    else:
+        decoded_ranking = [selection_map[value] for value in protocol.ranking]
 
     row: dict[str, Any] = {
         "schema_version": run_schema_version,
@@ -137,7 +153,13 @@ def run_one(
         "repair": None,
         "final_valid": protocol.semantic_ranking_valid,
         "final_errors": list(protocol.semantic_errors),
-        "ranking": None if protocol.ranking is None else list(protocol.ranking),
+        "ranking": decoded_ranking,
+        "ranking_selection_ids": ranking_selection_ids,
+        "selection_handle_mapping_sha256": (
+            None
+            if selection_map is None
+            else _sha256(json.dumps(selection_map, sort_keys=True, separators=(",", ":")))
+        ),
         "output_protocol": protocol.as_dict(),
         "strict_format_valid": protocol.strict_format_valid,
         "semantic_ranking_valid": protocol.semantic_ranking_valid,
