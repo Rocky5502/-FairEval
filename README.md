@@ -1,3 +1,10 @@
+# FairEval
+
+> **ECIR 2027 V5 recovery branch:** `ecir-2027-v5-recovery` (branched from frozen V4 commit `05d90102...`)
+
+FairEval is a preference-conditioned benchmark for evaluating fairness in LLM-based recommendation with personality awareness. The central design principle is simple: **recommendation change is sensitivity; harmfulness requires consequence evidence**.
+
+The ECIR 2027 redesign separates demographic counterfactual effects from beneficial personalization, grounds personality in measured Big Five profiles, freezes prompt/cue/order controls before execution, and reports hosted/API and local/open-weight evidence in separate strata.
 
 ## V5 output-protocol recovery
 
@@ -20,13 +27,6 @@ candidate validity must be at least 95% **for each local model** over all 72
 canary cells, with zero candidate-ID mutation, zero parser ambiguity, and all
 provenance gates passing. A failed subgate means diagnose first; do not scale.
 
-# FairEval
-
-> **ECIR 2027 redesign branch:** `ecir-2027-redesign`
-
-FairEval is a preference-conditioned benchmark for evaluating fairness in LLM-based recommendation with personality awareness. The central design principle is simple: **recommendation change is sensitivity; harmfulness requires consequence evidence**.
-
-The ECIR 2027 redesign separates demographic counterfactual effects from beneficial personalization, grounds personality in measured Big Five profiles, freezes prompt/cue/order controls before execution, and reports hosted/API and local/open-weight evidence in separate strata.
 
 ## Research questions
 
@@ -49,7 +49,7 @@ Primary utility uses nDCG@10 and Recall@10. RBO and Jaccard measure ranking sens
 
 User is the primary unit of inference. Repeated generations are averaged within user-condition before pairing. The main inference stack uses paired bootstrap confidence intervals, paired sign-flip permutation tests, Wilcoxon sensitivity analysis, matched rank-biserial effect size, and Holm correction inside pre-registered families.
 
-Persistent invalid output after one permitted format-only repair receives zero primary system utility and remains an observable outcome; it is never regenerated repeatedly until valid.
+Persistent invalid output that remains semantically invalid after deterministic envelope parsing receives zero primary system utility and remains an observable outcome; canonical V5 uses one generation per cell and no generative/LLM repair.
 
 ## Repository structure
 
