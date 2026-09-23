@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, ecir-2027-redesign, ecir-2027-v5-recovery]
+    branches: [main, ecir-2027-redesign, ecir-2027-v5-recovery, ecir-2027-v6-interface]
   pull_request:
     branches: [main]
 
