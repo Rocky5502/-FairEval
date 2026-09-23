@@ -128,7 +128,7 @@ def main() -> int:
                 "-q",
                 "tests/test_output_protocol_v5.py",
                 "tests/test_runner.py",
-                "tests/test_run_audit_v5.py",
+                "tests/test_runner_v7.py",
                 "tests/test_run_audit_v5.py",
                 "tests/test_run_audit_v6.py",
                 "tests/test_run_audit_v7.py",
