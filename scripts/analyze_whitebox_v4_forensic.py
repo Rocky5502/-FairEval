@@ -9,6 +9,7 @@ from typing import Any
 
 from faireval.execute import load_and_verify_plan
 from faireval.freeze import canonical_json, file_sha256, load_frozen_instances
+from faireval.local_run_audit import audit_local_run_log
 from faireval.output_protocol import PROTOCOL_VERSION, analyze_ranking_output
 
 
@@ -95,10 +96,12 @@ def main() -> int:
 
     forensic_rows: list[dict[str, Any]] = []
     source_hashes: dict[str, str] = {}
+    source_audits: dict[str, Any] = {}
     seen_cells: set[str] = set()
 
     for source in inputs:
         source_hashes[str(source)] = file_sha256(source)
+        source_audits[str(source)] = audit_local_run_log(source, plan_dir=plan_dir)
         for line_no, row in enumerate(_read_jsonl(source), start=1):
             if row.get("schema_version") != "faireval-run-v4":
                 raise ValueError(f"{source}:{line_no}: forensic source must be faireval-run-v4")
@@ -233,6 +236,7 @@ def main() -> int:
         "source_v4_commit": V4_FROZEN_COMMIT,
         "parser_protocol_version": PROTOCOL_VERSION,
         "source_repairs_ignored": True,
+        "source_v4_run_audits": source_audits,
         "generative_repair_used_in_forensic_analysis": False,
         "original_v4_artifacts_modified": False,
         "rows": len(forensic_rows),
@@ -251,6 +255,7 @@ def main() -> int:
         "confirmatory": False,
         "source_v4_commit": V4_FROZEN_COMMIT,
         "source_run_sha256": source_hashes,
+        "source_run_audits": source_audits,
         "plan_dir": str(plan_dir),
         "plan_sha256": plan_manifest.get("plan_sha256"),
         "run_plan_file_sha256": plan_manifest.get("run_plan_file_sha256"),
