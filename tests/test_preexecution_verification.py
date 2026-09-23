@@ -183,3 +183,48 @@ def test_verify_v2_recovery_seal_rejects_seen_canary_results(tmp_path: Path) -> 
             plan_key="whitebox_core",
             spec_root=tmp_path,
         )
+
+
+def _convert_to_v3(seal_path: Path) -> None:
+    payload = json.loads(seal_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = "faireval-preexecution-seal-v3"
+    payload.pop("empirical_results_seen_or_inserted", None)
+    payload["prior_v4_results_known"] = True
+    payload["prior_v4_protocol_failure_known"] = True
+    payload["prior_v5_canary_results_known"] = True
+    payload["prior_v5_canary_failed"] = True
+    payload["v6_canary_disjoint_from_v5_users"] = True
+    payload["v6_canary_results_seen_before_seal"] = False
+    seal_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+
+def test_verify_v3_recovery_seal_accepts_known_v5_and_unseen_disjoint_v6(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="v6", plan_sha=plan_sha)
+    _convert_to_v3(seal)
+    result = verify_preexecution_seal(
+        seal,
+        expected_commit_sha="v6",
+        plan_dir=plan_dir,
+        plan_key="whitebox_core",
+        spec_root=tmp_path,
+    )
+    assert result["status"] == "pass"
+    assert result["schema_version"] == "faireval-preexecution-seal-verification-v3"
+
+
+def test_verify_v3_recovery_seal_rejects_seen_v6_results(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="v6", plan_sha=plan_sha)
+    _convert_to_v3(seal)
+    payload = json.loads(seal.read_text(encoding="utf-8"))
+    payload["v6_canary_results_seen_before_seal"] = True
+    seal.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="before any V6 canary result"):
+        verify_preexecution_seal(
+            seal,
+            expected_commit_sha="v6",
+            plan_dir=plan_dir,
+            plan_key="whitebox_core",
+            spec_root=tmp_path,
+        )
