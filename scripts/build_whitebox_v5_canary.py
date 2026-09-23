@@ -6,7 +6,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from faireval.freeze import canonical_json, file_sha256
+from faireval.freeze import canonical_json, file_sha256, verify_freeze
 from faireval.local_plan import compile_local_open_weight_plan
 
 
@@ -34,8 +34,18 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    freeze_root = Path(args.freeze_root)
+    freeze_verification = verify_freeze(freeze_root / "fairsynth360")
+    if freeze_verification.get("verification") != "PASS":
+        raise RuntimeError("FairSynth-360 freeze verification failed before V5 planning")
+    if int(freeze_verification.get("verified_instance_count", -1)) != 360:
+        raise RuntimeError(
+            "V5 canary requires the canonical 360-user FairSynth freeze; "
+            f"found {freeze_verification.get('verified_instance_count')}"
+        )
+
     cells, base_manifest = compile_local_open_weight_plan(
-        freeze_root=Path(args.freeze_root),
+        freeze_root=freeze_root,
         counterfactuals_yaml=Path(args.counterfactuals),
         local_models_yaml=Path(args.models),
         seed=args.seed,
@@ -101,6 +111,11 @@ def main() -> int:
         "protocol_recovery_after_frozen_v4_failure": True,
         "v4_frozen_commit": V4_FROZEN_COMMIT,
         "canary_results_seen_when_gate_defined": False,
+        "fairsynth_freeze_verification": {
+            "verification": freeze_verification.get("verification"),
+            "verified_instance_count": freeze_verification.get("verified_instance_count"),
+            "verified_instances_sha256": freeze_verification.get("verified_instances_sha256"),
+        },
         "fairsynth_users": EXPECTED_USERS,
         "conditions_per_user": EXPECTED_CONDITIONS_PER_USER,
         "repetitions": EXPECTED_REPETITIONS,
