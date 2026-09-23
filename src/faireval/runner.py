@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .evaluator import build_format_repair_prompt, validate_ranking_output
+from .output_protocol import analyze_ranking_output
 from .prompts import build_ranking_prompt, prompt_sha256
 from .providers.base import GenerationRequest, ProviderAdapter
 from .schema import PromptCondition, UserInstance
@@ -43,24 +43,21 @@ def run_one(
     reasoning_or_thinking_setting: str | None = None,
     code_commit_sha: str | None = None,
     planned_cell_id: str | None = None,
-    allow_format_repair: bool = True,
+    allow_format_repair: bool = False,
 ) -> dict[str, Any]:
-    """Execute and persist one benchmark cell.
+    """Execute and persist one V5 benchmark cell with exactly one model call.
 
-    The raw first response is always retained. A repair call, if used, is stored
-    separately and is allowed to change formatting only. Persistent invalidity
-    remains an explicit outcome rather than being silently excluded.
-
-    ``prompt_mode='audit'`` is mandatory for RQ1--RQ3 unmitigated evaluation.
-    RQ4 may additionally run named mitigation modes such as
-    ``identity_irrelevance``. Template, cue representation, candidate-order seed,
-    and ranking cutoff are logged so presentation/evaluation choices cannot be
-    hidden from analysis.
-
-    ``planned_cell_id`` links the persisted response to an immutable run-plan
-    row. Resumable execution should always provide it; direct unit/pilot calls may
-    leave it ``None``.
+    Canonical V5 forbids generative output repair. The first response is retained
+    verbatim and classified by the deterministic output protocol. Envelope-only
+    normalization may recover a ranking for semantic evaluation, while strict
+    serialization compliance is logged independently.
     """
+    if allow_format_repair:
+        raise ValueError(
+            "generative format repair is disabled in FairEval V5; "
+            "use deterministic output-protocol normalization only"
+        )
+
     prompt = build_ranking_prompt(
         instance,
         condition,
@@ -82,50 +79,22 @@ def run_one(
     )
     response = provider.generate(request)
     provider_metadata = dict(response.provider_metadata)
-    validation = validate_ranking_output(response.text, instance, k=k)
 
-    repair_record: dict[str, Any] | None = None
-    final_validation = validation
-    if not validation.valid and allow_format_repair:
-        repair_prompt = build_format_repair_prompt(response.text, k=k)
-        repair_request = GenerationRequest(
-            prompt=repair_prompt,
-            model_id=model_id,
-            temperature=0.0,
-            top_p=1.0,
-            max_output_tokens=max_output_tokens,
-            seed=seed if provider.supports_seed() else None,
-            reasoning_or_thinking_setting=reasoning_or_thinking_setting,
-        )
-        repair_response = provider.generate(repair_request)
-        repaired_validation = validate_ranking_output(
-            repair_response.text,
-            instance,
-            k=k,
-            repaired_format=True,
-        )
-        repair_record = {
-            "prompt_sha256": prompt_sha256(repair_prompt),
-            "raw_response": repair_response.text,
-            "response_sha256": _sha256(repair_response.text),
-            "resolved_model_version": repair_response.resolved_model_version,
-            "provider_metadata": dict(repair_response.provider_metadata),
-            "valid": repaired_validation.valid,
-            "errors": list(repaired_validation.errors),
-        }
-        if repaired_validation.valid:
-            final_validation = repaired_validation
+    protocol = analyze_ranking_output(
+        response.text,
+        candidate_ids=instance.candidate_ids(),
+        k=k,
+    )
+    if protocol.candidate_id_mutation_detected:
+        raise RuntimeError("deterministic output protocol reported candidate-ID mutation")
 
     row: dict[str, Any] = {
-        "schema_version": "faireval-run-v4",
+        "schema_version": "faireval-run-v5",
         "planned_cell_id": planned_cell_id,
         "dataset": instance.dataset,
         "user_id": instance.user_id,
         "condition_id": condition.condition_id,
         "condition_name": condition.condition_name,
-        # Keep legacy template_id/temperature/top_p fields for backwards
-        # compatibility while also exposing explicit requested-value names used
-        # by the reproducibility manifest.
         "template_id": template_id,
         "prompt_template_id": template_id,
         "prompt_mode": prompt_mode,
@@ -157,16 +126,26 @@ def run_one(
         "raw_response": response.text,
         "response_sha256": _sha256(response.text),
         "provider_metadata": provider_metadata,
-        "initial_valid": validation.valid,
-        "initial_errors": list(validation.errors),
-        "repair": repair_record,
-        "final_valid": final_validation.valid,
-        "final_errors": list(final_validation.errors),
-        "ranking": (
-            list(final_validation.ranking.ranked_item_ids)
-            if final_validation.ranking is not None
-            else None
-        ),
+        # Legacy aliases retained so downstream invalid-output metrics can be
+        # migrated without silently changing their meaning. In V5 they both mean
+        # semantic exact-k candidate validity after deterministic envelope parsing.
+        "initial_valid": protocol.semantic_ranking_valid,
+        "initial_errors": list(protocol.semantic_errors),
+        "repair": None,
+        "final_valid": protocol.semantic_ranking_valid,
+        "final_errors": list(protocol.semantic_errors),
+        "ranking": None if protocol.ranking is None else list(protocol.ranking),
+        "output_protocol": protocol.as_dict(),
+        "strict_format_valid": protocol.strict_format_valid,
+        "semantic_ranking_valid": protocol.semantic_ranking_valid,
+        "format_violations": list(protocol.format_violations),
+        "semantic_errors": list(protocol.semantic_errors),
+        "deterministic_normalization_applied": protocol.normalization_applied,
+        "normalization_actions": list(protocol.normalization_actions),
+        "parser_ambiguity": protocol.parser_ambiguity,
+        "candidate_id_mutation_detected": protocol.candidate_id_mutation_detected,
+        "generative_format_repair_enabled": False,
+        "provider_generation_calls_for_cell": 1,
         "code_commit_sha": code_commit_sha,
     }
     _append_jsonl(output_jsonl, row)
