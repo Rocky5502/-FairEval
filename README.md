@@ -1,3 +1,25 @@
+
+## V5 output-protocol recovery
+
+The frozen V4 local white-box campaign remains immutable. The separately
+versioned V5 recovery removes generative format repair, uses deterministic
+envelope-only parsing, and must pass a sealed 144-cell FairSynth canary before
+any full rerun.
+
+Recovery artifacts and entry points:
+
+- forensic V4 reparse: `scripts/analyze_whitebox_v4_forensic.py` (post-hoc only);
+- V5 canary plan: `scripts/build_whitebox_v5_canary.py`;
+- V5 pre-execution seal: `scripts/build_whitebox_v5_seal.py`;
+- V5 canary execution: `scripts/run_whitebox_v5_canary.py`;
+- V5 promotion audit: `scripts/audit_whitebox_v5_canary.py`;
+- frozen V4 boundary: `provenance/V4_OUTPUT_PROTOCOL_FAILURE_2026-09-23.md`.
+
+The scale-up rule is outcome-independent and predeclared: semantic exact-K
+candidate validity must be at least 95% **for each local model** over all 72
+canary cells, with zero candidate-ID mutation, zero parser ambiguity, and all
+provenance gates passing. A failed subgate means diagnose first; do not scale.
+
 # FairEval
 
 > **ECIR 2027 redesign branch:** `ecir-2027-redesign`
