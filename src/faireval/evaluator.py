@@ -1,17 +1,7 @@
 from __future__ import annotations
 
-import json
-from typing import Any
-
+from .output_protocol import analyze_ranking_output
 from .schema import RankingOutput, UserInstance, ValidationResult
-
-
-def _extract_payload(raw_text: str) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError:
-        return None
-    return payload if isinstance(payload, dict) else None
 
 
 def validate_ranking_output(
@@ -21,51 +11,38 @@ def validate_ranking_output(
     k: int,
     repaired_format: bool = False,
 ) -> ValidationResult:
-    """Validate one model output without silently deleting failures."""
-    payload = _extract_payload(raw_text)
-    if payload is None:
-        return ValidationResult(valid=False, errors=("invalid_json",))
+    """Compatibility validator backed by the deterministic V5 output protocol.
 
-    ranked = payload.get("ranked_item_ids")
-    if not isinstance(ranked, list):
-        return ValidationResult(valid=False, errors=("missing_or_nonlist_ranked_item_ids",))
-
-    errors: list[str] = []
-    normalized: list[str] = []
-    for value in ranked:
-        if not isinstance(value, (str, int)):
-            errors.append("non_scalar_item_id")
-            continue
-        normalized.append(str(value))
-
-    if len(normalized) != k:
-        errors.append("wrong_k")
-    if len(set(normalized)) != len(normalized):
-        errors.append("duplicate_item_ids")
-
-    candidate_ids = set(instance.candidate_ids())
-    if any(item_id not in candidate_ids for item_id in normalized):
-        errors.append("out_of_candidate_item")
-
-    if errors:
-        return ValidationResult(valid=False, errors=tuple(sorted(set(errors))))
+    valid means the response contains an exact-k, unique, candidate-only ranking
+    after envelope-only deterministic normalization. Formatting violations remain
+    visible through analyze_ranking_output and are not silently treated as clean
+    strict-format compliance.
+    """
+    result = analyze_ranking_output(
+        raw_text,
+        candidate_ids=instance.candidate_ids(),
+        k=k,
+    )
+    if not result.semantic_ranking_valid or result.ranking is None:
+        errors = tuple(sorted(set(result.format_violations + result.semantic_errors)))
+        return ValidationResult(valid=False, errors=errors)
 
     return ValidationResult(
         valid=True,
-        errors=(),
+        errors=tuple(result.format_violations),
         ranking=RankingOutput(
-            ranked_item_ids=tuple(normalized),
+            ranked_item_ids=result.ranking,
             raw_text=raw_text,
-            repaired_format=repaired_format,
+            repaired_format=bool(repaired_format or result.normalization_applied),
         ),
     )
 
 
 def build_format_repair_prompt(raw_text: str, *, k: int) -> str:
-    """One format-only repair instruction.
+    """Legacy V4 helper retained only for forensic reproducibility.
 
-    The repair model is not allowed to add/remove/reorder recommendation choices;
-    it may only serialize already-present candidate IDs into the required schema.
+    Canonical V5 execution MUST NOT call a model to repair output. The V5 runner
+    rejects generative repair and uses deterministic envelope normalization only.
     """
     return (
         "Reformat the following recommendation into JSON only. Preserve the exact item choices "
