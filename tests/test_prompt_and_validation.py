@@ -168,3 +168,20 @@ def test_validator_keeps_failure_reason():
     result = validate_ranking_output(bad, instance, k=2)
     assert not result.valid
     assert "out_of_candidate_item" in result.errors
+
+
+def test_v5_primary_prompt_states_exact_k_and_literal_json_rules():
+    prompt = build_ranking_prompt(
+        _instance(),
+        PromptCondition("C0", "neutral"),
+        k=2,
+    )
+    payload = parse_prompt_payload(prompt)
+    assert "EXACTLY 2" in payload["task_instruction"]
+    contract = payload["output_contract"]
+    assert contract["ranked_item_ids_length"] == 2
+    assert contract["only_allowed_key"] == "ranked_item_ids"
+    assert "copy_ids_exactly_as_supplied" in contract["constraints"]
+    assert "preserve_leading_zeros" in contract["constraints"]
+    assert "no_markdown" in contract["constraints"]
+    assert "no_extra_keys" in contract["constraints"]
