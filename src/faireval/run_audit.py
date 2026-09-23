@@ -11,7 +11,7 @@ from .execute import load_and_verify_plan
 
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
-_SUPPORTED_SCHEMAS = {"faireval-run-v4", "faireval-run-v5", "faireval-run-v6"}
+_SUPPORTED_SCHEMAS = {"faireval-run-v4", "faireval-run-v5", "faireval-run-v6", "faireval-run-v7"}
 _REQUIRED_RUN_FIELDS = (
     "schema_version",
     "planned_cell_id",
@@ -167,8 +167,11 @@ def _audit_v5plus_protocol(row: Mapping[str, Any], *, line_no: int) -> None:
         "normalization_actions": row.get("normalization_actions"),
         "parser_ambiguity": row.get("parser_ambiguity"),
         "candidate_id_mutation_detected": row.get("candidate_id_mutation_detected"),
-        "ranking": row.get("ranking"),
     }
+    if str(row.get("schema_version", "")) == "faireval-run-v7":
+        comparisons["ranking"] = row.get("ranking_selection_ids")
+    else:
+        comparisons["ranking"] = row.get("ranking")
     for key, expected in comparisons.items():
         if protocol.get(key) != expected:
             raise ValueError(
@@ -188,6 +191,20 @@ def _audit_v5plus_protocol(row: Mapping[str, Any], *, line_no: int) -> None:
             raise ValueError(
                 f"line {line_no}: V6 row must declare faireval-prompt-interface-v6"
             )
+    if schema == "faireval-run-v7":
+        if row.get("prompt_interface_version") != "faireval-prompt-interface-v7":
+            raise ValueError(
+                f"line {line_no}: V7 row must declare faireval-prompt-interface-v7"
+            )
+        selection_ids = row.get("ranking_selection_ids")
+        if semantic_valid:
+            if not isinstance(selection_ids, Sequence) or isinstance(selection_ids, (str, bytes)):
+                raise ValueError(f"line {line_no}: valid V7 row requires ranking_selection_ids")
+            decoded = row.get("ranking")
+            if not isinstance(decoded, Sequence) or isinstance(decoded, (str, bytes)):
+                raise ValueError(f"line {line_no}: valid V7 row requires decoded ranking")
+        elif row.get("ranking") is not None or selection_ids is not None:
+            raise ValueError(f"line {line_no}: invalid V7 row must not persist rankings")
 
 
 def _check_plan_alignment(
@@ -343,7 +360,7 @@ def audit_run_log(
             if not bool(row["semantic_ranking_valid"]):
                 invalid_count += 1
                 if row.get("ranking") is not None:
-                    raise ValueError(f"line {line_no}: invalid V5/V6 row must not persist a ranking")
+                    raise ValueError(f"line {line_no}: invalid V5/V6/V7 row must not persist a ranking")
             if not bool(row["strict_format_valid"]):
                 strict_invalid_count += 1
             if bool(row["deterministic_normalization_applied"]):
@@ -368,9 +385,13 @@ def audit_run_log(
     run_schema = next(iter(schemas))
     return {
         "schema_version": (
-            "faireval-run-audit-v6"
-            if run_schema == "faireval-run-v6"
-            else "faireval-run-audit-v5"
+            "faireval-run-audit-v7"
+            if run_schema == "faireval-run-v7"
+            else (
+                "faireval-run-audit-v6"
+                if run_schema == "faireval-run-v6"
+                else "faireval-run-audit-v5"
+            )
         ),
         "run_schema_version": run_schema,
         "rows": len(rows),
