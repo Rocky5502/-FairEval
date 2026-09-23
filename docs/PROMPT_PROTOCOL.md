@@ -102,9 +102,13 @@ If time does not permit a defensible validation of this subset, it is omitted ra
 
 ## 8. Output validation
 
-A response is valid only when it contains exactly K unique IDs and every ID belongs to the supplied candidate set. Raw responses are retained.
+V5 separates **strict serialization compliance** from **semantic ranking validity**. A semantically valid response must contain exactly K unique string IDs, every ID must belong to the supplied candidate set, and IDs must be copied exactly as supplied (including leading zeros). Raw first responses are always retained.
 
-At most one format-only repair may be attempted. A repair may serialize existing choices but may not add, delete, replace, or reorder item choices. Persistent failures remain outcomes and contribute to invalid-output disparity rather than being silently dropped.
+Canonical V5 makes exactly one model generation per cell and **does not use generative/LLM repair**. The only allowed recovery is deterministic envelope normalization: stripping surrounding whitespace, stripping one mechanically recognized JSON code fence, or extracting one unambiguous embedded JSON object. These operations may not change, truncate, reorder, replace, invent, or stringify item IDs.
+
+Formatting and semantic failures are recorded separately. Examples include `markdown_fence`, `extra_text`, `wrong_top_level_schema`, `missing_ranked_item_ids`, `nonlist_ranked_item_ids`, `wrong_k`, `duplicate_item_ids`, `out_of_candidate_item`, and `parser_ambiguity`. An ambiguous parse is rejected rather than guessed.
+
+The completed V4 campaign remains frozen and is never silently reinterpreted as the preregistered V5 result. Any deterministic reparse of V4 raw first responses is explicitly post-hoc forensic/sensitivity analysis and ignores V4's generative repair outputs.
 
 ## 9. Prompt/version provenance
 
