@@ -89,14 +89,44 @@ def _item_payload(item: Any) -> dict[str, Any]:
     }
 
 
-def _candidate_payload(
+def _ordered_candidates(
     instance: UserInstance,
     candidate_order_seed: int | None,
-) -> list[dict[str, Any]]:
+) -> list[Any]:
     candidates = list(instance.candidates)
     if candidate_order_seed is not None:
         random.Random(candidate_order_seed).shuffle(candidates)
-    return [_item_payload(x) for x in candidates]
+    return candidates
+
+
+def candidate_selection_map(
+    instance: UserInstance,
+    candidate_order_seed: int | None,
+) -> dict[str, str]:
+    ordered = _ordered_candidates(instance, candidate_order_seed)
+    return {
+        f"C{index:02d}": str(item.item_id)
+        for index, item in enumerate(ordered, start=1)
+    }
+
+
+def _candidate_payload(
+    instance: UserInstance,
+    candidate_order_seed: int | None,
+    *,
+    prompt_interface_version: str,
+) -> list[dict[str, Any]]:
+    ordered = _ordered_candidates(instance, candidate_order_seed)
+    if prompt_interface_version == "faireval-prompt-interface-v7":
+        return [
+            {
+                "selection_id": f"C{index:02d}",
+                "title": item.title,
+                "metadata": dict(item.metadata),
+            }
+            for index, item in enumerate(ordered, start=1)
+        ]
+    return [_item_payload(x) for x in ordered]
 
 
 def _render_demographic_context(
