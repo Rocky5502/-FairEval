@@ -13,6 +13,7 @@ SEAL_SCHEMAS = {
     "faireval-preexecution-seal-v2",
     "faireval-preexecution-seal-v3",
     "faireval-preexecution-seal-v4",
+    "faireval-preexecution-seal-v5",
 }
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -134,7 +135,7 @@ def verify_preexecution_seal(
                 raise ValueError(f"V3 seal must disclose/confirm {field}")
         if seal.get("v6_canary_results_seen_before_seal") is not False:
             raise ValueError("V3 seal must be created before any V6 canary result is inspected")
-    else:
+    elif seal.get("schema_version") == "faireval-preexecution-seal-v4":
         required_true = (
             "prior_v4_results_known",
             "prior_v4_protocol_failure_known",
@@ -149,6 +150,23 @@ def verify_preexecution_seal(
                 raise ValueError(f"V4 seal must disclose/confirm {field}")
         if seal.get("v7_canary_results_seen_before_seal") is not False:
             raise ValueError("V4 seal must be created before any V7 canary result is inspected")
+    else:
+        required_true = (
+            "prior_v4_results_known",
+            "prior_v4_protocol_failure_known",
+            "prior_v5_canary_results_known",
+            "prior_v5_canary_failed",
+            "prior_v6_canary_results_known",
+            "prior_v6_canary_failed",
+            "v7_canary_results_known",
+            "v7_canary_passed",
+            "v7_main_users_disjoint_from_all_canaries",
+        )
+        for field in required_true:
+            if seal.get(field) is not True:
+                raise ValueError(f"V5 seal must disclose/confirm {field}")
+        if seal.get("v7_main_results_seen_before_seal") is not False:
+            raise ValueError("V5 seal must be created before any V7 main-run result is inspected")
 
     actual_spec_digest, spec_file_count = _verify_scientific_spec_files(
         seal,
@@ -179,12 +197,16 @@ def verify_preexecution_seal(
 
     return {
         "schema_version": (
-            "faireval-preexecution-seal-verification-v4"
-            if seal.get("schema_version") == "faireval-preexecution-seal-v4"
+            "faireval-preexecution-seal-verification-v5"
+            if seal.get("schema_version") == "faireval-preexecution-seal-v5"
             else (
-                "faireval-preexecution-seal-verification-v3"
-                if seal.get("schema_version") == "faireval-preexecution-seal-v3"
-                else "faireval-preexecution-seal-verification-v2"
+                "faireval-preexecution-seal-verification-v4"
+                if seal.get("schema_version") == "faireval-preexecution-seal-v4"
+                else (
+                    "faireval-preexecution-seal-verification-v3"
+                    if seal.get("schema_version") == "faireval-preexecution-seal-v3"
+                    else "faireval-preexecution-seal-verification-v2"
+                )
             )
         ),
         "status": "pass",
