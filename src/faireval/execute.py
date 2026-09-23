@@ -292,6 +292,10 @@ def execute_plan(
             reasoning_or_thinking_setting=reasoning_setting,
             code_commit_sha=code_commit_sha,
             planned_cell_id=str(row["cell_id"]),
+            run_schema_version=str(row.get("run_schema_version", "faireval-run-v5")),
+            prompt_interface_version=str(
+                row.get("prompt_interface_version", "faireval-prompt-interface-v5")
+            ),
         )
         executed += 1
 
