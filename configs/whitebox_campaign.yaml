@@ -17,12 +17,21 @@ phase_0_canary:
   cells_per_family: 72
   total_cells: 144
   promotion_rule:
-    - run_log_audit_pass
-    - zero_duplicate_planned_cell_ids
-    - candidate_membership_validated
-    - frozen_model_commit_verified
-    - gpu_provenance_present
-    - white_box_fields_present
+    predeclared_before_v5_canary_results: true
+    semantic_exact_k_candidate_valid_rate_per_model_min: 0.95
+    required_cells_per_family: 72
+    hard_requirements:
+      - run_log_audit_pass
+      - zero_duplicate_planned_cell_ids
+      - zero_candidate_id_mutation
+      - zero_parser_ambiguity
+      - candidate_membership_validated
+      - frozen_model_commit_verified
+      - gpu_provenance_present
+      - white_box_fields_present
+      - preexecution_seal_pass
+      - commit_provenance_pass
+    failure_action: do_not_scale_diagnose_failed_72_cell_model
 
 phase_1_fairsynth_full:
   dataset: fairsynth360
