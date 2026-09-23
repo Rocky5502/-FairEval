@@ -204,3 +204,21 @@ def test_v6_candidate_whitelist_excludes_history_ids_and_matches_candidates():
     assert "h1" not in eligible
     assert payload["output_contract"]["ranked_item_ids_length"] == 2
     assert "ids_must_come_only_from_eligible_candidate_ids" in payload["output_contract"]["constraints"]
+
+
+def test_v7_candidate_handles_hide_raw_item_ids_and_preserve_ordered_mapping():
+    instance = _instance()
+    prompt = build_ranking_prompt(
+        instance,
+        PromptCondition("C0", "neutral"),
+        k=2,
+        candidate_order_seed=1729,
+        prompt_interface_version="faireval-prompt-interface-v7",
+    )
+    payload = parse_prompt_payload(prompt)
+    assert all("item_id" not in row for row in payload["preference_history"])
+    assert all("item_id" not in row for row in payload["candidate_items"])
+    handles = [row["selection_id"] for row in payload["candidate_items"]]
+    assert handles == payload["eligible_candidate_ids"]
+    assert handles == ["C01", "C02", "C03"]
+    assert len(set(handles)) == 3
