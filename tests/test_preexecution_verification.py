@@ -142,3 +142,44 @@ def test_verify_preexecution_seal_rejects_uncommitted_source_drift(tmp_path: Pat
             plan_key="whitebox_core",
             spec_root=tmp_path,
         )
+
+
+def _convert_to_v2(seal_path: Path) -> None:
+    payload = json.loads(seal_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = "faireval-preexecution-seal-v2"
+    payload.pop("empirical_results_seen_or_inserted", None)
+    payload["prior_v4_results_known"] = True
+    payload["prior_v4_protocol_failure_known"] = True
+    payload["v5_canary_results_seen_before_seal"] = False
+    seal_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+
+def test_verify_v2_recovery_seal_discloses_prior_v4_and_accepts_unseen_v5(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="v5", plan_sha=plan_sha)
+    _convert_to_v2(seal)
+    result = verify_preexecution_seal(
+        seal,
+        expected_commit_sha="v5",
+        plan_dir=plan_dir,
+        plan_key="whitebox_core",
+        spec_root=tmp_path,
+    )
+    assert result["status"] == "pass"
+
+
+def test_verify_v2_recovery_seal_rejects_seen_canary_results(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="v5", plan_sha=plan_sha)
+    _convert_to_v2(seal)
+    payload = json.loads(seal.read_text(encoding="utf-8"))
+    payload["v5_canary_results_seen_before_seal"] = True
+    seal.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="before any V5 canary result"):
+        verify_preexecution_seal(
+            seal,
+            expected_commit_sha="v5",
+            plan_dir=plan_dir,
+            plan_key="whitebox_core",
+            spec_root=tmp_path,
+        )
