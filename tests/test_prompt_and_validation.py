@@ -185,3 +185,22 @@ def test_v5_primary_prompt_states_exact_k_and_literal_json_rules():
     assert "preserve_leading_zeros" in contract["constraints"]
     assert "no_markdown" in contract["constraints"]
     assert "no_extra_keys" in contract["constraints"]
+
+
+def test_v6_candidate_whitelist_excludes_history_ids_and_matches_candidates():
+    instance = _instance()
+    prompt = build_ranking_prompt(
+        instance,
+        PromptCondition("C0", "neutral"),
+        k=2,
+        candidate_order_seed=1729,
+    )
+    payload = parse_prompt_payload(prompt)
+    assert all("item_id" not in row for row in payload["preference_history"])
+    eligible = payload["eligible_candidate_ids"]
+    candidate_ids = [row["item_id"] for row in payload["candidate_items"]]
+    assert eligible == candidate_ids
+    assert len(eligible) == len(set(eligible))
+    assert "h1" not in eligible
+    assert payload["output_contract"]["ranked_item_ids_length"] == 2
+    assert "ids_must_come_only_from_eligible_candidate_ids" in payload["output_contract"]["constraints"]
