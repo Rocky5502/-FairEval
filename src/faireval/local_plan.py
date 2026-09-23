@@ -62,14 +62,24 @@ def load_local_model_panel(path: Path) -> list[dict[str, str]]:
     return output
 
 
-def _stable_subset(instances: Sequence[UserInstance], *, n: int, seed: int, label: str) -> list[UserInstance]:
+def _stable_subset(
+    instances: Sequence[UserInstance],
+    *,
+    n: int,
+    seed: int,
+    label: str,
+    offset: int = 0,
+) -> list[UserInstance]:
+    if n < 0 or offset < 0:
+        raise ValueError("subset size and offset must be non-negative")
     scored = []
     for instance in instances:
         digest = hashlib.sha256(
             f"{seed}|{label}|{instance.dataset}|{instance.user_id}".encode("utf-8")
         ).hexdigest()
         scored.append((digest, instance))
-    return [instance for _, instance in sorted(scored, key=lambda row: row[0])[: min(n, len(scored))]]
+    ordered = [instance for _, instance in sorted(scored, key=lambda row: row[0])]
+    return ordered[offset : offset + min(n, max(0, len(ordered) - offset))]
 
 
 def _cell_seed(cell: Mapping[str, Any], *, experiment_seed: int) -> int:
@@ -178,6 +188,7 @@ def compile_local_open_weight_plan(
     seed: int,
     include_real_world: bool = True,
     fairsynth_users: int = 360,
+    fairsynth_user_offset: int = 0,
     repetitions: int = 3,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     local_models = load_local_model_panel(local_models_yaml)
@@ -211,6 +222,7 @@ def compile_local_open_weight_plan(
         n=fairsynth_users,
         seed=seed,
         label="local_fairsynth_subset",
+        offset=fairsynth_user_offset,
     )
     synth_conditions = plan_fairsynth_conditions(synth_selected, seed=seed)
     conditions.extend(synth_conditions)
@@ -218,6 +230,7 @@ def compile_local_open_weight_plan(
         "manifest_sha256": file_sha256(synth_dir / "manifest.json"),
         "instances_available": len(synth_all),
         "instances_selected": len(synth_selected),
+        "selection_offset": int(fairsynth_user_offset),
         "conditions": len(synth_conditions),
         "scope": "synthetic_controlled_stress_test",
     }
