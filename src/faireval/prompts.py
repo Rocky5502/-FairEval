@@ -188,6 +188,7 @@ def build_prompt_payload(
         raise ValueError(f"unknown cue_id={cue_id!r}")
 
     if prompt_interface_version not in {
+        "faireval-prompt-interface-v5",
         "faireval-prompt-interface-v6",
         "faireval-prompt-interface-v7",
     }:
