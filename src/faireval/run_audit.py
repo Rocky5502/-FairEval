@@ -11,7 +11,7 @@ from .execute import load_and_verify_plan
 
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
-_SUPPORTED_SCHEMAS = {"faireval-run-v4", "faireval-run-v5"}
+_SUPPORTED_SCHEMAS = {"faireval-run-v4", "faireval-run-v5", "faireval-run-v6"}
 _REQUIRED_RUN_FIELDS = (
     "schema_version",
     "planned_cell_id",
@@ -129,7 +129,7 @@ def _audit_v4_repair(row: Mapping[str, Any], *, line_no: int) -> str:
     return repair_text if bool(repair["valid"]) else str(row["raw_response"])
 
 
-def _audit_v5_protocol(row: Mapping[str, Any], *, line_no: int) -> None:
+def _audit_v5plus_protocol(row: Mapping[str, Any], *, line_no: int) -> None:
     required = (
         "output_protocol",
         "strict_format_valid",
@@ -145,19 +145,19 @@ def _audit_v5_protocol(row: Mapping[str, Any], *, line_no: int) -> None:
     )
     missing = [field for field in required if field not in row]
     if missing:
-        raise ValueError(f"line {line_no}: V5 row missing output-protocol fields {missing}")
+        raise ValueError(f"line {line_no}: V5/V6 row missing output-protocol fields {missing}")
     if row.get("repair") is not None:
-        raise ValueError(f"line {line_no}: canonical V5 must not contain generative repair")
+        raise ValueError(f"line {line_no}: canonical V5/V6 must not contain generative repair")
     if row.get("generative_format_repair_enabled") is not False:
-        raise ValueError(f"line {line_no}: V5 generative format repair must be false")
+        raise ValueError(f"line {line_no}: V5/V6 generative format repair must be false")
     if row.get("provider_generation_calls_for_cell") != 1:
-        raise ValueError(f"line {line_no}: V5 requires exactly one provider generation per cell")
+        raise ValueError(f"line {line_no}: V5/V6 requires exactly one provider generation per cell")
     if row.get("candidate_id_mutation_detected") is not False:
-        raise ValueError(f"line {line_no}: V5 candidate-ID mutation is a hard failure")
+        raise ValueError(f"line {line_no}: V5/V6 candidate-ID mutation is a hard failure")
 
     protocol = row.get("output_protocol")
     if not isinstance(protocol, Mapping):
-        raise ValueError(f"line {line_no}: V5 output_protocol must be an object")
+        raise ValueError(f"line {line_no}: V5/V6 output_protocol must be an object")
     comparisons = {
         "strict_format_valid": row.get("strict_format_valid"),
         "semantic_ranking_valid": row.get("semantic_ranking_valid"),
@@ -172,16 +172,22 @@ def _audit_v5_protocol(row: Mapping[str, Any], *, line_no: int) -> None:
     for key, expected in comparisons.items():
         if protocol.get(key) != expected:
             raise ValueError(
-                f"line {line_no}: V5 top-level/output_protocol disagreement for {key}"
+                f"line {line_no}: V5/V6 top-level/output_protocol disagreement for {key}"
             )
 
     semantic_valid = row.get("semantic_ranking_valid")
     if not isinstance(semantic_valid, bool):
-        raise ValueError(f"line {line_no}: V5 semantic_ranking_valid must be boolean")
+        raise ValueError(f"line {line_no}: V5/V6 semantic_ranking_valid must be boolean")
     if row.get("initial_valid") is not semantic_valid or row.get("final_valid") is not semantic_valid:
-        raise ValueError(f"line {line_no}: V5 legacy validity aliases must equal semantic validity")
+        raise ValueError(f"line {line_no}: V5/V6 legacy validity aliases must equal semantic validity")
     if row.get("parser_ambiguity") is not False:
-        raise ValueError(f"line {line_no}: parser ambiguity fails canonical V5 audit")
+        raise ValueError(f"line {line_no}: parser ambiguity fails canonical V5/V6 audit")
+    schema = str(row.get("schema_version", ""))
+    if schema == "faireval-run-v6":
+        if row.get("prompt_interface_version") != "faireval-prompt-interface-v6":
+            raise ValueError(
+                f"line {line_no}: V6 row must declare faireval-prompt-interface-v6"
+            )
 
 
 def _check_plan_alignment(
@@ -214,6 +220,10 @@ def _check_plan_alignment(
         "output_token_parameter": planned.get("output_token_parameter"),
         "sampling_policy_planned": planned.get("sampling_policy"),
     }
+    if planned.get("run_schema_version") is not None:
+        comparisons["schema_version"] = planned.get("run_schema_version")
+    if planned.get("prompt_interface_version") is not None:
+        comparisons["prompt_interface_version"] = planned.get("prompt_interface_version")
     for run_field, expected in comparisons.items():
         if run_field == "sampling_policy_planned":
             if expected in (None, ""):
@@ -329,11 +339,11 @@ def audit_run_log(
                 if row.get("ranking") is not None:
                     raise ValueError(f"line {line_no}: invalid V4 row must not persist a ranking")
         else:
-            _audit_v5_protocol(row, line_no=line_no)
+            _audit_v5plus_protocol(row, line_no=line_no)
             if not bool(row["semantic_ranking_valid"]):
                 invalid_count += 1
                 if row.get("ranking") is not None:
-                    raise ValueError(f"line {line_no}: invalid V5 row must not persist a ranking")
+                    raise ValueError(f"line {line_no}: invalid V5/V6 row must not persist a ranking")
             if not bool(row["strict_format_valid"]):
                 strict_invalid_count += 1
             if bool(row["deterministic_normalization_applied"]):
@@ -355,9 +365,14 @@ def audit_run_log(
             f"{sorted(commit_shas)}"
         )
 
+    run_schema = next(iter(schemas))
     return {
-        "schema_version": "faireval-run-audit-v5",
-        "run_schema_version": next(iter(schemas)),
+        "schema_version": (
+            "faireval-run-audit-v6"
+            if run_schema == "faireval-run-v6"
+            else "faireval-run-audit-v5"
+        ),
+        "run_schema_version": run_schema,
         "rows": len(rows),
         "unique_planned_cells": len(seen_cells),
         "semantic_invalid_outputs": invalid_count,
