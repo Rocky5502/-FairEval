@@ -13,7 +13,11 @@ EXPECTED = {
     "transformers": "4.44.2",
     "accelerate": "0.34.2",
     "bitsandbytes": "0.50.2",
+    "sentencepiece": "0.2.2",
+    "protobuf": "7.36.2",
 }
+EXPECTED_PYTHON = "3.11.9"
+EXPECTED_TORCH = "2.11.0+cu128"
 
 
 def _version(name: str) -> str | None:
@@ -33,6 +37,12 @@ def main() -> int:
     }
 
     errors: list[str] = []
+    if platform.python_version() != EXPECTED_PYTHON:
+        errors.append(
+            f"Python must be {EXPECTED_PYTHON}; found {platform.python_version()!r}"
+        )
+    if str(torch.__version__) != EXPECTED_TORCH:
+        errors.append(f"torch must be {EXPECTED_TORCH}; found {str(torch.__version__)!r}")
     for name, expected in EXPECTED.items():
         if packages[name] != expected:
             errors.append(f"{name} must be {expected}; found {packages[name]!r}")
@@ -52,6 +62,8 @@ def main() -> int:
         "torch": torch.__version__,
         "packages": packages,
         "cuda_available": cuda_available,
+        "hf_home": os.environ.get("HF_HOME"),
+        "hf_hub_disable_xet": os.environ.get("HF_HUB_DISABLE_XET"),
         "errors": errors,
     }
 
@@ -75,10 +87,12 @@ def main() -> int:
             errors.append(
                 f"expected Blackwell-class compute capability >= 12.0; found {compute_capability}"
             )
-        if os.environ.get("BNB_CUDA_VERSION") not in {None, "128"}:
+        if os.environ.get("BNB_CUDA_VERSION") != "128":
             errors.append(
-                "BNB_CUDA_VERSION must be unset or 128 for the canonical CUDA 12.8 runtime"
+                "BNB_CUDA_VERSION must be exactly 128 for the canonical V5 CUDA 12.8 runtime"
             )
+        if os.environ.get("HF_HUB_DISABLE_XET") != "1":
+            errors.append("HF_HUB_DISABLE_XET must be exactly 1 for the canonical local run")
         result["status"] = "PASS" if not errors else "FAIL"
         result["errors"] = errors
 
