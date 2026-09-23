@@ -44,6 +44,8 @@ def run_one(
     code_commit_sha: str | None = None,
     planned_cell_id: str | None = None,
     allow_format_repair: bool = False,
+    run_schema_version: str = "faireval-run-v5",
+    prompt_interface_version: str = "faireval-prompt-interface-v5",
 ) -> dict[str, Any]:
     """Execute and persist one V5 benchmark cell with exactly one model call.
 
@@ -89,7 +91,8 @@ def run_one(
         raise RuntimeError("deterministic output protocol reported candidate-ID mutation")
 
     row: dict[str, Any] = {
-        "schema_version": "faireval-run-v5",
+        "schema_version": run_schema_version,
+        "prompt_interface_version": prompt_interface_version,
         "planned_cell_id": planned_cell_id,
         "dataset": instance.dataset,
         "user_id": instance.user_id,
