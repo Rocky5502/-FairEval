@@ -8,7 +8,11 @@ from typing import Any
 from .execute import load_and_verify_plan
 
 
-SEAL_SCHEMAS = {"faireval-preexecution-seal-v1", "faireval-preexecution-seal-v2"}
+SEAL_SCHEMAS = {
+    "faireval-preexecution-seal-v1",
+    "faireval-preexecution-seal-v2",
+    "faireval-preexecution-seal-v3",
+}
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -106,7 +110,7 @@ def verify_preexecution_seal(
     if seal.get("schema_version") == "faireval-preexecution-seal-v1":
         if seal.get("empirical_results_seen_or_inserted") is not False:
             raise ValueError("V1 pre-execution seal is contaminated by empirical results")
-    else:
+    elif seal.get("schema_version") == "faireval-preexecution-seal-v2":
         # V5 is a transparently versioned recovery after the frozen V4 interface
         # failure, so prior V4 outcomes are necessarily known. The scientific
         # safeguard is that no V5 canary outcome was seen before this new gate.
@@ -116,6 +120,22 @@ def verify_preexecution_seal(
             raise ValueError("V2 seal must disclose the known V4 protocol failure")
         if seal.get("v5_canary_results_seen_before_seal") is not False:
             raise ValueError("V2 seal must be created before any V5 canary result is inspected")
+    else:
+        # V6 follows a failed, fully audited V5 canary. V5 outcomes are known, so
+        # the next safeguard is a new, disjoint canary whose outcomes are unseen
+        # when the V6 gate is sealed.
+        required_true = (
+            "prior_v4_results_known",
+            "prior_v4_protocol_failure_known",
+            "prior_v5_canary_results_known",
+            "prior_v5_canary_failed",
+            "v6_canary_disjoint_from_v5_users",
+        )
+        for field in required_true:
+            if seal.get(field) is not True:
+                raise ValueError(f"V3 seal must disclose/confirm {field}")
+        if seal.get("v6_canary_results_seen_before_seal") is not False:
+            raise ValueError("V3 seal must be created before any V6 canary result is inspected")
 
     actual_spec_digest, spec_file_count = _verify_scientific_spec_files(
         seal,
@@ -145,7 +165,11 @@ def verify_preexecution_seal(
         )
 
     return {
-        "schema_version": "faireval-preexecution-seal-verification-v2",
+        "schema_version": (
+            "faireval-preexecution-seal-verification-v3"
+            if seal.get("schema_version") == "faireval-preexecution-seal-v3"
+            else "faireval-preexecution-seal-verification-v2"
+        ),
         "status": "pass",
         "seal_path": str(path),
         "git_commit_sha": sealed_commit,
