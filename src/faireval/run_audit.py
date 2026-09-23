@@ -313,11 +313,16 @@ def audit_run_log(
                 if not isinstance(ranking, Sequence) or isinstance(ranking, (str, bytes)):
                     raise ValueError(f"line {line_no}: valid V4 row must contain a ranking list")
                 values = [str(value) for value in ranking]
-                if len(values) != int(row["k"]) or len(values) != len(set(values)):
-                    raise ValueError(f"line {line_no}: malformed valid V4 ranking")
+                if len(values) != int(row["k"]):
+                    raise ValueError(
+                        f"line {line_no}: valid ranking length {len(values)} "
+                        f"does not equal k={row['k']}"
+                    )
+                if len(values) != len(set(values)):
+                    raise ValueError(f"line {line_no}: valid ranking must contain unique IDs")
                 if _ranked_ids_from_json(authoritative_response) != values:
                     raise ValueError(
-                        f"line {line_no}: persisted V4 ranking does not match authoritative response"
+                        f"line {line_no}: persisted ranking does not match hashed authoritative response"
                     )
             else:
                 invalid_count += 1
@@ -357,6 +362,9 @@ def audit_run_log(
         "unique_planned_cells": len(seen_cells),
         "semantic_invalid_outputs": invalid_count,
         "strict_format_invalid_outputs": strict_invalid_count,
+        # Backward-compatible V4 summary aliases retained for existing audits.
+        "invalid_outputs": invalid_count,
+        "rows_with_format_repair": repaired_count,
         "rows_with_legacy_generative_repair": repaired_count,
         "rows_with_deterministic_normalization": normalized_count,
         "parser_ambiguity_rows": parser_ambiguity_count,
