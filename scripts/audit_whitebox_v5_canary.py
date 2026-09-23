@@ -182,11 +182,15 @@ def main() -> int:
             model_revision_mismatch += 1
             hardware_mismatch += 1
             continue
+        observed_commit_hash = provider_metadata.get("model_commit_hash")
         if (
             expected_revision is None
             or str(row.get("resolved_model_version", "")) != expected_revision
             or str(provider_metadata.get("model_revision_requested", "")) != expected_revision
-            or str(provider_metadata.get("model_commit_hash", "")) != expected_revision
+            or (
+                observed_commit_hash not in (None, "")
+                and str(observed_commit_hash) != expected_revision
+            )
         ):
             model_revision_mismatch += 1
 
