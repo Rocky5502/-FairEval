@@ -8,7 +8,7 @@ from typing import Any
 from .execute import load_and_verify_plan
 
 
-SEAL_SCHEMA = "faireval-preexecution-seal-v1"
+SEAL_SCHEMAS = {"faireval-preexecution-seal-v1", "faireval-preexecution-seal-v2"}
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -32,7 +32,7 @@ def load_preexecution_seal(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("pre-execution seal must contain a JSON object")
-    if payload.get("schema_version") != SEAL_SCHEMA:
+    if payload.get("schema_version") not in SEAL_SCHEMAS:
         raise ValueError(
             f"unsupported pre-execution seal schema {payload.get('schema_version')!r}"
         )
@@ -103,8 +103,19 @@ def verify_preexecution_seal(
         raise ValueError("pre-execution seal is contaminated by hosted generation calls")
     if seal.get("local_model_weights_loaded") is not False:
         raise ValueError("pre-execution seal is contaminated by local model loading")
-    if seal.get("empirical_results_seen_or_inserted") is not False:
-        raise ValueError("pre-execution seal is contaminated by empirical results")
+    if seal.get("schema_version") == "faireval-preexecution-seal-v1":
+        if seal.get("empirical_results_seen_or_inserted") is not False:
+            raise ValueError("V1 pre-execution seal is contaminated by empirical results")
+    else:
+        # V5 is a transparently versioned recovery after the frozen V4 interface
+        # failure, so prior V4 outcomes are necessarily known. The scientific
+        # safeguard is that no V5 canary outcome was seen before this new gate.
+        if seal.get("prior_v4_results_known") is not True:
+            raise ValueError("V2 seal must disclose that frozen V4 results were already known")
+        if seal.get("prior_v4_protocol_failure_known") is not True:
+            raise ValueError("V2 seal must disclose the known V4 protocol failure")
+        if seal.get("v5_canary_results_seen_before_seal") is not False:
+            raise ValueError("V2 seal must be created before any V5 canary result is inspected")
 
     actual_spec_digest, spec_file_count = _verify_scientific_spec_files(
         seal,
