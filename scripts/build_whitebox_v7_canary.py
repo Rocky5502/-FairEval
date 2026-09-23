@@ -113,21 +113,6 @@ def main() -> int:
         raise AssertionError(f"V7 canary must be disjoint from V5/V6 users: {overlap}")
 
     per_user_family: Counter[tuple[str, str]] = Counter(
-        freeze_root=freeze_root,
-        counterfactuals_yaml=Path(args.counterfactuals),
-        local_models_yaml=Path(args.models),
-        seed=args.seed,
-        include_real_world=False,
-        fairsynth_users=EXPECTED_USERS,
-        fairsynth_user_offset=V5_CANARY_USER_OFFSET,
-        repetitions=EXPECTED_REPETITIONS,
-    )
-    v5_users = {str(row["user_id"]) for row in v5_cells}
-    overlap = sorted(users & v5_users)
-    if overlap:
-        raise AssertionError(f"V7 canary must be disjoint from V5 users: {overlap}")
-
-    per_user_family: Counter[tuple[str, str]] = Counter(
         (str(row["user_id"]), str(row["model_family"])) for row in cells
     )
     if any(value != EXPECTED_CONDITIONS_PER_USER for value in per_user_family.values()):
