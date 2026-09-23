@@ -248,6 +248,7 @@ def build_ranking_prompt(
     prompt_mode: str = "audit",
     cue_id: str = "structured_key_value",
     candidate_order_seed: int | None = None,
+    prompt_interface_version: str = "faireval-prompt-interface-v6",
 ) -> str:
     """Render a controlled prompt for either auditing or mitigation.
 
@@ -270,6 +271,7 @@ def build_ranking_prompt(
         template_id=template_id,
         cue_id=cue_id,
         candidate_order_seed=candidate_order_seed,
+        prompt_interface_version=prompt_interface_version,
     )
     return SYSTEM_BY_MODE[prompt_mode] + "\nINPUT_JSON:\n" + json.dumps(
         payload,
