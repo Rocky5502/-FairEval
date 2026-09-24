@@ -200,7 +200,7 @@ def main() -> int:
     print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
     print("paper preflight: no atomic provider-side spend-cap claim")
     for token in (
-        "Hosted gateway operational pilot (not inferential evidence)",
+        "Hosted Six-Family Black-Box Pilot: Feasibility, Not Inference",
         "99 of 1,080 planned cells",
         "64.9362 RMB",
         "generated/hosted_pilot_operational_table.tex",
