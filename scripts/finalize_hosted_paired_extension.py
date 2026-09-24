@@ -56,10 +56,6 @@ def main() -> int:
         default="results/plans/hosted-fairsynth-paired-extension-v1",
     )
     parser.add_argument(
-        "--base-run",
-        default="results/runs/hosted-fairsynth-lean-v1.jsonl",
-    )
-    parser.add_argument(
         "--extension-run",
         default="results/runs/hosted-fairsynth-paired-extension-v1.jsonl",
     )
@@ -82,54 +78,31 @@ def main() -> int:
     if len(target_users) != 9:
         raise ValueError("target user IDs are not unique")
 
-    reused_users = {
-        str(row["user_id"])
-        for row in target_records
-        if bool(row.get("reused_prior_complete_user", False))
-    }
-    untouched_users = target_users - reused_users
-    if len(reused_users) != 2 or len(untouched_users) != 7:
-        raise ValueError(
-            "hosted paired extension must reuse exactly two complete prior users "
-            "and add exactly seven untouched users"
-        )
+    if not all(bool(row.get("historically_untouched_user", False)) for row in target_records):
+        raise ValueError("every hosted paired-extension target user must be historically untouched")
 
-    base_scored = score_run_log(
-        Path(args.base_run),
-        plan_dir=Path(args.parent_plan_dir),
-        freeze_root=Path(args.freeze_root),
-    )
     extension_scored = score_run_log(
         Path(args.extension_run),
         plan_dir=Path(args.extension_plan_dir),
         freeze_root=Path(args.freeze_root),
     )
-
-    base_target = [row for row in base_scored if str(row["user_id"]) in target_users]
-    extension_target = [
+    combined = [
         row for row in extension_scored if str(row["user_id"]) in target_users
     ]
-    base_users_present = {str(row["user_id"]) for row in base_target}
-    extension_users_present = {str(row["user_id"]) for row in extension_target}
-    if base_users_present != reused_users:
+    extension_users_present = {str(row["user_id"]) for row in combined}
+    if extension_users_present != target_users:
         raise RuntimeError(
-            "base hosted rows do not match the two preregistered reusable complete users: "
-            f"expected={sorted(reused_users)}, actual={sorted(base_users_present)}"
+            "extension hosted rows do not match the nine preregistered untouched users: "
+            f"expected={sorted(target_users)}, actual={sorted(extension_users_present)}"
         )
-    if extension_users_present != untouched_users:
-        raise RuntimeError(
-            "extension hosted rows do not match the seven preregistered untouched users: "
-            f"expected={sorted(untouched_users)}, actual={sorted(extension_users_present)}"
-        )
-    combined = base_target + extension_target
 
     ids = [str(row["planned_cell_id"]) for row in combined]
     if len(ids) != len(set(ids)):
         raise ValueError("target analysis contains duplicate planned cells")
-    if len(combined) != 324:
+    if len(combined) != 270:
         raise RuntimeError(
             "hosted paired target is incomplete: "
-            f"expected 324 target cells, found {len(combined)}"
+            f"expected 270 target cells, found {len(combined)}"
         )
 
     coverage: dict[tuple[str, str], set[str]] = defaultdict(set)
@@ -140,7 +113,13 @@ def main() -> int:
     for family in FAMILIES:
         for user in target_users:
             conditions = coverage.get((family, user), set())
-            if len(conditions) != 6:
+            has_required = (
+                "C1" in conditions
+                and "C3" in conditions
+                and "C4" in conditions
+                and sum(1 for value in conditions if value.startswith("C2:")) == 2
+            )
+            if not has_required or len(conditions) != 5:
                 raise RuntimeError(
                     f"incomplete hosted target pairing for {family}/{user}: "
                     f"{sorted(conditions)}"
@@ -185,7 +164,7 @@ def main() -> int:
         "identity_pairs": len(identity),
         "personality_pairs": len(personality),
         "inference_rows": len(inference),
-        "base_run_sha256": file_sha256(Path(args.base_run)),
+        "historical_pilot_reused_for_inference": False,
         "extension_run_sha256": file_sha256(Path(args.extension_run)),
         "extension_plan_manifest_sha256": file_sha256(
             Path(args.extension_plan_dir) / "plan_manifest.json"
