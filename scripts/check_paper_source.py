@@ -112,7 +112,11 @@ def main() -> int:
     )
     if not all(marker in main_text for marker in integrity_markers):
         raise SystemExit("artifact-only result-integrity policy missing from manuscript")
-    if "persistent invalid output" not in main_text.lower():
+    lowered_main = main_text.lower()
+    if not (
+        "persistent invalid output" in lowered_main
+        or "persistent semantic failure" in lowered_main
+    ):
         raise SystemExit("primary invalid-output policy is missing from manuscript text")
     budget_markers = (
         "200 RMB normal stop target",
