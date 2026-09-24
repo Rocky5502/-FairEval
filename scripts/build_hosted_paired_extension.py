@@ -160,10 +160,18 @@ def main() -> int:
             or str(row["condition"]["condition_id"]).startswith("C2:")
         )
     ]
-    target_rows = analysis_condition_rows
-    pending_rows = [
-        row for row in target_rows if str(row["cell_id"]) not in completed
-    ]
+    # The extension is a new scientific execution version. Explicitly bind the
+    # current V6 prompt/output interface rather than inheriting the historical
+    # parent's implicit V5 metadata. New cell IDs therefore identify the exact
+    # extension contract.
+    target_rows: list[dict[str, Any]] = []
+    for parent_row in analysis_condition_rows:
+        row = {key: value for key, value in parent_row.items() if key != "cell_id"}
+        row["run_schema_version"] = "faireval-run-v6"
+        row["prompt_interface_version"] = "faireval-prompt-interface-v6"
+        row["cell_id"] = hashlib.sha256(canonical_json(row).encode("utf-8")).hexdigest()
+        target_rows.append(row)
+    pending_rows = list(target_rows)
 
     expected_target_cells = len(target_users) * 5 * 6
     if len(target_rows) != expected_target_cells:
@@ -239,7 +247,7 @@ def main() -> int:
         "target_identity_group_counts": dict(sorted(target_group_counts.items())),
         "target_users_total": len(target_users),
         "target_cells_total_in_parent_plan": len(target_rows),
-        "target_cells_completed_before_extension": len(target_rows) - len(pending_rows),
+        "target_cells_completed_before_extension": 0,
         "historically_touched_users_excluded": sorted(
             user for user in user_order if completed_by_user[user] > 0
         ),
@@ -254,6 +262,8 @@ def main() -> int:
         "extension_budget_target_rmb": float(args.budget_target_rmb),
         "extension_budget_hard_cap_rmb": float(args.budget_hard_cap_rmb),
         "model_families": sorted({str(row["model_family"]) for row in target_rows}),
+        "run_schema_version": "faireval-run-v6",
+        "prompt_interface_version": "faireval-prompt-interface-v6",
         "plan_sha256": _plan_digest(pending_rows),
     }
     manifest["run_plan_file_sha256"] = file_sha256(plan_path)
