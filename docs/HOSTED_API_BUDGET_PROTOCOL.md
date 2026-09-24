@@ -42,7 +42,7 @@ The gateway-specific panel is:
 | Anthropic | `claude-sonnet-5` |
 | Google | `gemini-3.8-flash` |
 | DeepSeek | `deepseek-v4.1-flash` |
-| Alibaba Qwen | `qwen3.8-2.4t-a95b` |
+| Alibaba Qwen | `qwen3.8-max` |
 | Meta | `llama-4-maverick` |
 
 A live `GET /v1/models` preflight on the experiment key is mandatory before paid execution. If any exact frozen ID is absent, execution stops. Do not substitute a nearby model after examining results.
@@ -72,18 +72,7 @@ python scripts\build_fairsynth360.py `
   --seed 1729
 ```
 
-Then compile the default budget-sized hosted plan:
-
-```powershell
-python scripts\plan_hosted_fairsynth.py `
-  --freeze-root data\frozen `
-  --output-dir results\plans\hosted-fairsynth-budget-v1 `
-  --users 120 `
-  --repetitions 3 `
-  --seed 1729
-```
-
-The 120-user subset is selected deterministically and exactly balanced across meaningless identity groups A/B/C (40/40/40). With six registered FairSynth conditions, six hosted model families, and three generations, the complete plan contains **12,960 immutable cells**. The budget guard may stop before full coverage; any incomplete coverage is reported explicitly.
+The final hosted FairSynth campaign uses the versioned lean plan: 30 deterministically selected users, exactly balanced across meaningless identity groups A/B/C (10/10/10), six registered conditions, six hosted model families, and one generation, for **1,080 immutable cells**. The outcome-blind budget guard stopped the executed pilot after 99 cells; those rows are operational evidence only and are not used for hosted fairness inference.
 
 Regenerate the pre-execution seal after the plan exists and before paid execution. Do not edit the sealed code or plan while continuing the same run log.
 
@@ -141,3 +130,15 @@ python scripts\finalize_hosted_fairsynth.py
 ```
 
 That command audits the run, executes frozen FairSynth inference, renders the six-model synthetic sanity table, runs paper preflights, rebuilds the anonymous Overleaf ZIP, and writes a cryptographic paper-sync manifest. Do not type a result value into the manuscript by hand.
+
+
+## Final local V7 status (2026-09-24)
+
+The submission-time local FairSynth experiment is no longer the earlier 12,960-cell
+planning geometry. After the versioned V5/V6 protocol canaries, V7 passed its sealed
+promotion gate and the paper froze a deadline-bounded, outcome-independent **2,880-cell**
+main matrix: 120 canary-excluded users × 6 conditions × 2 seeded repetitions × 2 local
+models. That matrix completed 2,880/2,880 cells and passed the final integrity audit.
+
+The hosted and local campaigns remain separate strata; the local result does not repair
+or fill the incomplete hosted pilot.
