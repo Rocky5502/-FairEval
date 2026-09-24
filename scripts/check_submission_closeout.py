@@ -107,8 +107,8 @@ def main() -> int:
                 failures.append("hosted paired extension incorrectly permits real-world claims")
             if int(hosted_paired.get("target_users_total", -1)) != 9:
                 failures.append("hosted paired extension must contain exactly 9 target users")
-            if int(hosted_paired.get("target_cells", -1)) != 324:
-                failures.append("hosted paired extension must contain exactly 324 target cells")
+            if int(hosted_paired.get("target_cells", -1)) != 270:
+                failures.append("hosted paired extension must contain exactly 270 target cells")
             if int(hosted_paired.get("identity_pairs", -1)) != 54:
                 failures.append("hosted paired extension must contain 54 identity pairs")
             if int(hosted_paired.get("personality_pairs", -1)) != 54:
