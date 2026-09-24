@@ -29,7 +29,6 @@ EDITABLE_CONCEPT_FIGURES = (
 REQUIRED_FILES = (
     "main.tex",
     "benchmark_model_table.tex",
-    "rq_design_table.tex",
     "results_contract_table.tex",
     "related_work_table.tex",
     "references.bib",
