@@ -1,160 +1,85 @@
-# Overleaf synchronization contract
+# Overleaf synchronization contract — final-results state
 
-The repository branch `ecir-2027-redesign` is the scientific source of truth. Overleaf mirrors the anonymous contents of `paper/`; method, model, dataset, analysis, table, budget, and mitigation decisions must be changed in the repository first.
+The repository branch `ecir-2027-final-results` is the paper-facing source of truth.
+The frozen V7 experiment itself remains tied to execution commit
+`83d7ac443a5797f7e0392134fa2ea6d62c7177cf`; paper polishing must never mutate or
+reinterpret those run logs.
 
-## Core manuscript sources
+## Final empirical evidence included in Overleaf
 
-The upload bundle contains `main.tex`, the benchmark/model table, RQ design table, related-work table, bibliography files, and methodology PDFs. `results_contract_table.tex` is the stable paper-facing result entrypoint.
+The final manuscript consumes only audited generated artifacts when they exist.
+Missing empirical strata are omitted rather than replaced by TBD or hand-entered values.
 
-For RQ1/RQ2 and RQ3/RQ4 it prefers generated audited tables when they exist and otherwise falls back to the pre-registered TBD contracts:
+Included completed evidence:
 
-- `generated/rq12_inference_table.tex` -> fallback `result_tables/rq12_main_table.tex`;
-- `generated/rq34_results_table.tex` -> fallback `result_tables/rq34_main_table.tex`.
+- complete V7 local FairSynth matrix: 2,880/2,880 cells;
+- 120 canary-excluded FairSynth users, 6 conditions, 2 seeded repetitions, 2 local models;
+- audited local FairSynth paired inference;
+- audited local white-box diagnostic summary;
+- audited V7 output-reliability summary;
+- outcome-blind hosted six-family operational pilot: 99/1,080 planned cells.
 
-Hosted FairSynth is different: `generated/fairsynth_hosted_table.tex` is included **only if an audited hosted FairSynth inference artifact has actually been rendered**. There is no synthetic fake-number fallback.
+The hosted pilot is operational feasibility and cost provenance only. It is not used
+for fairness, utility, ranking, or personality-effect inference because paired-user
+coverage is below the preregistered hosted inference target.
 
-The 2026-09-18 budget-truncated hosted FairSynth run is reported separately as an **operational pilot only**. Its outcome-blind audit is rendered to `generated/hosted_pilot_operational_table.tex` and `figures/hosted_pilot_cost_profile.pdf`. These artifacts contain coverage and gateway balance movement only; they are not used for fairness, utility, ranking, or personality-effect inference. The inferential hosted FairSynth table remains pending unless a separately qualified artifact exists.
+## Generated tables
 
-The full-scale local white-box stratum follows the same artifact-only rule. `generated/whitebox_summary_table.tex` is included only after audited local output has been analyzed and rendered. White-box numerical values are never typed into the manuscript by hand and are never pooled with unavailable hosted-model internals.
+The final result entrypoint is `results_contract_table.tex`. It conditionally includes:
 
-The bundle also carries the compact supporting result contracts:
+- `generated/rq12_inference_table.tex` only if a qualified real-world artifact exists;
+- `generated/rq34_results_table.tex` only if qualified RQ3/RQ4 artifacts exist;
+- `generated/fairsynth_hosted_table.tex` only if complete hosted FairSynth inference exists;
+- `generated/fairsynth_local_table.tex` from the audited V7 local inference;
+- `generated/v7_execution_quality_table.tex` from the audited V7 main-run report;
+- `generated/whitebox_summary_table.tex` from the audited V7 white-box summary.
 
-- `result_tables/coverage_table.tex`;
-- `result_tables/trait_ablation_table.tex`;
-- `result_tables/fairsynth_table.tex`;
-- `result_tables/whitebox_table.tex`.
+The legacy files under `paper/result_tables/` remain bundled as study contracts but are
+not auto-included in the final manuscript when the corresponding empirical artifact is absent.
 
-Generated LaTeX result tables under `paper/generated/` and generated result PDFs are automatically copied into the Overleaf ZIP when present. The bundler therefore cannot silently drop numerical artifacts that the local paper already consumes.
+## V7 local result provenance
 
-## Pre-execution scientific seal
+Frozen identifiers:
 
-Before any hosted generation or local model inference, build the zero-call seal:
+- V7 execution commit: `83d7ac443a5797f7e0392134fa2ea6d62c7177cf`
+- plan SHA-256: `9108f00789ffa9d20fab3ca97315cee8db68086eea501dabec32f18700ae1519`
+- run-plan file SHA-256: `caf45d0ba753ea8d59987aaf035bf72e1df2c71735941025d2e50f70a6b95718`
+- pre-execution seal SHA-256: `dd04810ebd0c40daf58bf68533e60a9acfb963ade012743580611ed13c54489e`
+- merged run SHA-256: `9c91a3f936ce734b6460ad3030ccd12f261f6f655c0f4dfa168e0b3248780977`
+- FairSynth inference SHA-256: `5d84314f9cb1ab8b92c514545b35cb5626b530931c87fc0cce1c7d770797df7d`
 
-```bash
-python scripts/build_preexecution_seal.py \
-  --output-dir results/preexecution/seal-v1
-```
+Full interpretation and paper-use restrictions are recorded in
+`provenance/V7_FINAL_RESULTS_2026-09-24.md`.
 
-The seal regenerates the canonical FairSynth freeze and both deterministic FairSynth plans, renders pre-result contracts/figures, runs configuration and manuscript preflights, hashes the tracked scientific specification, records unresolved real-dataset blockers, and emits a pre-result anonymous Overleaf ZIP. It records that hosted generation calls are zero, local model weights were not loaded, and empirical results were not seen or inserted.
+## Hosted pilot provenance
 
-Real hosted and local launchers require the seal to match both the checked-out Git commit and the immutable plan SHA. Therefore changing executable scientific source after sealing requires a new seal and experiment version rather than continuing an old run log.
+The six-family hosted FairSynth lean campaign planned 1,080 cells and stopped
+outcome-blind after 99 cells under the frozen client budget guard. The authoritative
+summary is `provenance/hosted_fairsynth_pilot99_operational_summary.json`.
 
-## Hosted API execution contract
+The exact current hosted model IDs come from `configs/models.yaml`, including
+`qwen3.8-max`; do not revive the rejected earlier Qwen identifier.
 
-The current black-box phase uses the Zhizengzeng OpenAI-compatible gateway and the six exact IDs frozen in `configs/models.yaml`. Paid execution is guarded by:
-
-- live `GET /v1/models` exact-ID verification;
-- a 200 RMB normal stop target;
-- a 250 RMB client-side emergency stop threshold;
-- a 2 RMB pre-cell reserve;
-- gateway balance reconciliation before/after every persisted hosted cell;
-- an exact pre-execution seal and Git-SHA match.
-
-The 250 RMB value is deliberately **not represented as an atomic provider-side spend cap**. The project-wide 200/250 RMB values are safety ceilings, not a spending objective. The versioned lean FairSynth pilot used stricter 65/75 RMB runtime thresholds and stopped automatically after 99/1,080 planned cells, with 64.9362 RMB ledger-wide spend. The budget remains outcome-independent: cells execute in immutable plan order and the budget is never expanded after inspecting results. Budget-truncated coverage is reported as operational/incomplete coverage rather than evidence for or against an RQ.
-
-The first hosted executable evidence layer is the deterministic A/B/C-balanced FairSynth subset compiled by `scripts/plan_hosted_fairsynth.py`. Real-world hosted RQ1/RQ2 remains blocked until exact third-party raw releases are frozen.
-
-## Full-scale local white-box execution contract
-
-The two frozen open-weight models form a **required, separately reported replication stratum** rather than a small optional demo. The model panel remains fixed to exact Hugging Face revisions in `configs/local_models.yaml`; adding models after observing results is prohibited by the campaign contract.
-
-The canonical controlled run is:
-
-- 360 FairSynth users;
-- 6 registered conditions per user;
-- 3 seeded repetitions;
-- 2 frozen local model families;
-- 12,960 core generations in total.
-
-After exact real-world dataset freezes exist, the same two models replicate the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path. Hosted and local estimands remain separate strata.
-
-Build the immutable full core plan with:
-
-```bash
-python scripts/build_whitebox_campaign.py \
-  --freeze-root data/frozen \
-  --output-root results/plans/whitebox-full-v1
-```
-
-When all six real-world freezes are available, rebuild/version the campaign with `--include-real-world` rather than modifying an existing plan in place.
-
-Run one family at a time so a large GPU is used for throughput without mixing model state:
-
-```bash
-python scripts/run_whitebox_family.py \
-  --plan-dir results/plans/whitebox-full-v1/core \
-  --freeze-root data/frozen \
-  --family qwen25_local \
-  --output-jsonl results/runs/whitebox-qwen25-v1.jsonl \
-  --max-cells 250
-```
-
-Review the dry run first. Real GPU execution additionally requires `--execute --code-commit-sha <SHA>` and the matching default pre-execution seal. Repeat for `phi35_local`. The output file is resume-safe and every completed plan cell is persisted before the next cell starts.
-
-For the registered local RQ3 prompt/cue/order/cutoff/stochasticity factors, compile the separate seeded extra-cell plan only after real-world freezes exist:
-
-```bash
-python scripts/plan_whitebox_rq3.py \
-  --freeze-root data/frozen \
-  --output-dir results/plans/whitebox-full-v1/rq3
-```
-
-This planner reuses the same registered semantic geometry as hosted RQ3, substitutes the frozen local model panel, freezes a deterministic generation seed into every local robustness cell, and rehashes the immutable cell ID. Execute it with the same one-family `scripts/run_whitebox_family.py` runner by pointing `--plan-dir` to the RQ3 plan and using a seal/version that contains that exact plan.
-
-RQ4 identity-irrelevance prompting is derived from the real-world local core with `scripts/build_rq4_prompt_plan.py`; because the source local cells already carry frozen generation seeds, the derived executor-compatible plan preserves those seeds while changing only the named prompt intervention. Contextual PAIR remains a post-processing mitigation and never selects an operating point on test outcomes.
-
-## Result generation
-
-Before experiments:
-
-```bash
-python scripts/render_result_tables.py --contracts-only
-```
-
-After a hosted FairSynth run exists, the canonical hosted paper update is:
-
-```bash
-python scripts/finalize_hosted_fairsynth.py
-```
-
-That path performs run-log audit, FairSynth scoring/inference, `generated/fairsynth_hosted_table.tex` rendering, manuscript/result preflights, Overleaf bundle rebuild, and paper-sync hashing.
-
-For a completed local white-box run, use the full finalizer rather than manually combining families:
-
-```bash
-python scripts/finalize_whitebox.py \
-  --input-jsonl results/runs/whitebox-qwen25-v1.jsonl \
-  --input-jsonl results/runs/whitebox-phi35-v1.jsonl \
-  --plan-dir results/plans/whitebox-full-v1/core \
-  --freeze-root data/frozen \
-  --output-dir results/analysis/whitebox-full-v1 \
-  --paper-table paper/generated/whitebox_summary_table.tex \
-  --overleaf-output dist/FairEval_ECIR2027_Overleaf.zip
-```
-
-The finalizer audits both family logs and seed contracts, refuses incomplete/duplicate/mixed coverage, merges in immutable plan order, computes the declared local diagnostics, renders `paper/generated/whitebox_summary_table.tex`, runs paper preflights, and rebuilds the anonymous Overleaf ZIP. No manual averaging is permitted.
-
-For the complete real-world RQ1--RQ4 study, use the final renderer documented in `docs/RESULT_TABLES.md`. Final rendering requires the core inference, C5 trait inference, RQ3 summary, RQ4 PAIR artifact, RQ4 identity-irrelevance prompting summary, FairSynth inference, local white-box summary, and the user-condition artifact for every claimed stratum.
-
-RQ4 identity-irrelevance prompting runs through its own derived immutable plan (`scripts/build_rq4_prompt_plan.py`) so the neutral RQ1 audit is never fairness-coached. The derived plan uses the same `faireval-run-plan-v1` execution/audit protocol and changes only the named prompt mode while preserving source-cell provenance.
-
-## Figures
-
-Conceptual/non-result figures are generated from `scripts/build_paper_figures.py` as matched publication PDFs and editable SVG companions. The current conceptual set is `faireval_framework`, `faireval_conditions`, and `faireval_evaluation_pipeline`; the SVGs preserve text as text and are bundled with the PDFs for Overleaf handoff. Figure 1 is the motivating matched-context example, Figure 2 summarizes the registered RQ geometry, and Figure 3 documents the artifact-to-claim audit path. Result PDFs are generated only from frozen analysis artifacts by `scripts/build_result_figures.py`; until then `main.tex` renders explicit placeholders. Styling changes to empirical result figures must be made in the renderer and regenerated from the same audited artifact rather than by editing plotted values or geometry manually.
-
-## Double blind and integrity
+## Integrity rules
 
 - keep anonymous author/institution metadata until camera-ready;
-- do not insert numerical findings manually;
-- never describe FairSynth labels as human demographics or its OCEAN vectors as measured psychometrics;
-- never describe gateway-native thinking/sampling controls as verified unless returned metadata proves them;
+- never type empirical result values into manuscript prose without matching audited artifacts;
+- never pool FairSynth with real observed-demographic evidence;
+- never describe synthetic OCEAN as measured human psychometrics;
+- never infer hosted fairness effects from the 99-cell operational pilot;
+- never repair or drop persistent invalid outputs from the V7 main run;
 - never describe local token-score diagnostics as calibrated uncertainty;
-- never pool local internal-score diagnostics with hosted models that do not expose the same internals;
-- never select a PAIR point from test outcomes or tune one per model/dataset;
-- never use the RQ4 mitigation prompt in the RQ1 audit run;
-- never increase the hosted budget after inspecting results;
-- never describe the 250 RMB client-side threshold as a provider-enforced atomic spending cap;
-- never add a white-box model after observing campaign outcomes without versioning a new study;
-- never continue execution after the code/plan no longer matches the pre-execution seal.
+- never select RQ4 operating points from test outcomes;
+- never describe the 250 RMB client-side threshold as a provider-enforced atomic cap.
 
-Before an Overleaf upload, run the repository CI/preflight chain. CI checks configuration, manuscript sources, methodology figures, result-table contracts, the zero-call seal path, and builds an anonymous Overleaf ZIP only after the branch passes its guards.
+## Final Overleaf build
+
+Run the repository preflights/CI, then build:
+
+```bash
+python scripts/build_overleaf_bundle.py \
+  --output dist/FairEval_ECIR2027_Overleaf.zip
+```
+
+The resulting ZIP must include the audited V7 generated tables and the hosted pilot
+operational table/figure when present. The bundle remains double blind.
