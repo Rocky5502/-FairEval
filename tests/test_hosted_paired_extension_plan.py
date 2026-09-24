@@ -30,7 +30,7 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
     cells, manifest = compile_hosted_fairsynth_plan(
         freeze_root=freeze_root,
         models_yaml=ROOT / "configs" / "models.yaml",
-        users=12,
+        users=30,
         repetitions=1,
         seed=1729,
     )
@@ -52,7 +52,8 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
     )
 
     # Parent plan is 36 cells/user. Persist two complete users + 27 cells of a
-    # third, mirroring the real 99-cell operational prefix.
+    # third, mirroring the real 99-cell operational prefix. The scientific
+    # extension must exclude all three touched users.
     user_order = []
     seen = set()
     for row in cells:
@@ -126,12 +127,12 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
     assert partial_user in ext["partially_completed_users_excluded"]
     selected = {row["user_id"]: row for row in ext["target_users"]}
     assert partial_user not in selected
-    for user in complete_users:
-        if user in selected:
-            assert selected[user]["reused_prior_complete_user"] is True
-    # Exactly seven new complete users are needed after reusing two full users.
-    reused = sum(bool(row["reused_prior_complete_user"]) for row in ext["target_users"])
-    assert reused == 2
-    assert ext["planned_api_cells"] == 7 * 36
-    assert ext["target_cells_completed_before_extension"] == 2 * 36
+    assert complete_users.isdisjoint(selected)
+    assert all(bool(row["historically_untouched_user"]) for row in ext["target_users"])
+    assert set(ext["historically_touched_users_excluded"]) >= complete_users | {partial_user}
+    # Nine untouched users x five inferential conditions x six hosted families.
+    assert ext["planned_api_cells"] == 9 * 5 * 6
+    assert ext["target_cells_total_in_parent_plan"] == 270
+    assert ext["target_cells_completed_before_extension"] == 0
+    assert ext["preference_only_c0_included"] is False
     assert ext["scientific_outcomes_inspected_before_extension_definition"] is False
