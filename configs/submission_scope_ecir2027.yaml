@@ -36,6 +36,17 @@ completed_empirical_evidence:
     role: operational_feasibility_cost_and_provenance
     plan_sha256: 9304f13b41c5caefc5f366fbe8a5646bb3170b3d46650f70779d424246132d14
 
+
+  local_v7_secondary_descriptive:
+    required: false
+    status: complete_descriptive_only
+    new_model_or_api_calls: false
+    new_confirmatory_hypothesis_family: false
+    user_condition_sha256: 653a3eb04975b22975c5e8d40b861886d7ab8d18c3831c3f450d80adc5c4466b
+    identity_pairs_sha256: d1d997b51dd83d78c61216f77b186c23dd4965232901d8ac81cc0b53da36ac74
+    personality_pairs_sha256: 7b6f6d212be7ed7a5344d906eccd61d9f5ca7e184c6649bb512b2b49edf59747
+    provenance: provenance/V7_SECONDARY_ANALYSIS_2026-09-24.md
+
 deferred_not_claimed_in_submission:
   real_world_rq1_rq2_rq4:
     status: deferred
