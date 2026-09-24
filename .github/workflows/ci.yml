@@ -74,6 +74,8 @@ jobs:
           done
       - name: Render hosted black-box pilot artifacts
         run: python scripts/render_hosted_pilot_operational.py
+      - name: Render frozen V7 secondary artifacts
+        run: python scripts/render_v7_secondary_summary.py
       - name: Manuscript source preflight
         run: python scripts/check_paper_source.py
       - name: Result-table contract preflight
