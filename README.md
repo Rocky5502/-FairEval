@@ -1,31 +1,32 @@
 # FairEval
 
-> **ECIR 2027 V5 recovery branch:** `ecir-2027-v5-recovery` (branched from frozen V4 commit `05d90102...`)
+> **ECIR 2027 final paper branch:** `ecir-2027-final-results`. The frozen V7 local experiment ran at commit `83d7ac443a...` and completed 2,880/2,880 audited cells.
 
 FairEval is a preference-conditioned benchmark for evaluating fairness in LLM-based recommendation with personality awareness. The central design principle is simple: **recommendation change is sensitivity; harmfulness requires consequence evidence**.
 
 The ECIR 2027 redesign separates demographic counterfactual effects from beneficial personalization, grounds personality in measured Big Five profiles, freezes prompt/cue/order controls before execution, and reports hosted/API and local/open-weight evidence in separate strata.
 
-## V5 output-protocol recovery
+## Final V7 local experiment status
 
-The frozen V4 local white-box campaign remains immutable. The separately
-versioned V5 recovery removes generative format repair, uses deterministic
-envelope-only parsing, and must pass a sealed 144-cell FairSynth canary before
-any full rerun.
+The frozen V4 campaign and failed V5/V6 protocol canaries remain preserved as
+provenance. V7 introduced deterministic candidate-selection handles, passed the
+unchanged sealed 95% per-model canary gate, and was then used for the final
+deadline-bounded local FairSynth matrix.
 
-Recovery artifacts and entry points:
+Final V7 main run:
 
-- forensic V4 reparse: `scripts/analyze_whitebox_v4_forensic.py` (post-hoc only);
-- V5 canary plan: `scripts/build_whitebox_v5_canary.py`;
-- V5 pre-execution seal: `scripts/build_whitebox_v5_seal.py`;
-- V5 canary execution: `scripts/run_whitebox_v5_canary.py`;
-- V5 promotion audit: `scripts/audit_whitebox_v5_canary.py`;
-- frozen V4 boundary: `provenance/V4_OUTPUT_PROTOCOL_FAILURE_2026-09-23.md`.
+- 120 canary-excluded FairSynth users;
+- 6 registered conditions;
+- 2 seeded repetitions;
+- 2 frozen local model families;
+- 2,880 planned and observed cells;
+- final integrity audit: PASS;
+- Phi-3.5-mini semantic validity: 1,440/1,440;
+- Qwen2.5-7B semantic validity: 1,371/1,440 (95.21%).
 
-The scale-up rule is outcome-independent and predeclared: semantic exact-K
-candidate validity must be at least 95% **for each local model** over all 72
-canary cells, with zero candidate-ID mutation, zero parser ambiguity, and all
-provenance gates passing. A failed subgate means diagnose first; do not scale.
+Persistent Qwen failures are retained as system behavior; there is no generative
+repair or outcome-dependent rerun. The final evidence/provenance summary is
+`provenance/V7_FINAL_RESULTS_2026-09-24.md`.
 
 
 ## Research questions
@@ -153,15 +154,18 @@ python scripts/run_hosted_budgeted.py \
   --execute
 ```
 
-## Full-scale local/open-weight white-box stratum
+## Completed local/open-weight white-box stratum
 
 The repository freezes Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct as a **required, separately reported replication stratum**. Hosted and local effects are never pooled merely because they answer the same RQ, and local token-score diagnostics are explicitly auxiliary and uncalibrated.
 
-The canonical FairSynth white-box plan contains exactly **12,960 generations**:
+The submission-time FairSynth V7 plan contains exactly **2,880 generations**:
 
 ```text
-360 users × 6 conditions × 3 seeded repetitions × 2 frozen models
+120 canary-excluded users × 6 conditions × 2 seeded repetitions × 2 frozen models
 ```
+
+This complete matrix has finished and passed its integrity audit. The earlier
+12,960-cell geometry remains historical planning provenance only.
 
 The canonical local execution profile is a single 16 GB RTX 5070 Ti with one model loaded at a time using fixed bitsandbytes NF4 4-bit quantization and bfloat16 compute. On the pinned Transformers 4.44.2 stack, both Qwen2.5 and Phi-3.5 keep KV caching enabled; Phi uses eager attention and may emit a `seen_tokens` deprecation warning, which is not treated as a runtime failure. These execution choices are frozen in `configs/local_models.yaml`, persisted into the immutable plan, and rechecked against the runtime provider.
 
@@ -169,15 +173,9 @@ The two model families can be run individually through `scripts/run_whitebox_fam
 
 `scripts/finalize_whitebox.py` refuses partial/mixed coverage, merges both audited canonical family logs in immutable plan order, computes the declared diagnostics, renders `paper/generated/whitebox_summary_table.tex`, and rebuilds the anonymous Overleaf bundle.
 
-Preferred guarded one-command execution:
-
-```bash
-python scripts/run_whitebox_smart.py --execute
-```
-
-This launcher first checks the exact local package/GPU environment, builds a fresh scientific seal, runs one real canonical cell per family as a non-wasted canary, resumes directly into the full 12,960-cell campaign only if both canaries pass, and then audits/analyzes the completed logs and rebuilds the Overleaf bundle automatically.
-
-Lower-level execution remains available through `scripts/run_whitebox_full.py` when manual control is needed.
+The completed V7 execution path is `scripts/run_whitebox_v7_lean.py`, with
+`scripts/audit_whitebox_v7_lean.py` as the final integrity gate. No additional
+GPU inference is required for the current ECIR submission.
 
 Once all real-world release locks are complete, a separately versioned campaign extends the same two local models to the executable RQ1/RQ2 core, registered RQ3 robustness factors, and RQ4 mitigation path.
 
