@@ -94,6 +94,39 @@ def main() -> int:
     if missing:
         failures.append(f"missing paper artifacts: {missing}")
 
+
+    hosted_paired_manifest = (
+        ROOT / "results" / "analysis" / "fairsynth-hosted-paired-v1" / "manifest.json"
+    )
+    if hosted_paired_manifest.is_file():
+        try:
+            hosted_paired = json.loads(hosted_paired_manifest.read_text(encoding="utf-8"))
+            if hosted_paired.get("schema_version") != "faireval-hosted-paired-analysis-v1":
+                failures.append("hosted paired analysis schema mismatch")
+            if hosted_paired.get("real_world_claim_allowed") is not False:
+                failures.append("hosted paired extension incorrectly permits real-world claims")
+            if int(hosted_paired.get("target_users_total", -1)) != 9:
+                failures.append("hosted paired extension must contain exactly 9 target users")
+            if int(hosted_paired.get("target_cells", -1)) != 324:
+                failures.append("hosted paired extension must contain exactly 324 target cells")
+            if int(hosted_paired.get("identity_pairs", -1)) != 54:
+                failures.append("hosted paired extension must contain 54 identity pairs")
+            if int(hosted_paired.get("personality_pairs", -1)) != 54:
+                failures.append("hosted paired extension must contain 54 personality pairs")
+        except (OSError, json.JSONDecodeError) as exc:
+            failures.append(f"hosted paired analysis unreadable: {exc}")
+
+        hosted_paper_artifacts = (
+            ROOT / "paper" / "generated" / "fairsynth_hosted_table.tex",
+            ROOT / "paper" / "generated" / "fairsynth_hosted_summary.tex",
+            ROOT / "paper" / "figures" / "fairsynth_hosted_profiles.pdf",
+        )
+        for path in hosted_paper_artifacts:
+            if not path.is_file() or path.stat().st_size <= 0:
+                failures.append(
+                    f"hosted paired paper artifact missing/empty: {path.relative_to(ROOT)}"
+                )
+
     secondary_paths = (
         ROOT / "results" / "analysis" / "fairsynth-v7-secondary" / "secondary_summary.json",
         ROOT / "paper" / "figures" / "v7_secondary_profiles.pdf",
