@@ -61,6 +61,24 @@ def _enforce_cli_budget_policy(target: float, emergency_threshold: float, reserv
         raise ValueError("request-reserve-rmb must be positive and below target-rmb")
 
 
+def _enforce_first_launch_balance(
+    *,
+    available_rmb: float,
+    minimum_initial_balance_rmb: float | None,
+    ledger_preexisting: bool,
+) -> None:
+    if minimum_initial_balance_rmb is None or ledger_preexisting:
+        return
+    if minimum_initial_balance_rmb <= 0:
+        raise ValueError("--minimum-initial-balance-rmb must be positive when supplied")
+    if available_rmb < minimum_initial_balance_rmb:
+        raise BudgetExceeded(
+            "Refusing to start before any generation call: "
+            f"available balance {available_rmb:.4f} RMB is below required "
+            f"minimum {minimum_initial_balance_rmb:.2f} RMB."
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -183,22 +201,20 @@ def main() -> int:
             f"are missing: {model_gate['missing_frozen_models']}"
         )
 
+    ledger_path = Path(args.ledger)
+    ledger_preexisting = ledger_path.is_file()
     guard = ZhizengzengBudgetGuard(
-        ledger_path=Path(args.ledger),
+        ledger_path=ledger_path,
         target_rmb=args.target_rmb,
         hard_cap_rmb=args.hard_cap_rmb,
         request_reserve_rmb=args.request_reserve_rmb,
     )
     initial = guard.ensure_initialized()
-    if (
-        args.minimum_initial_balance_rmb is not None
-        and initial.available_rmb < args.minimum_initial_balance_rmb
-    ):
-        raise BudgetExceeded(
-            "Refusing to start before any generation call: "
-            f"available balance {initial.available_rmb:.4f} RMB is below required "
-            f"minimum {args.minimum_initial_balance_rmb:.2f} RMB."
-        )
+    _enforce_first_launch_balance(
+        available_rmb=initial.available_rmb,
+        minimum_initial_balance_rmb=args.minimum_initial_balance_rmb,
+        ledger_preexisting=ledger_preexisting,
+    )
     if initial.spent_rmb >= args.target_rmb:
         raise BudgetExceeded(
             f"Refusing to start: existing experiment spend {initial.spent_rmb:.4f} RMB "
