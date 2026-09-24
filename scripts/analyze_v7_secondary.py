@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from faireval.metrics import jaccard_at_k, rbo_at_k
+from scripts.render_v7_secondary_summary import (
+    render_figure as render_summary_figure,
+    render_stability_table as render_summary_stability_table,
+)
 
 
 MODEL_LABELS = {
@@ -414,16 +418,13 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    _render_figure(
-        condition_summary,
-        identity_pairs,
-        personality_pairs,
-        Path(args.paper_figure),
-    )
+    # Use the canonical summary renderer so direct local analysis and CI produce
+    # byte-equivalent paper semantics instead of maintaining two figure styles.
+    render_summary_figure(summary, Path(args.paper_figure))
     stability_table = Path(args.paper_stability_table)
     stability_table.parent.mkdir(parents=True, exist_ok=True)
     stability_table.write_text(
-        _render_stability_table(stability_summary),
+        render_summary_stability_table(summary),
         encoding="utf-8",
     )
     print(json.dumps({
