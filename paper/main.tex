@@ -133,6 +133,8 @@ Output reliability differs sharply across the two local models. Phi is semantica
 
 Two-repetition stability shows the same ordering. Phi has 720/720 valid repeat pairs with mean RBO@10 $=0.955$, Jaccard@10 $=0.863$, and 61.9\% exact-order agreement; Qwen has 673/720 valid pairs with RBO $=0.887$, Jaccard $=0.783$, and 49.3\% exact agreement. Raw generation scores are weakly associated with nDCG (Spearman $\rho=-0.158$ for Phi and $-0.037$ for Qwen), so they are not treated as calibrated confidence.
 
+\InputIfFileExists{generated/v7_repetition_stability_table.tex}{}{} 
+
 The six-family hosted pilot planned 1,080 cells but stopped outcome-blind after 99 (9.17\%) under the frozen budget guard, with 64.9362 RMB balance movement. Every family touched three users, far below the paired-user inference target; therefore no hosted fairness/personality effect is reported. The pilot contributes only execution, provenance, and cost evidence.
 
 \resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.91}{Hosted black-box operational coverage profiles. Each radar axis is normalized to the frozen per-family plan; the profiles visualize coverage structure only, not capability, utility, or fairness performance.}
