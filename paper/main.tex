@@ -114,7 +114,7 @@ All numerical claims are traceable to audited frozen experiment artifacts. Gener
 \input{results_contract_table}
 
 \subsection{RQ1: Irrelevant Identity Produces No Stable Utility Shift}
-Because FairSynth identity is relevance-invariant by construction, a stable utility shift would indicate undesirable context sensitivity. Neither local model shows such a directional effect: all identity nDCG@10 and Recall@10 bootstrap intervals include zero after Holm correction (Table~\ref{tab:fairsynth-local-generated}).
+Because FairSynth identity is relevance-invariant by construction, a stable utility shift would indicate undesirable context sensitivity. Under preference-only context, mean nDCG@10 is 0.304 for Phi and 0.321 for Qwen (Recall@10: 0.384 and 0.415, respectively), providing the absolute utility scale for the paired effects. Neither model shows a directional identity effect: all identity nDCG@10 and Recall@10 bootstrap intervals include zero after Holm correction (Table~\ref{tab:fairsynth-local-generated}).
 
 \subsection{RQ2: Synthetic Personality Provides No Reliable Incremental Utility}
 True-versus-shuffled synthetic OCEAN likewise yields small, uncertain nDCG@10 and Recall@10 effects in both models (Table~\ref{tab:fairsynth-local-generated}). The descriptive per-user distributions add nuance: all four identity/personality $\Delta$nDCG@10 distributions have median zero, but effects are heterogeneous rather than universally absent. For Qwen, personality effects are positive for 43.3\% and negative for 40.0\% of users (IQR approximately $[-0.062,0.079]$); for Phi, 60.8\% of personality contrasts are exactly zero.
@@ -129,7 +129,7 @@ True-versus-shuffled synthetic OCEAN likewise yields small, uncertain nDCG@10 an
 }{}
 
 \subsection{RQ3: Reliability and Black-Box Feasibility}
-Output reliability differs sharply across the two local models. Phi is semantically valid on all 1,440 cells despite requiring deterministic envelope normalization on 1,439 responses; Qwen is strict-JSON compliant on 1,431/1,440 cells but retains 69 semantic failures (54 duplicate selections, six wrong-$K$, five invalid JSON, four non-list payloads), leaving 95.21\% semantic validity. These failures are never regenerated or repaired.
+Output reliability differs sharply across the two local models. Phi is semantically valid on all 1,440 cells despite requiring deterministic envelope normalization on 1,439 responses; Qwen is strict-JSON compliant on 1,431/1,440 cells but retains 69 semantic failures (54 duplicate selections, six wrong-$K$, five invalid JSON, four non-list payloads), leaving 95.21\% semantic validity. Descriptively, Qwen's invalid rate ranges from 3.75\% under preference-only context to 5.42\% under counterfactual-identity and true-OCEAN contexts, whereas Phi remains at 0\% across all condition families. These failures are never regenerated or repaired.
 
 Two-repetition stability shows the same ordering. Phi has 720/720 valid repeat pairs with mean RBO@10 $=0.955$, Jaccard@10 $=0.863$, and 61.9\% exact-order agreement; Qwen has 673/720 valid pairs with RBO $=0.887$, Jaccard $=0.783$, and 49.3\% exact agreement. Raw generation scores are weakly associated with nDCG (Spearman $\rho=-0.158$ for Phi and $-0.037$ for Qwen), so they are not treated as calibrated confidence.
 
