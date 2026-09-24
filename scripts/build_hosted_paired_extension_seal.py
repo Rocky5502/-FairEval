@@ -67,8 +67,8 @@ def main() -> int:
         )
     if int(extension_manifest.get("target_users_total", -1)) != 9:
         raise ValueError("hosted paired extension seal expects exactly 9 target users")
-    if int(extension_manifest.get("target_cells_total_in_parent_plan", -1)) != 324:
-        raise ValueError("hosted paired extension target geometry must be 324 total cells")
+    if int(extension_manifest.get("target_cells_total_in_parent_plan", -1)) != 270:
+        raise ValueError("hosted paired extension target geometry must be 270 total cells")
     if len(extension_rows) != int(extension_manifest.get("planned_api_cells", -1)):
         raise ValueError("hosted extension plan row count mismatch")
 
