@@ -216,6 +216,7 @@ def main() -> int:
         "--output",
         args.overleaf_zip,
     )
+    _run("scripts/check_submission_closeout.py", "--skip-tests")
 
     print(json.dumps({
         "status": "PASS",
