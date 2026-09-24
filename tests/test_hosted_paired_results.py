@@ -36,6 +36,7 @@ def _inference_rows():
                         "bootstrap_ci_low": mean - 0.02,
                         "bootstrap_ci_high": mean + 0.02,
                         "holm_adjusted_p": 0.5,
+                        "invalid_rate_difference_mean": 0.0,
                     }
                 )
     return rows
@@ -73,6 +74,7 @@ def test_hosted_paired_table_and_summary_are_complete():
         assert family in table
     assert "Identity" in table
     assert "Personality" in table
+    assert "$\\Delta$Invalid" in table
     assert "$N=9$" in summary
     assert "real-world demographic fairness" in summary
 
