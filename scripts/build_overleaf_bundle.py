@@ -114,7 +114,18 @@ def build_overleaf_bundle(
 
     selected = list(REQUIRED_FILES)
     if include_available_results:
-        selected.extend(name for name in OPTIONAL_RESULT_FILES if (paper_dir / name).is_file())
+        optional_present = [
+            name for name in OPTIONAL_RESULT_FILES if (paper_dir / name).is_file()
+        ]
+        zero_byte_optional = [
+            name for name in optional_present if (paper_dir / name).stat().st_size <= 0
+        ]
+        if zero_byte_optional:
+            raise ValueError(
+                "refusing to bundle zero-byte generated result artifacts: "
+                f"{zero_byte_optional}"
+            )
+        selected.extend(optional_present)
     selected = sorted(set(selected))
 
     manifest_files = {
