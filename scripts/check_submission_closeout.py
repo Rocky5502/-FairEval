@@ -81,6 +81,14 @@ def main() -> int:
     if hosted.get("scientific_effect_inference_allowed") is not False:
         failures.append("hosted 99-cell pilot incorrectly permits scientific effect inference")
 
+    # Regenerate the derived hosted paper artifacts before validating file presence,
+    # so the closeout command is self-contained on a clean checkout.
+    hosted_render = _run([sys.executable, "scripts/render_hosted_pilot_operational.py"])
+    if not hosted_render["ok"]:
+        failures.append(
+            f"hosted_pilot_artifacts failed with return code {hosted_render['returncode']}"
+        )
+
     required_files = [ROOT / p for p in scope.get("paper_artifacts_required", [])]
     missing = [str(p.relative_to(ROOT)) for p in required_files if not p.is_file()]
     if missing:
@@ -124,12 +132,13 @@ def main() -> int:
         if phrase in lowered:
             failures.append(f"forbidden unsupported claim present: {phrase}")
 
-    commands: dict[str, dict[str, Any]] = {}
+    commands: dict[str, dict[str, Any]] = {
+        "hosted_pilot_artifacts": hosted_render,
+    }
     checks = [
         ("config_consistency", [sys.executable, "scripts/check_config_consistency.py"]),
         ("paper_source", [sys.executable, "scripts/check_paper_source.py"]),
         ("result_tables", [sys.executable, "scripts/check_result_table_contracts.py"]),
-        ("hosted_pilot_artifacts", [sys.executable, "scripts/render_hosted_pilot_operational.py"]),
         ("overleaf_bundle", [
             sys.executable,
             "scripts/build_overleaf_bundle.py",
