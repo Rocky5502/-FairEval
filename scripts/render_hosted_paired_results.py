@@ -179,8 +179,6 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
 
 
 def _condition_group(condition_id: str) -> str | None:
-    if condition_id == "C0":
-        return "pref"
     if condition_id == "C1":
         return "identity"
     if condition_id.startswith("C2:"):
@@ -206,7 +204,7 @@ def _condition_means(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
     for (family, _user, group), values in by_user.items():
         per_family[family][group].append(sum(values) / len(values))
 
-    required = ("pref", "identity", "cf_identity", "true_ocean", "shuffled_ocean")
+    required = ("identity", "cf_identity", "true_ocean", "shuffled_ocean")
     output: dict[str, dict[str, float]] = {}
     for family in FAMILY_ORDER:
         output[family] = {}
@@ -220,8 +218,8 @@ def _condition_means(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
 
 def render_figure(user_condition: list[dict[str, Any]], output: Path) -> None:
     means = _condition_means(user_condition)
-    groups = ("pref", "identity", "cf_identity", "true_ocean", "shuffled_ocean")
-    labels = ("pref", "ID", "cf-ID", "true P", "shuf P")
+    groups = ("identity", "cf_identity", "true_ocean", "shuffled_ocean")
+    labels = ("ID", "cf-ID", "true P", "shuf P")
     angles = [2.0 * math.pi * i / len(groups) for i in range(len(groups))]
     closed_angles = angles + angles[:1]
     global_max = max(means[f][g] for f in FAMILY_ORDER for g in groups)
@@ -265,7 +263,7 @@ def render_figure(user_condition: list[dict[str, Any]], output: Path) -> None:
     fig.text(
         0.5,
         0.012,
-        "Raw mean nDCG@10 on a shared radial scale; cf-ID averages the two identity alternatives within user.",
+        "Raw mean nDCG@10 on a shared radial scale; cf-ID averages the two identity alternatives within user. Preference-only is omitted because it is not required for the paired hosted RQ1/RQ2 estimands.",
         ha="center",
         va="bottom",
         fontsize=6.4,
