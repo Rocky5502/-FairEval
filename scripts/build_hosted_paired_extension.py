@@ -78,7 +78,7 @@ def main() -> int:
         default="results/plans/hosted-fairsynth-paired-extension-v1",
     )
     parser.add_argument("--users-per-identity-group", type=int, default=3)
-    parser.add_argument("--budget-target-rmb", type=float, default=180.0)
+    parser.add_argument("--budget-target-rmb", type=float, default=190.0)
     parser.add_argument("--budget-hard-cap-rmb", type=float, default=200.0)
     parser.add_argument("--cost-safety-multiplier", type=float, default=1.20)
     args = parser.parse_args()
@@ -129,8 +129,14 @@ def main() -> int:
     per_group = int(args.users_per_identity_group)
     for group in GROUPS:
         candidates = [u for u in user_order if group_by_user.get(u) == group]
-        candidates.sort(key=lambda u: (-completed_by_user[u], order_index[u]))
-        chosen = candidates[:per_group]
+        # Reuse only fully complete prior users. Partially completed users are
+        # deliberately excluded so one matched user's conditions never span two
+        # execution commits/specifications.
+        reusable = [u for u in candidates if completed_by_user[u] == 36]
+        untouched = [u for u in candidates if completed_by_user[u] == 0]
+        reusable.sort(key=lambda u: order_index[u])
+        untouched.sort(key=lambda u: order_index[u])
+        chosen = (reusable + untouched)[:per_group]
         if len(chosen) != per_group:
             raise ValueError(f"identity group {group} has insufficient hosted-plan users")
         target_users.extend(chosen)
@@ -140,6 +146,7 @@ def main() -> int:
                     "user_id": user,
                     "synthetic_identity_group": group,
                     "completed_cells_before_extension": int(completed_by_user[user]),
+                    "reused_prior_complete_user": bool(completed_by_user[user] == 36),
                     "parent_plan_order": int(order_index[user]),
                 }
             )
@@ -213,8 +220,9 @@ def main() -> int:
         "operational_summary_sha256": file_sha256(Path(args.operational_summary)),
         "scientific_outcomes_inspected_before_extension_definition": False,
         "selection_rule": (
-            "within each synthetic identity group, prioritize users with more already-completed "
-            "cells; break ties by immutable parent-plan user order"
+            "within each synthetic identity group, reuse only previously fully complete "
+            "36-cell users, then fill remaining slots with previously untouched users in "
+            "immutable parent-plan order; partially completed users are excluded"
         ),
         "users_per_identity_group": per_group,
         "target_users": target_user_records,
@@ -222,6 +230,9 @@ def main() -> int:
         "target_users_total": len(target_users),
         "target_cells_total_in_parent_plan": len(target_rows),
         "target_cells_completed_before_extension": len(target_rows) - len(pending_rows),
+        "partially_completed_users_excluded": sorted(
+            user for user in user_order if 0 < completed_by_user[user] < 36
+        ),
         "planned_api_cells": len(pending_rows),
         "pending_cells_by_family": dict(sorted(pending_by_family.items())),
         "observed_mean_request_window_cost_rmb_by_family": {
