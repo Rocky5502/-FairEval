@@ -160,9 +160,11 @@ python scripts/run_hosted_budgeted.py \
 
 ## Hosted paired-completion extension
 
-The historical 99-cell hosted stop is retained as operational provenance. A
-separately sealed, outcome-blind extension targets **9 complete FairSynth users
-per hosted family** with exact A/B/C balance (3/3/3).
+The historical 99-cell hosted stop is retained as operational provenance and is
+not reused for scientific hosted inference. A separately sealed, outcome-blind
+extension targets **9 historically untouched FairSynth users per hosted family**
+with exact A/B/C balance (3/3/3) and only the five conditions required for the
+identity/personality paired estimands (C1, both C2 alternatives, C3, C4).
 
 The extension is built from prior coverage/cost only:
 
@@ -178,8 +180,8 @@ historical and extension commits are never mixed. After completion:
 python scripts/finalize_hosted_paired_extension.py
 ```
 
-Finalization audits/scores the two raw runs separately, combines only the nine
-predeclared complete users at the scored-artifact level, and generates:
+Finalization audits/scores the extension run and requires all 270 preregistered
+scientific cells before generating:
 
 - `paper/generated/fairsynth_hosted_table.tex`
 - `paper/generated/fairsynth_hosted_summary.tex`
