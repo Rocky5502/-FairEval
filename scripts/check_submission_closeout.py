@@ -147,8 +147,9 @@ def main() -> int:
     required_paper_markers = (
         "complete 2,880-generation local matrix",
         "operational feasibility, not fairness inference",
-        "does not show that one hosted family is fairer than another",
-        "registered real-world demographic/personality comparisons and mitigation extension still require",
+        "no hosted fairness/personality effect is reported",
+        "Real-world demographic/personality and mitigation extensions remain preregistered but are not presented as completed claims",
+        "\\section{Theory of Change, Limitations, and Ethical Scope}",
     )
     for marker in required_paper_markers:
         if marker not in main:
