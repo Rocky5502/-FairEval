@@ -218,7 +218,7 @@ lane_w = 0.355
 for y, ctag, title, prompt, color, bg in [
     (0.630, "C1", "Observed identity", "gender: observed", C["blue"], C["blue2"]),
     (0.405, "C2", "Matched counterfactual", "gender: swapped", C["red"], C["red2"]),
-    (0.180, "C3/C4", "Measured personality control", "true OCEAN\n↔ shuffled profile", C["green"], C["green2"]),
+    (0.180, "C3/C4", "Synthetic personality control", "true synthetic OCEAN\n↔ shuffled profile", C["green"], C["green2"]),
 ]:
     rr(ax, lane_x, y, lane_w, 0.180, C["white"], color, lw=0.95, r=0.014)
     tag(ax, lane_x + 0.014, y + 0.125, ctag, bg, color, 0.062)
@@ -247,7 +247,7 @@ rr(ax, 0.840, 0.665, 0.118, 0.085, C["white"], C["line2"], r=0.012)
 scale_icon(ax, 0.858, 0.707, 0.015, C["gold"])
 tx(ax, 0.878, 0.724, "2  Consequence", 7.3, "bold", ha="left")
 tx(ax, 0.878, 0.696, "held-out U(R,Y)", 6.3, ha="left")
-tx(ax, 0.878, 0.675, "CUG / PVA / IOD", 5.9, c=C["muted"], ha="left")
+tx(ax, 0.878, 0.675, "ΔU_id / ΔU_pers / invalid", 5.9, c=C["muted"], ha="left")
 for y, head, body, fc, ec in [
     (0.535, "Stable / low sensitivity", "lists are similar; no harm claim from change", C["white"], C["slate"]),
     (0.395, "Personalization or harmless sensitivity", "list changes, but utility is preserved or improves", C["green2"], C["green"]),
