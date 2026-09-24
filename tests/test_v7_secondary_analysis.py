@@ -1,3 +1,4 @@
+import pytest
 from scripts.analyze_v7_secondary import _collapse_counterfactuals, _repetition_stability
 
 
@@ -27,8 +28,8 @@ def test_counterfactual_identity_is_collapsed_within_user_before_summary():
     collapsed = _collapse_counterfactuals(rows)
     c2 = next(row for row in collapsed if row["condition_group"] == "counterfactual_identity")
     assert c2["n_source_conditions"] == 2
-    assert c2["ndcg"] == 0.3
-    assert c2["recall"] == 0.4
+    assert c2["ndcg"] == pytest.approx(0.3)
+    assert c2["recall"] == pytest.approx(0.4)
 
 
 def test_repeat_stability_uses_only_valid_two_repetition_cells():
