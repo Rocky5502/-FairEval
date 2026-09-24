@@ -180,7 +180,8 @@ def main() -> int:
     required_paper_markers = (
         "complete 2,880-generation FairSynth-360 matrix",
         "reported only as operational feasibility",
-        "no hosted fairness/personality effect is reported",
+        "initial six-family hosted execution stopped outcome-blind after 99/1,080 planned cells",
+        "identity-balanced paired-completion extension",
         "Real-world demographic/personality and mitigation extensions remain preregistered but are not presented as completed claims",
         "\\section{Theory of Change, Limitations, and Ethical Scope}",
     )
