@@ -114,3 +114,17 @@ loading any model or making any API request. Running
 These artifacts are derived only from the already frozen V7 analysis outputs.
 They introduce no new confirmatory hypothesis family. The Overleaf bundler
 includes them automatically when present.
+
+
+## Compact ECIR body policy
+
+The submission manuscript intentionally typesets only the strongest evidence needed
+for the completed RQs: the framework figure, primary paired-effect table,
+frozen-result secondary figure, repetition-stability table, and hosted operational
+radar profile. Larger literature/model/protocol tables and the condition/audit
+schematics remain in the repository/bundle for traceability but are not inserted
+into the page-limited manuscript.
+
+CI rejects accidental reintroduction of those auxiliary assets into `main.tex`.
+The final PDF also uses hidden hyperlink styling to avoid colored citation/reference
+boxes in the anonymous submission.
