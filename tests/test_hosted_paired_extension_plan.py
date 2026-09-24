@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -41,6 +42,9 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
         "".join(canonical_json(row) + "\n" for row in cells),
         encoding="utf-8",
     )
+    manifest["plan_sha256"] = hashlib.sha256(
+        canonical_json(cells).encode("utf-8")
+    ).hexdigest()
     manifest["run_plan_file_sha256"] = file_sha256(plan_path)
     (parent / "plan_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
