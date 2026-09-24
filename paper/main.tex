@@ -183,7 +183,7 @@ All numerical claims in this section are traceable to audited frozen experiment 
 
 \input{results_contract_table}
 
-\subsection{Controlled FairSynth-360 Sanity Effects}
+\subsection{RQ1--RQ2: Controlled FairSynth-360 Sanity Effects}
 FairSynth-360 is a controlled synthetic stress test rather than real-world demographic evidence. Its A/B/C identity label is independent of relevance by construction, so a well-behaved recommender should not exhibit a stable preference-conditioned utility shift merely because the label changes. This is what we observe. For Phi-3.5-mini, the observed-identity versus mean-counterfactual contrast is $\Delta$nDCG@10=$+0.009$ (95\% CI $[-0.008,0.029]$, Holm-adjusted $p_H=0.700$) and $\Delta$Recall@10=$+0.012$ ($[-0.005,0.030]$, $p_H=0.435$). Qwen2.5-7B yields $\Delta$nDCG@10=$-0.008$ ($[-0.027,0.009]$, $p_H=0.700$) and $\Delta$Recall@10=$-0.005$ ($[-0.030,0.019]$, $p_H=0.714$). Thus the controlled identity intervention produces no reliable nonzero utility effect in either local model.
 
 The true-versus-shuffled synthetic OCEAN contrast is also small and uncertain. For Phi-3.5-mini, $\Delta$nDCG@10 is $-0.014$ (95\% CI $[-0.029,0.000]$, $p_H=0.145$), while $\Delta$Recall@10 is $-0.019$ ($[-0.040,0.000]$, $p_H=0.144$). For Qwen2.5-7B, the corresponding effects are $+0.009$ ($[-0.015,0.032]$, $p_H=0.480$) and $+0.003$ ($[-0.027,0.033]$, $p_H=0.875$). Thus synthetic OCEAN does not provide reliable user-specific recommendation value beyond the matched shuffled-profile control in this setting. Merely supplying personality-shaped context is not sufficient evidence that a recommender exploits personality in a user-specific way.
@@ -198,7 +198,7 @@ The true-versus-shuffled synthetic OCEAN contrast is also small and uncertain. F
 }{}
 
 
-\subsection{Output Reliability Is Distinct from Ranking Quality}
+\subsection{RQ3: Output Reliability Is Distinct from Ranking Quality}
 The two local models exhibit sharply different output-protocol behavior. Phi-3.5-mini is semantically valid on all 1,440 cells, but only one response is strictly compliant JSON. The remaining 1,439 responses are recovered solely by the preregistered deterministic envelope normalizer, most commonly by removing extra surrounding text or a single JSON fence. No ranking item, order, or value is changed. Qwen2.5-7B is almost perfectly strict-format compliant (1,431/1,440; 99.38\%) yet has 69 persistent semantic failures, leaving 1,371/1,440 semantically valid cells (95.21\%). Its failures are 54 duplicate-selection outputs, six wrong-$K$ outputs, five invalid-JSON responses, and four non-list payloads. These failures are not regenerated or repaired; they receive zero primary system utility and remain visible in invalid-output disparity analyses.
 
 This contrast demonstrates why serialization compliance and semantic ranking validity must be audited separately. A model can be syntactically clean yet still fail the recommendation contract, while another can violate surface formatting but preserve an exactly recoverable candidate ranking.
@@ -208,10 +208,10 @@ This contrast demonstrates why serialization compliance and semantic ranking val
 Because the frozen V7 design contains two seeded repetitions per user-condition-model cell, we additionally report descriptive repeat stability without making any new model calls. RBO/Jaccard are computed only where both repetitions are semantically valid; the valid-pair rate therefore preserves information about persistent generation failure instead of conditioning it away.
 }{}
 
-\subsection{Exploratory Local White-Box Diagnostics}
+\subsection{RQ3: Exploratory Local White-Box Diagnostics}
 Internal generation scores are descriptive and uncalibrated. Across valid Phi-3.5-mini runs, mean generated-token log probability is $-0.067$ and its Spearman association with nDCG@10 is $\rho=-0.158$. For Qwen2.5-7B, the corresponding values are $-0.031$ and $\rho=-0.037$. These weak or counterintuitive associations reinforce that raw generation scores should not be interpreted as calibrated confidence in recommendation quality. For Qwen, invalid outputs also have lower mean log probability and lower top1--top2 margin than valid outputs, but these associations remain exploratory and are not part of the confirmatory fairness hypothesis family.
 
-\subsection{Hosted Six-Family Black-Box Pilot: Feasibility, Not Inference}
+\subsection{RQ3: Hosted Six-Family Black-Box Pilot}
 The separately frozen hosted FairSynth campaign planned 1,080 cells over 30 balanced users, six conditions, and six model families. The outcome-blind client budget guard stopped execution after 99 of 1,080 planned cells (9.17\% coverage), with 64.9362 RMB of ledger-wide balance movement and 40.5347 RMB remaining in the gateway account. Every family touched three users; each had three structurally complete identity contrasts and two structurally complete personality contrasts. That coverage is far below the predeclared user-level inference target, so we do not compute or report hosted fairness, utility, or personality-effect estimates from these rows. The pilot instead establishes multi-family execution feasibility, exact-model provenance, and auditable cost behavior under a fixed budget policy.
 
 \IfFileExists{generated/hosted_pilot_operational_table.tex}{\input{generated/hosted_pilot_operational_table}}{}
