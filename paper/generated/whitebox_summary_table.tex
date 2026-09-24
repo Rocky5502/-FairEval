@@ -1,0 +1,19 @@
+% AUTO-GENERATED from audited FairEval V7 white-box summary; DO NOT EDIT BY HAND.
+\begin{table*}[t]
+\centering
+\caption{Separate local open-weight white-box diagnostics from the complete audited V7 run. Internal token scores are auxiliary and uncalibrated; $\rho$ is a descriptive Spearman association with nDCG@10, not a calibrated-confidence result.}
+\label{tab:whitebox-generated}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrr}
+\toprule
+Dataset & Model & Runs & Invalid (\%) & Mean log-$p$ & Mean NLL & Mean top1--top2 margin & $\rho$(log-$p$, nDCG) \\
+\midrule
+FairSynth-360 & Phi-3.5-mini local & 1440 & 0.0 & -0.067 & 0.067 & 51.000 & -0.158 \\
+FairSynth-360 & Qwen2.5-7B local & 1440 & 4.8 & -0.031 & 0.031 & 52.689 & -0.037 \\
+\bottomrule
+\end{tabular}}
+\vspace{0.4mm}
+\parbox{0.985\textwidth}{\scriptsize\textit{Reading rule.} These diagnostics expose model-internal generation behavior only for the two local open-weight models. They are not pooled with hosted-model effects and are not interpreted as calibrated probabilities.}
+\end{table*}
