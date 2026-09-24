@@ -100,7 +100,7 @@ Each model returns exactly $K=10$ unique selections from the same candidate set.
 \subsection{Models, Compute, and Hosted Budget}
 The local stratum freezes Qwen2.5-7B-Instruct \cite{qwen25tech} at revision \texttt{a09a3545...} and Phi-3.5-mini-instruct \cite{phi3tech} at \texttt{2fe19245...}. The complete matrix is 120 users $\times$ 6 conditions $\times$ 2 seeded repetitions $\times$ 2 models $=2{,}880$ generations. Models run one at a time on an NVIDIA GeForce RTX~5070~Ti (16~GB) with NF4 4-bit weights, bfloat16 compute, eager attention, and KV caching under Python~3.11.9, PyTorch~2.11.0+cu128, Transformers~4.44.2, Accelerate~0.34.2, and bitsandbytes~0.50.2. Local ranking uses $T=0.2$, top-$p=1.0$, a 512-token cap, and explicit seeds.
 
-The hosted operational panel freezes one gateway configuration from OpenAI, Anthropic, Google, DeepSeek, Qwen, and Meta Llama through the audited Zhizengzeng OpenAI-compatible endpoint. Exact-ID preflight blocks silent substitution. The project-wide policy uses a 200 RMB normal stop target, a 250 RMB client-side emergency threshold, and a 2 RMB reserve; the lean FairSynth pilot applies stricter 65/75 RMB runtime thresholds. Balance is reconciled around every persisted request, execution order is immutable, and the 250 RMB threshold is not represented as a provider-enforced atomic spending cap.
+The hosted panel spans six independently named model families: OpenAI, Anthropic, Google, DeepSeek, Qwen, and Meta Llama. Exact model identifiers, returned serving metadata, and the audited cost ledger are retained in the anonymized artifact rather than the narrative. The initial budget-limited execution was inspected only for coverage and cost. Before any hosted recommendation outcome was analyzed, we froze an identity-balanced paired-completion extension so cross-family utility effects would be estimated from complete matched users rather than scattered cells.
 
 \subsection{Metrics and Inference}
 Primary utility metrics are nDCG@10 and Recall@10; MRR is a sensitivity metric. Identity sanity compares the observed label with the within-user mean over its alternatives, while personality value compares true with shuffled synthetic OCEAN. Persistent semantic failure receives zero end-to-end utility and contributes to invalid-output rate. User is the inference unit: repetitions are averaged within user-condition, followed by paired bootstrap confidence intervals, paired sign-flip permutation tests, Wilcoxon sensitivity, matched rank-biserial effect size, and Holm correction within the predeclared synthetic contrast families. RBO/Jaccard and the secondary profiles are descriptive only.
@@ -137,9 +137,20 @@ Two-repetition stability shows the same ordering. Phi has 720/720 valid repeat p
 
 \InputIfFileExists{generated/v7_repetition_stability_table.tex}{}{} 
 
-The six-family hosted pilot planned 1,080 cells but stopped outcome-blind after 99 (9.17\%) under the frozen budget guard, with 64.9362 RMB balance movement. Every family touched three users, far below the paired-user inference target; therefore no hosted fairness/personality effect is reported. The pilot contributes only execution, provenance, and cost evidence.
-
-\resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.91}{Hosted black-box operational coverage profiles. Each radar axis is normalized to the frozen per-family plan; the profiles visualize coverage structure only, not capability, utility, or fairness performance.}
+\IfFileExists{generated/fairsynth_hosted_table.tex}{%
+\subsection{RQ1--RQ2: Hosted Cross-Family Paired Extension}
+\InputIfFileExists{generated/fairsynth_hosted_summary.tex}{}{}
+\input{generated/fairsynth_hosted_table.tex}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.94\linewidth]{figures/fairsynth_hosted_profiles.pdf}
+\caption{Hosted FairSynth utility profiles after paired-complete extension. Each panel shows raw mean nDCG@10 under preference-only, observed identity, mean counterfactual identity, true synthetic OCEAN, and shuffled OCEAN contexts on a shared radial scale. Paired fairness/personality effects and uncertainty are reported in Table~\ref{tab:hosted-fairsynth-results}.}
+\label{fig:hosted-profiles}
+\end{figure}
+}{%
+The initial six-family hosted execution stopped outcome-blind after 99/1,080 planned cells and is retained only as operational evidence until the preregistered paired-completion extension is finished.
+\resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.91}{Hosted black-box operational coverage profiles. The profiles visualize coverage structure only, not capability, utility, or fairness performance.}
+}
 
 \section{Theory of Change, Limitations, and Ethical Scope}
 \textbf{Theory of change.} The societal problem is that identity-conditioned ranking changes can be misread either as harmless personalization or as bias without checking consequences. FairEval's intended mechanism is: (1) hold preferences/candidates fixed, (2) intervene on context, (3) measure held-out utility rather than list change alone, and (4) expose execution failure instead of repairing it away. If deployed in real audits, this can help practitioners identify preference-irrelevant harms before using stronger mitigation. The necessary preconditions are auditable relevance labels, defensible context variables, and matched candidate tasks; the current FairSynth study validates the mechanism under controlled ground truth, not real-world discrimination.
