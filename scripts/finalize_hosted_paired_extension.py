@@ -82,6 +82,18 @@ def main() -> int:
     if len(target_users) != 9:
         raise ValueError("target user IDs are not unique")
 
+    reused_users = {
+        str(row["user_id"])
+        for row in target_records
+        if bool(row.get("reused_prior_complete_user", False))
+    }
+    untouched_users = target_users - reused_users
+    if len(reused_users) != 2 or len(untouched_users) != 7:
+        raise ValueError(
+            "hosted paired extension must reuse exactly two complete prior users "
+            "and add exactly seven untouched users"
+        )
+
     base_scored = score_run_log(
         Path(args.base_run),
         plan_dir=Path(args.parent_plan_dir),
@@ -97,6 +109,18 @@ def main() -> int:
     extension_target = [
         row for row in extension_scored if str(row["user_id"]) in target_users
     ]
+    base_users_present = {str(row["user_id"]) for row in base_target}
+    extension_users_present = {str(row["user_id"]) for row in extension_target}
+    if base_users_present != reused_users:
+        raise RuntimeError(
+            "base hosted rows do not match the two preregistered reusable complete users: "
+            f"expected={sorted(reused_users)}, actual={sorted(base_users_present)}"
+        )
+    if extension_users_present != untouched_users:
+        raise RuntimeError(
+            "extension hosted rows do not match the seven preregistered untouched users: "
+            f"expected={sorted(untouched_users)}, actual={sorted(extension_users_present)}"
+        )
     combined = base_target + extension_target
 
     ids = [str(row["planned_cell_id"]) for row in combined]
