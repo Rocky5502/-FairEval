@@ -7,6 +7,7 @@
 \usepackage{xcolor}
 \usepackage{url}
 \usepackage{hyperref}
+\hypersetup{hidelinks}
 \usepackage[section]{placeins}
 
 \newcommand{\tbd}{\textcolor{red!70!black}{\textbf{TBD}}}
@@ -38,7 +39,7 @@
 \maketitle
 
 \begin{abstract}
-A recommendation that changes after identity or personality context is introduced is not automatically unfair: the change may reflect personalization, harmless sensitivity, or a harmful disparity. FairEval audits this distinction using held-out recommendation utility, matched context interventions, explicit invalid-output accounting, and repeated generations. We evaluate a complete 2,880-generation FairSynth-360 matrix over 120 users and two frozen open-weight models. FairSynth identity is relevance-invariant by construction, yet the observed-versus-counterfactual nDCG@10 effects are small and directionally unstable for both Phi-3.5-mini ($+0.009$, 95\% CI $[-0.008,0.029]$) and Qwen2.5-7B ($-0.008$, $[-0.027,0.009]$). True-versus-shuffled synthetic OCEAN likewise provides no reliable utility gain, although user-level effects are heterogeneous. Reliability differs more sharply: Phi is semantically valid on 100\% of cells and achieves mean two-repetition RBO@10 of 0.955, whereas Qwen is valid on 95.2\% and reaches 0.887, with 69 persistent failures retained rather than repaired. A six-family hosted pilot stops outcome-blind after 99/1,080 planned cells and is reported only as operational feasibility. FairEval therefore separates ranking sensitivity, utility consequence, and execution reliability---three quantities that conventional fairness audits can otherwise conflate.
+A recommendation that changes after identity or personality context is introduced is not automatically unfair: the change may reflect personalization, harmless sensitivity, or a harmful disparity. FairEval audits this distinction using held-out recommendation utility, matched context interventions, explicit invalid-output accounting, and repeated generations. We evaluate a complete 2,880-generation FairSynth-360 matrix over 120 users and two frozen open-weight models. FairSynth identity is relevance-invariant by construction; observed-versus-counterfactual nDCG@10 effects are small, and the 95\% intervals span zero for both Phi-3.5-mini ($+0.009$) and Qwen2.5-7B ($-0.008$). True-versus-shuffled synthetic OCEAN likewise provides no reliable utility gain, although user-level effects are heterogeneous. Reliability differs more sharply: Phi is semantically valid on 100\% of cells and achieves mean two-repetition RBO@10 of 0.955, whereas Qwen is valid on 95.2\% and reaches 0.887, with 69 persistent failures retained rather than repaired. A six-family hosted pilot stops outcome-blind after 99/1,080 planned cells and is reported only as operational feasibility. FairEval therefore separates ranking sensitivity, utility consequence, and execution reliability---three quantities that conventional fairness audits can otherwise conflate.
 \keywords{LLM recommendation \and fairness \and personalization \and personality \and counterfactual evaluation \and robustness}
 \end{abstract}
 
@@ -123,7 +124,7 @@ True-versus-shuffled synthetic OCEAN likewise yields small, uncertain nDCG@10 an
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/v7_secondary_profiles.pdf}
-\caption{Descriptive secondary analysis of the frozen V7 results. Left: condition-level mean nDCG@10 with descriptive bootstrap intervals. Right: paired per-user $\Delta$nDCG@10 distributions. No additional model/API calls or confirmatory hypotheses are introduced.}
+\caption{Frozen-result secondary analysis. Left: condition-level mean nDCG@10 with descriptive bootstrap intervals. Right: paired per-user $\Delta$nDCG@10 distributions; bars are IQRs, circles medians, diamonds means, and labels show positive/negative/zero user fractions. No new model/API calls or confirmatory hypotheses are introduced.}
 \label{fig:v7-secondary}
 \end{figure}
 }{}
