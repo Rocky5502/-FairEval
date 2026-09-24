@@ -43,6 +43,30 @@ lean_fairsynth_campaign:
     outcomes; the canaries are treated as pilot/provenance rows, not part of the
     lean confirmatory run.
 
+
+paired_fairsynth_extension:
+  version: hosted-fairsynth-paired-extension-v1
+  target_users: 9
+  identity_groups: {A: 3, B: 3, C: 3}
+  target_complete_cells: 324
+  hosted_families: 6
+  conditions_per_user: 6
+  repetitions: 1
+  runtime_target_rmb: 190.0
+  runtime_emergency_threshold_rmb: 200.0
+  request_reserve_rmb: 2.0
+  cost_safety_multiplier: 1.20
+  selection_basis: prior_coverage_and_cost_only
+  prior_scientific_outcomes_inspected: false
+  partial_prior_users_reused: false
+  notes: >-
+    This extension is defined after the 99-cell operational stop using only
+    completion coverage and observed request-window cost. Previously fully
+    complete users may be reused; partially complete users are excluded so one
+    paired user's conditions do not span execution versions. The extension is
+    a synthetic FairSynth sanity analysis only and does not authorize real-world
+    demographic-fairness or measured-personality claims.
+
 # Conservative public price references captured 2026-09-17. These values are
 # used for planning/audit only; the source of record for experiment spend is
 # observed gateway balance movement. Foreign-provider RMB conversions use
