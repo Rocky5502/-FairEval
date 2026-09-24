@@ -200,6 +200,25 @@ python scripts/finalize_hosted_fairsynth.py
 
 The full local path is similarly wrapped by `scripts/finalize_whitebox.py`. Until audited artifacts exist, corresponding paper cells remain explicitly pending; empirical numbers are never typed into the manuscript manually.
 
+## No-new-call secondary analysis
+
+After the audited V7 run, FairEval can derive one additional descriptive figure
+without loading a model or making an API request. It summarizes condition-level
+utility and the per-user paired-effect distributions from the already frozen
+`user_condition.jsonl`, `identity_pairs.jsonl`, and `personality_pairs.jsonl`.
+
+```bash
+python scripts/analyze_v7_secondary.py \
+  --user-condition results/analysis/fairsynth-v7-lean/user_condition.jsonl \
+  --identity-pairs results/analysis/fairsynth-v7-lean/identity_pairs.jsonl \
+  --personality-pairs results/analysis/fairsynth-v7-lean/personality_pairs.jsonl \
+  --output-dir results/analysis/fairsynth-v7-secondary \
+  --paper-figure paper/figures/v7_secondary_profiles.pdf
+```
+
+The analysis is explicitly descriptive: it creates no new confirmatory hypothesis
+family and never changes the frozen primary inference.
+
 ## ECIR submission closeout
 
 The current ECIR submission has a separate final scope manifest:
