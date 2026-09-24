@@ -75,41 +75,24 @@ Figure~\ref{fig:framework} uses the matched-context motivating pattern familiar 
 \end{figure}
 
 \section{Related Work}
-\subsection{Fairness in LLM-Based Recommendation}
-FaiRLLM established an early benchmark for sensitive-attribute effects in ChatGPT recommendations \cite{zhang2023fairllm}. UP5 studies fairness-aware foundation-model recommendation and proposes counterfactually fair prompting \cite{hua2024up5}. Item-side fairness has also been studied for LLM recommenders with fairness-aware calibration \cite{jiang2024itemfair}, while implicit ranking work shows that even non-sensitive profile cues can induce discriminatory ranking and evaluates fairness-aware augmentation \cite{xu2024implicit}. FairEvalLLM broadens auditing with counterfactual scenarios and extensive prompt/profile construction variants \cite{deldjoo2024fairevalllm}. CFaiRLLM moves evaluation toward consumer utility by warning that ranking differences need not be bias when they reflect true preferences \cite{deldjoo2025cfairllm}. Other recent work studies multi-domain recommendation bias and prompt intervention \cite{sakib2024challenging}, uses LLMs as fairness recognizers inside a utility-aware recommendation pipeline \cite{liu2025fairnessidentification}, and extends LLM fairness auditing to a high-stakes job-recommendation setting with user- and recruiter-side views \cite{hu2025fairwork}. FairEval treats these distinctions as prior knowledge rather than claiming them individually as new.
+Fairness work on LLM recommenders has shown that protected or profile attributes can change rankings and expose stereotypes, but ranking change alone does not establish harm. FaiRLLM and FairEvalLLM develop counterfactual auditing setups; CFaiRLLM explicitly argues for preference-aware interpretation; and recent chatbot studies show that explicit or implicit identity cues can affect both relevance and stereotyping \cite{zhang2023fairllm,deldjoo2024fairevalllm,deldjoo2025cfairllm,kantharuban2025stereotype,neplenbroek2025reading}. FairEval builds on this line by conditioning interpretation on held-out utility and by retaining invalid output as part of recommender behavior rather than silently discarding it.
 
-\subsection{Identity, Persona Cues, and Prompt Reliability}
-Identity-conditioned recommendation is difficult because personalization and stereotyping can produce superficially similar output changes. Kantharuban et al. show that user identity significantly affects chatbot recommendations and that racial stereotypes can appear under explicit and implicit identity cues \cite{kantharuban2025stereotype}. Neplenbroek et al. show that LLMs infer demographic information from subtle cues and that implicit personalization can reduce response quality for minority users \cite{neplenbroek2025reading}. Persona prompting itself is also a source of variation: Lutz et al. systematically study sociodemographic persona construction \cite{lutz2025persona}, while Weeber et al. compare multiple cue forms across several LLMs and find that cue choice can change measured personalization and bias \cite{weeber2026cues}. Multi-prompt evaluation and newer prompt-sensitivity studies further caution against conclusions based on one arbitrary wording \cite{mizrahi2024multiprompt,hua2025promptsensitivity,liu2026promptsensitivity}. These findings motivate FairEval's pre-registered prompt and cue robustness analyses.
+Prompt and persona construction are themselves evaluation variables. Multi-prompt work and recent persona/cue studies show that conclusions can change under wording or representation choices \cite{mizrahi2024multiprompt,lutz2025persona,weeber2026cues,hua2025promptsensitivity}. Our completed study therefore freezes prompt structure and candidate order across matched contexts; broader cue/paraphrase robustness remains a registered extension.
 
-\subsection{Personality-Aware Recommendation and Psychometric Grounding}
-Personality-aware recommendation predates LLMs. The GroupLens Personality 2018 resource links recommender behavior and satisfaction to measured personality \cite{nguyen2018personality}; music recommendation research provides BFI/BFI-2 profiles, ratings, and lower-order facets \cite{klec2023bigfive}; and REASONER includes short-video interactions with a 15-item Big Five instrument \cite{chen2023reasoner}. Personality has also been incorporated directly into conversational recommendation, for example in the prompt-based PPPG-DialoGPT framework \cite{elourajini2023pppg}. PerFairX studies the fairness--personality tension in LLM recommendations across movie and music domains \cite{sah2025perfairx}.
-
-Adjacent LLM-personality work is methodologically important because it shows why personality context requires external grounding. PersonaLLM evaluates whether prompted LLM personas express assigned Big Five traits \cite{jiang2024personallm}; other work studies the stability of simulated Big Five behavior \cite{sorokovikova2024big5}; BIG5-CHAT replaces purely descriptive prompting with human-grounded personality data \cite{li2025big5chat}; and Persona-E2 reports that human-grounded personality information can reduce superficial ``personality illusion'' in downstream responses \cite{yang2026personae2}. These studies do not answer FairEval's recommendation-fairness RQs directly, but they support a key design distinction: \emph{simulated persona expression is not equivalent to measured user psychometrics}. The broader FairEval protocol therefore requires dataset-native measured personality for real-world personality claims and tests its user-specific value against whole-profile shuffling and one-trait observed-value controls. The current FairSynth submission uses synthetic OCEAN only as a controlled sanity intervention.
-
-\input{related_work_table}
+Personality-aware recommendation predates LLMs and commonly relies on measured Big Five instruments \cite{nguyen2018personality,klec2023bigfive,chen2023reasoner}. LLM-personality work further distinguishes prompted persona expression from externally grounded personality information \cite{jiang2024personallm,sorokovikova2024big5,li2025big5chat,yang2026personae2}. Accordingly, this submission treats FairSynth OCEAN only as a synthetic control and reserves claims about human psychometrics for future dataset-native measured profiles.
 
 \section{Problem Formulation}
-Let user $u$ have observed preference history $H_u$, auditable candidate set $C_u$, and held-out relevance labels $Y_u \subseteq C_u$. Let $z_u$ denote optional user context. An LLM recommender $M$ is stochastic and induces a distribution over rankings,
+For user $u$, let $H_u$ be frozen preference history, $C_u$ an auditable candidate set, $Y_u\subseteq C_u$ held-out relevant items, and $z$ a context condition. A stochastic recommender produces $R_u^{z,s}\sim p_M(R\mid H_u,C_u,z,s)$, where $s$ indexes the frozen repetition/seed. Recommendation utility is $U(R,Y)$ (nDCG@10 and Recall@10). Ranking similarity (RBO/Jaccard) is treated as a sensitivity diagnostic, not as fairness by itself.
+
+For synthetic identity, we compare the observed label with matched alternative labels while holding $H_u$, $C_u$, prompt structure, order, and generation policy fixed. The per-user utility effect is
 \begin{equation}
-R_{u}^{z,s} \sim p_M(R \mid H_u,C_u,z,t,s),
+\Delta U_u^{\mathrm{id}}=U(R_u^{\mathrm{obs}},Y_u)-\frac{1}{|A_u|}\sum_{a\in A_u}U(R_u^{a},Y_u),
 \end{equation}
-where $t$ is a frozen prompt template and $s$ indexes repeated generations or provider-supported randomization.
-
-Let $U(R,Y)$ denote recommendation utility, such as nDCG@$K$ or Recall@$K$. Let $D(R,R')$ measure behavioral ranking change, for example $1-\mathrm{RBO}$ or $1-\mathrm{Jaccard}$. Crucially, $D$ is a \emph{sensitivity diagnostic}, not a fairness metric by itself.
-
-For a paired demographic intervention $a\rightarrow a'$ that leaves $H_u$, $C_u$, $t$, and generation settings fixed, we define the signed per-user Counterfactual Utility Gap,
+where $A_u$ contains the alternative meaningless identity labels. For synthetic personality,
 \begin{equation}
-\CUG_u(a,a')=U(R_u^{a},Y_u)-U(R_u^{a'},Y_u).
+\Delta U_u^{\mathrm{pers}}=U(R_u^{p_u},Y_u)-U(R_u^{\pi(p)_u},Y_u),
 \end{equation}
-We report the signed paired distribution, absolute gap, confidence interval, and effect size rather than reducing the experiment to one list-similarity number. A large ranking shift with improved held-out utility is not treated as evidence of harm; a systematic identity-conditioned utility loss is a stronger fairness concern and is interpreted together with group-level evidence.
-
-Where reliable item-group metadata exists, discounted exposure distributions yield a Counterfactual Exposure Gap $\CEG$. Group Utility Disparity $\GUD$ summarizes pre-specified group differences in held-out utility. Invalid Output Disparity $\IOD$ treats persistent generation failures as observable behavior rather than silently discarding them.
-
-For measured personality, let $p_u$ be the user's true Big Five vector and $\pi(p)_u$ a profile shuffled from another user under a frozen matching/randomization scheme. We define Personality Value Added,
-\begin{equation}
-\PVA_u=U(R_u^{p_u},Y_u)-U(R_u^{\pi(p)_u},Y_u).
-\end{equation}
-Positive aggregate $\PVA$ indicates that the profile provides user-specific value beyond merely adding personality-shaped context. In the completed FairSynth study, $p_u$ is explicitly synthetic; dataset-native measured Big Five profiles belong to the registered real-world extension. The broader protocol additionally defines one-trait interventions while keeping the remaining profile fixed.
+with true synthetic OCEAN $p_u$ and a frozen shuffled profile $\pi(p)_u$. Persistent semantic failure is not repaired away: it receives zero end-to-end utility and remains visible in invalid-output rate. This separates preference-conditioned consequence from mere ranking sensitivity.
 
 \section{Benchmark and Evaluation Design}
 \subsection{Dataset and Submission Scope}
@@ -125,13 +108,6 @@ The completed FairSynth design uses six cells per user: preference history only 
 
 The broader preregistered protocol additionally defines one-trait measured-personality interventions and intersectional conditions only for real datasets that support them. Those conditions are not reported as completed evidence here.
 
-\begin{figure}[t]
-\centering
-\IfFileExists{figures/faireval_conditions.pdf}{\includegraphics[width=\linewidth]{figures/faireval_conditions.pdf}}{}
-\caption{FairEval context geometry. The completed FairSynth study evaluates preference-only, synthetic identity/counterfactual identity, and true-versus-shuffled synthetic OCEAN contexts. Measured-personality, broader robustness, intersectional, and mitigation branches remain registered extensions.}
-\label{fig:conditions}
-\end{figure}
-
 \subsection{Prompt and Candidate-Order Controls}
 The completed run uses one frozen neutral audit template with no fairness coaching. One deterministic candidate permutation is assigned per user and reused across every matched context, so a counterfactual never receives a different candidate order by accident. Prompt hashes, candidate-order seeds, model/revision identifiers, and generation settings are persisted with every cell. The registered real-world extension includes task-paraphrase and cue-realization robustness factors motivated by persona-prompt sensitivity \cite{lutz2025persona,weeber2026cues}, but they are not silently treated as completed analyses in this submission.
 
@@ -139,9 +115,6 @@ The completed run uses one frozen neutral audit template with no fairness coachi
 \textbf{Hosted black-box panel.} We freeze one gateway configuration from six families: OpenAI, Anthropic, Google, DeepSeek, Qwen, and Meta Llama. Their exact gateway IDs are listed in Table~\ref{tab:benchmark-model-panel}. All requests pass through one audited Zhizengzeng OpenAI-compatible endpoint. A live \texttt{GET /v1/models} check is required before paid execution; a missing identifier blocks the run rather than triggering silent substitution. The gateway fixes endpoint/key provenance, but we do not claim equivalence to each vendor's native serving stack or hidden reasoning controls.
 
 \textbf{Local open-weight panel.} The reproducible local stratum uses Qwen2.5-7B-Instruct \cite{qwen25tech} at Hugging Face revision \texttt{a09a3545...} and Phi-3.5-mini-instruct \cite{phi3tech} at revision \texttt{2fe19245...}. The final FairSynth matrix contains 2,880 generations: 120 protocol-canary-excluded users $\times$ six conditions $\times$ two seeded repetitions $\times$ two models. Models are loaded one at a time on an NVIDIA GeForce RTX~5070~Ti (16~GB) using bitsandbytes NF4 4-bit weights with bfloat16 compute, eager attention, and KV caching. The sealed runtime records Python~3.11.9, PyTorch~2.11.0+cu128 (CUDA~12.8), Transformers~4.44.2, Accelerate~0.34.2, and bitsandbytes~0.50.2. These versions and model revisions are checked against the pre-execution seal before generation.
-
-\input{benchmark_model_table}
-\FloatBarrier
 
 \textbf{Generation and provenance.} Local ranking uses $T=0.2$, top-$p=1.0$, a 512-token cap, and explicit seeds; no chain-of-thought is requested. Hosted requests follow the same low-variance study intent where accepted, but native sampling or reasoning application is not assumed without returned metadata. Every cell records its planned-cell ID, model/revision, prompt/response hashes, candidate-order seed, decoding request, timestamp, code commit, and hardware/provider metadata. Local log-probability, NLL, perplexity, and top1--top2 margin remain exploratory and uncalibrated.
 
@@ -157,17 +130,6 @@ User is the primary unit of inference. The two frozen repetitions are averaged w
 Every response is evaluated along two separate axes: strict serialization compliance and semantic ranking validity. Semantic validity requires exactly $K$ unique string IDs drawn from the frozen candidate set and copied exactly, including leading zeros. The raw first response is always retained and cryptographically hashed. All recovery protocols use exactly one model generation per cell and prohibit LLM-based or generative repair. Deterministic normalization may remove only surrounding whitespace, one mechanically recognized JSON fence, or one unambiguous prose wrapper; it may never change, truncate, reorder, replace, stringify, or invent item IDs. Ambiguous parses remain invalid. Persistent semantic failures receive zero primary system utility and contribute to $\IOD$.
 
 The protocol history is itself auditable. The frozen V4 campaign is preserved unchanged and any deterministic reparse of its first responses is labeled post-hoc forensic sensitivity analysis. V5 introduced deterministic parsing and one-call execution but failed its preregistered 144-cell per-model semantic-validity gate and was not scaled. V6 removed history identifiers from the selectable namespace and added an explicit candidate-ID whitelist; this raised Phi to complete semantic validity in its canary but left residual Qwen failures dominated by out-of-candidate IDs. V7 therefore replaces raw output item IDs with deterministic candidate handles (e.g., \texttt{C01}--\texttt{C30}) that are mapped back to the frozen item IDs before scoring. The mapping is deterministic, candidate-order specific, and audited; it performs no generative repair and cannot change rank order or substitute an unselected item. V7 was evaluated on a third disjoint canary, passed the unchanged per-model semantic-validity promotion gate, and was then used to seal the complete 2,880-cell primary local matrix. No fairness estimand, model revision, decoding setting, candidate content/order, or promotion threshold is relaxed by this recovery. Run-log auditing additionally checks immutable plan linkage, handle-to-item mapping, deterministic parser provenance, requested versus applied sampling semantics, candidate-order/cutoff agreement, code commit, model revision, and provider token-field semantics before statistical analysis.
-
-\begin{figure}[t]
-\centering
-\IfFileExists{figures/faireval_evaluation_pipeline.pdf}{%
-  \includegraphics[width=\linewidth]{figures/faireval_evaluation_pipeline.pdf}%
-}{%
-  \fbox{\parbox[c][36mm][c]{0.94\linewidth}{\centering Run \texttt{python scripts/build\_paper\_figures.py} to generate the editable-vector audit pipeline.}}%
-}
-\caption{Artifact-to-claim pipeline. FairEval separates frozen benchmark construction, immutable execution, strict validation, user-level estimands, and inferential artifacts before any paper-facing claim is generated. Local white-box diagnostics and validation-frozen mitigation remain explicitly separated side branches.}
-\label{fig:audit-pipeline}
-\end{figure}
 
 \subsection{Registered Real-World and Mitigation Extensions}
 The repository retains a preregistered extension from the controlled FairSynth study to observed-demographic and measured-personality datasets, together with an identity-irrelevance prompting baseline and the validation-selected PAIR re-ranker. These components are useful as a reproducible next-stage protocol but are \emph{not} presented as completed evidence here because the exact third-party release freezes are not yet part of the submission artifact. No test-set outcome, hosted pilot row, or synthetic control is used to back-fill those deferred real-world claims.
@@ -200,19 +162,13 @@ The two local models exhibit sharply different output-protocol behavior. Phi-3.5
 
 This contrast demonstrates why serialization compliance and semantic ranking validity must be audited separately. A model can be syntactically clean yet still fail the recommendation contract, while another can violate surface formatting but preserve an exactly recoverable candidate ranking.
 
-\IfFileExists{generated/v7_repetition_stability_table.tex}{%
-\InputIfFileExists{generated/v7_repetition_stability_table.tex}{}{}
-Because the frozen V7 design contains two seeded repetitions per user-condition-model cell, we additionally report descriptive repeat stability without making any new model calls. RBO/Jaccard are computed only where both repetitions are semantically valid; the valid-pair rate therefore preserves information about persistent generation failure instead of conditioning it away. Phi provides valid paired repetitions for all 720 user-condition cells, with mean RBO@10 $=0.955$, mean Jaccard@10 $=0.863$, and exact rank-order agreement of 61.9\%. Qwen provides 673/720 valid repeat pairs (93.5\%), with lower mean RBO@10 ($0.887$), Jaccard@10 ($0.783$), and exact-order agreement (49.3\%). The reliability gap therefore appears not only in semantic validity but also in stochastic repeat consistency.
-}{}
-
 \subsection{RQ3: Exploratory Local White-Box Diagnostics}
 Internal generation scores are descriptive and uncalibrated. Across valid Phi-3.5-mini runs, mean generated-token log probability is $-0.067$ and its Spearman association with nDCG@10 is $\rho=-0.158$. For Qwen2.5-7B, the corresponding values are $-0.031$ and $\rho=-0.037$. These weak or counterintuitive associations reinforce that raw generation scores should not be interpreted as calibrated confidence in recommendation quality. For Qwen, invalid outputs also have lower mean log probability and lower top1--top2 margin than valid outputs, but these associations remain exploratory and are not part of the confirmatory fairness hypothesis family.
 
 \subsection{RQ3: Hosted Six-Family Black-Box Pilot}
 The separately frozen hosted FairSynth campaign planned 1,080 cells over 30 balanced users, six conditions, and six model families. The outcome-blind client budget guard stopped execution after 99 of 1,080 planned cells (9.17\% coverage), with 64.9362 RMB of ledger-wide balance movement and 40.5347 RMB remaining in the gateway account. Every family touched three users; each had three structurally complete identity contrasts and two structurally complete personality contrasts. That coverage is far below the predeclared user-level inference target, so we do not compute or report hosted fairness, utility, or personality-effect estimates from these rows. The pilot instead establishes multi-family execution feasibility, exact-model provenance, and auditable cost behavior under a fixed budget policy.
 
-\IfFileExists{generated/hosted_pilot_operational_table.tex}{\input{generated/hosted_pilot_operational_table}}{}
-\resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.96}{Hosted black-box FairSynth operational coverage profiles. Each radar axis is normalized to the frozen per-family full plan (180 cells or 30 users); the dashed ring marks 10\% coverage. The six profiles visualize coverage structure only---not capability, utility, fairness, or personality performance. Cost remains reported separately in Table~\ref{tab:hosted-pilot-operational}.}
+\resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.96}{Hosted black-box FairSynth operational coverage profiles. Each radar axis is normalized to the frozen per-family full plan (180 cells or 30 users); the dashed ring marks 10\% coverage. The six profiles visualize coverage structure only---not capability, utility, fairness, or personality performance. Observed gateway balance movement is reported in the accompanying prose and provenance artifact.}
 
 \subsection{Scope of the Completed Evidence}
 The completed evidence validates FairEval's controlled-sanity and execution-reliability layers. It does not show that one hosted family is fairer than another, and FairSynth cannot substitute for observed human demographics or measured personality. The registered real-world demographic/personality comparisons and mitigation extension still require separately frozen third-party data and complete execution artifacts. We leave those claims unmade rather than back-filling them from pilots or synthetic controls.
