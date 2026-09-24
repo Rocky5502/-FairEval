@@ -1,8 +1,11 @@
 import json
+import shutil
 import subprocess
 import sys
 import zipfile
 from pathlib import Path
+
+import pytest
 
 from scripts.build_overleaf_bundle import (
     OPTIONAL_RESULT_FILES,
@@ -51,3 +54,24 @@ def test_generated_fairsynth_figure_is_an_optional_artifact_input():
 def test_hosted_pilot_operational_artifacts_are_optional_bundle_inputs():
     assert "generated/hosted_pilot_operational_table.tex" in OPTIONAL_RESULT_FILES
     assert "figures/hosted_pilot_blackbox_summary.pdf" in OPTIONAL_RESULT_FILES
+
+
+def test_overleaf_bundle_rejects_zero_byte_optional_result(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    source = repo_root / "paper"
+    paper = tmp_path / "paper"
+    for name in REQUIRED_FILES:
+        target = paper / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source / name, target)
+
+    bad = paper / "generated" / "v7_repetition_stability_table.tex"
+    bad.parent.mkdir(parents=True, exist_ok=True)
+    bad.write_bytes(b"")
+
+    with pytest.raises(ValueError, match="zero-byte generated result artifacts"):
+        build_overleaf_bundle(
+            paper_dir=paper,
+            output_zip=tmp_path / "bad.zip",
+            include_available_results=True,
+        )
