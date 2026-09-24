@@ -37,6 +37,18 @@ completed_empirical_evidence:
     plan_sha256: 9304f13b41c5caefc5f366fbe8a5646bb3170b3d46650f70779d424246132d14
 
 
+  hosted_fairsynth_paired_extension:
+    required: false
+    status: planned_outcome_blind_extension
+    target_users: 9
+    identity_group_target: {A: 3, B: 3, C: 3}
+    target_complete_cells: 324
+    prior_scientific_outcomes_inspected: false
+    selection_basis: prior_coverage_and_cost_only
+    synthetic_effect_inference_allowed_when_complete: true
+    real_world_claim_allowed: false
+
+
   local_v7_secondary_descriptive:
     required: false
     status: complete_descriptive_only
@@ -74,6 +86,7 @@ submission_guards:
   no_fake_dataset_freezes: true
   no_manual_empirical_numbers_without_artifacts: true
   no_hosted_fairness_inference_from_99_cell_pilot: true
+  hosted_paired_extension_may_support_synthetic_control_inference_only: true
   no_real_world_fairness_claim_without_real_world_results: true
   no_synthetic_ocean_as_human_psychometrics: true
   no_repair_or_drop_of_v7_qwen_invalid_outputs: true
