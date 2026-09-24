@@ -203,9 +203,7 @@ The two local models exhibit sharply different output-protocol behavior. Phi-3.5
 
 This contrast demonstrates why serialization compliance and semantic ranking validity must be audited separately. A model can be syntactically clean yet still fail the recommendation contract, while another can violate surface formatting but preserve an exactly recoverable candidate ranking.
 
-\IfFileExists{generated/v7_repetition_stability_table.tex}{%
-\input{generated/v7_repetition_stability_table}%
-}{}
+\InputIfFileExists{generated/v7_repetition_stability_table.tex}{}{}
 
 Because the frozen V7 design contains two seeded repetitions per user-condition-model cell, we additionally report descriptive repeat stability without making any new model calls. RBO/Jaccard are computed only where both repetitions are semantically valid; the valid-pair rate therefore preserves information about persistent generation failure instead of conditioning it away.
 
