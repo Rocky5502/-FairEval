@@ -92,7 +92,7 @@ def render_table(inference: list[dict[str, Any]]) -> str:
             if int(ndcg["n_users"]) != int(recall["n_users"]):
                 raise ValueError(f"n_users mismatch for {family}/{contrast}")
             body.append(
-                "{} & {} & {} & {} & {} & {} & {} \\".format(
+                "{} & {} & {} & {} & {} & {} & {} \\\\".format(
                     FAMILY_LABELS[family],
                     label,
                     int(ndcg["n_users"]),
@@ -104,22 +104,22 @@ def render_table(inference: list[dict[str, Any]]) -> str:
             )
 
     return "\n".join([
-        "% AUTO-GENERATED from the sealed hosted paired extension; DO NOT EDIT.",
-        "\begin{table}[t]",
-        "\centering",
-        "\caption{Hosted FairSynth paired effects. Identity compares the observed meaningless A/B/C label with the mean of its alternatives; personality compares true with shuffled synthetic OCEAN. Values are paired mean differences [95\% bootstrap CI] with Holm-adjusted sign-flip $p_H$. Identity is a controlled fairness-sanity test, not a claim about real demographic fairness.}",
-        "\label{tab:hosted-fairsynth-results}",
-        "\scriptsize",
-        "\setlength{\tabcolsep}{2.2pt}",
-        "\resizebox{\linewidth}{!}{%",
-        "\begin{tabular}{llrcccc}",
-        "\toprule",
-        "Model & Contrast & $N$ & $\Delta$nDCG@10 [95\% CI] & $p_H$ & $\Delta$Recall@10 [95\% CI] & $p_H$ \\",
-        "\midrule",
+        r"% AUTO-GENERATED from the sealed hosted paired extension; DO NOT EDIT.",
+        r"\begin{table}[t]",
+        r"\centering",
+        r"\caption{Hosted FairSynth paired effects. Identity compares the observed meaningless A/B/C label with the mean of its alternatives; personality compares true with shuffled synthetic OCEAN. Values are paired mean differences [95\% bootstrap CI] with Holm-adjusted sign-flip $p_H$. Identity is a controlled fairness-sanity test, not a claim about real demographic fairness.}",
+        r"\label{tab:hosted-fairsynth-results}",
+        r"\scriptsize",
+        r"\setlength{\tabcolsep}{2.2pt}",
+        r"\resizebox{\linewidth}{!}{%",
+        r"\begin{tabular}{llrcccc}",
+        r"\toprule",
+        r"Model & Contrast & $N$ & $\Delta$nDCG@10 [95\% CI] & $p_H$ & $\Delta$Recall@10 [95\% CI] & $p_H$ \\",
+        r"\midrule",
         *body,
-        "\bottomrule",
-        "\end{tabular}}",
-        "\end{table}",
+        r"\bottomrule",
+        r"\end{tabular}}",
+        r"\end{table}",
         "",
     ])
 
