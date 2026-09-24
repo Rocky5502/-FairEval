@@ -78,6 +78,8 @@ jobs:
         run: python scripts/check_paper_source.py
       - name: Result-table contract preflight
         run: python scripts/check_result_table_contracts.py
+      - name: Final ECIR submission closeout
+        run: python scripts/check_submission_closeout.py --skip-tests
       - name: Build anonymous Overleaf bundle
         run: python scripts/build_overleaf_bundle.py --output dist/FairEval_ECIR2027_Overleaf.zip
       - name: Upload Overleaf bundle
