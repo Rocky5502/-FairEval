@@ -158,6 +158,36 @@ python scripts/run_hosted_budgeted.py \
   --execute
 ```
 
+## Hosted paired-completion extension
+
+The historical 99-cell hosted stop is retained as operational provenance. A
+separately sealed, outcome-blind extension targets **9 complete FairSynth users
+per hosted family** with exact A/B/C balance (3/3/3).
+
+The extension is built from prior coverage/cost only:
+
+```bash
+python scripts/build_hosted_paired_extension.py
+python scripts/build_hosted_paired_extension_seal.py
+```
+
+Execution uses a **new run JSONL and new budget ledger**, so raw rows from the
+historical and extension commits are never mixed. After completion:
+
+```bash
+python scripts/finalize_hosted_paired_extension.py
+```
+
+Finalization audits/scores the two raw runs separately, combines only the nine
+predeclared complete users at the scored-artifact level, and generates:
+
+- `paper/generated/fairsynth_hosted_table.tex`
+- `paper/generated/fairsynth_hosted_summary.tex`
+- `paper/figures/fairsynth_hosted_profiles.pdf`
+
+These are synthetic controlled fairness/personality results only; they do not
+authorize real-world demographic or human-psychometric claims.
+
 ## Completed local/open-weight white-box stratum
 
 The repository freezes Qwen2.5-7B-Instruct and Phi-3.5-mini-instruct as a **required, separately reported replication stratum**. Hosted and local effects are never pooled merely because they answer the same RQ, and local token-score diagnostics are explicitly auxiliary and uncalibrated.
