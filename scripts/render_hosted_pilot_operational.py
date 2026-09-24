@@ -117,11 +117,11 @@ def render_figure(payload: dict[str, Any], output: Path) -> None:
     ax_cov.set_title("(a) Coverage", loc="left", fontsize=8.5, fontweight="bold")
     ax_cov.grid(axis="x", linewidth=0.45, alpha=0.28)
     ax_cov.spines[["top", "right"]].set_visible(False)
-    for bar, n, id_n, p_n in zip(bars, cells, identity, personality, strict=True):
+    for bar, n in zip(bars, cells, strict=True):
         ax_cov.text(
             bar.get_width() + 0.35,
             bar.get_y() + bar.get_height() / 2,
-            f"{n}   ID={id_n}, P={p_n}",
+            f"{n}",
             va="center",
             fontsize=7.0,
         )
@@ -145,13 +145,17 @@ def render_figure(payload: dict[str, Any], output: Path) -> None:
             fontsize=7.0,
         )
 
+    pair_note = (
+        f"Each family: ID-complete={min(identity)}; personality-complete={min(personality)} users. "
+        "Outcome-blind pilot: 99/1,080 cells; no hosted fairness/personality inference."
+    )
     fig.text(
         0.5,
         0.005,
-        "Outcome-blind operational pilot: 99/1,080 planned cells; no hosted fairness or personality-effect inference.",
+        pair_note,
         ha="center",
         va="bottom",
-        fontsize=6.8,
+        fontsize=6.7,
         color="#64748B",
     )
     fig.tight_layout(rect=(0.0, 0.055, 1.0, 1.0), w_pad=1.0)
