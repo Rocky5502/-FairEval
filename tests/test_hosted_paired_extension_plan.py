@@ -14,7 +14,7 @@ from scripts.build_hosted_paired_extension import main
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
+def test_hosted_paired_extension_uses_only_historically_untouched_users(
     tmp_path: Path, monkeypatch
 ) -> None:
     freeze_root = tmp_path / "frozen"
@@ -115,7 +115,7 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
             "--operational-summary", str(operational),
             "--output-dir", str(output),
             "--users-per-identity-group", "3",
-            "--budget-target-rmb", "190",
+            "--budget-target-rmb", "195",
             "--budget-hard-cap-rmb", "200",
         ],
     )
@@ -124,7 +124,7 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
     ext = json.loads((output / "plan_manifest.json").read_text(encoding="utf-8"))
     assert ext["target_users_total"] == 9
     assert ext["target_identity_group_counts"] == {"A": 3, "B": 3, "C": 3}
-    assert partial_user in ext["partially_completed_users_excluded"]
+    assert partial_user in ext["historically_touched_users_excluded"]
     selected = {row["user_id"]: row for row in ext["target_users"]}
     assert partial_user not in selected
     assert complete_users.isdisjoint(selected)
