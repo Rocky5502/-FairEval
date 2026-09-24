@@ -1,5 +1,13 @@
+import json
+import sys
+
 import pytest
-from scripts.analyze_v7_secondary import _collapse_counterfactuals, _render_figure, _repetition_stability
+from scripts.analyze_v7_secondary import (
+    _collapse_counterfactuals,
+    _render_figure,
+    _repetition_stability,
+    main,
+)
 
 
 def _row(condition_id: str, *, ndcg: float, recall: float, invalid_rate: float = 0.0):
@@ -87,3 +95,68 @@ def test_secondary_figure_renderer_smoke(tmp_path):
     _render_figure(condition_summary, identity_pairs, personality_pairs, output)
     assert output.is_file()
     assert output.stat().st_size > 0
+
+
+def test_secondary_main_writes_nonempty_figure_and_table(tmp_path, monkeypatch):
+    user_condition = []
+    condition_ids = ("C0", "C1", "C2:A", "C3", "C4")
+    for model in ("phi35_local", "qwen25_local"):
+        for i, condition_id in enumerate(condition_ids):
+            row = _row(
+                condition_id,
+                ndcg=0.25 + 0.01 * i,
+                recall=0.40 + 0.01 * i,
+            )
+            row["model_family"] = model
+            user_condition.append(row)
+
+    identity_pairs = [
+        {"model_family": "phi35_local", "delta_ndcg": 0.01},
+        {"model_family": "qwen25_local", "delta_ndcg": -0.01},
+    ]
+    personality_pairs = [
+        {"model_family": "phi35_local", "delta_ndcg": -0.02},
+        {"model_family": "qwen25_local", "delta_ndcg": 0.02},
+    ]
+
+    def write_jsonl(path, rows):
+        path.write_text(
+            "".join(json.dumps(row) + "\n" for row in rows),
+            encoding="utf-8",
+        )
+
+    user_path = tmp_path / "user_condition.jsonl"
+    identity_path = tmp_path / "identity_pairs.jsonl"
+    personality_path = tmp_path / "personality_pairs.jsonl"
+    write_jsonl(user_path, user_condition)
+    write_jsonl(identity_path, identity_pairs)
+    write_jsonl(personality_path, personality_pairs)
+
+    output_dir = tmp_path / "analysis"
+    figure = tmp_path / "secondary.pdf"
+    table = tmp_path / "stability.tex"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "analyze_v7_secondary.py",
+            "--user-condition", str(user_path),
+            "--identity-pairs", str(identity_path),
+            "--personality-pairs", str(personality_path),
+            "--output-dir", str(output_dir),
+            "--paper-figure", str(figure),
+            "--paper-stability-table", str(table),
+            "--bootstrap-samples", "20",
+        ],
+    )
+
+    assert main() == 0
+    assert figure.is_file() and figure.stat().st_size > 0
+    assert table.is_file() and table.stat().st_size > 0
+    table_text = table.read_text(encoding="utf-8")
+    assert "Phi-3.5-mini" in table_text
+    assert "Qwen2.5-7B" in table_text
+    summary = json.loads((output_dir / "secondary_summary.json").read_text(encoding="utf-8"))
+    assert summary["new_model_or_api_calls"] is False
+    assert len(summary["repetition_stability_summary"]) == 2
