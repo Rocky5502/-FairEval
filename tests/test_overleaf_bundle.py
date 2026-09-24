@@ -34,7 +34,9 @@ def test_build_overleaf_bundle_contains_required_anonymous_sources(tmp_path: Pat
         manifest = json.loads(archive.read("OVERLEAF_BUNDLE_MANIFEST.json"))
         assert manifest["double_blind"] is True
         assert manifest["entrypoint"] == "main.tex"
-        assert manifest["empirical_numbers_manually_entered"] is False
+        assert manifest["empirical_numbers_traceable_to_audited_artifacts"] is True
+        assert manifest["generated_result_artifacts_machine_derived"] is True
+        assert manifest["prose_result_summaries_cross_checked"] is True
         assert set(manifest["files"]) == set(REQUIRED_FILES)
 
 
