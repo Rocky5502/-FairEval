@@ -70,16 +70,21 @@ def main() -> int:
     entrypoint = PAPER / "results_contract_table.tex"
     _require_tokens(
         entrypoint,
-        (
-            "generated/rq12_inference_table.tex",
-            "generated/rq34_results_table.tex",
-            "generated/fairsynth_hosted_table.tex",
-            "generated/fairsynth_local_table.tex",
-            "generated/v7_execution_quality_table.tex",
-            "generated/whitebox_summary_table.tex",
-        ),
+        ("generated/fairsynth_local_table.tex",),
         label="results entrypoint",
     )
+    entrypoint_text = entrypoint.read_text(encoding="utf-8")
+    for forbidden in (
+        "generated/rq12_inference_table.tex",
+        "generated/rq34_results_table.tex",
+        "generated/fairsynth_hosted_table.tex",
+        "generated/v7_execution_quality_table.tex",
+        "generated/whitebox_summary_table.tex",
+    ):
+        if forbidden in entrypoint_text:
+            raise SystemExit(
+                f"page-limited ECIR entrypoint must not auto-typeset auxiliary table: {forbidden}"
+            )
 
     renderer = ROOT / "scripts" / "render_result_tables.py"
     _require_tokens(
@@ -140,7 +145,7 @@ def main() -> int:
         label="RQ4 prompting analyzer",
     )
 
-    print("result-table preflight: legacy contracts retained; final entrypoint is generated-artifact only")
+    print("result-table preflight: legacy contracts retained; ECIR entrypoint typesets only the primary paired-effect table")
     print("result-table preflight: main result contracts use ordinary LNCS table floats")
     print("result-table preflight: canonical real-result rendering uses the LNCS wrapper")
     print("result-table preflight: publication dataset labels are normalized")
