@@ -48,6 +48,8 @@ OPTIONAL_RESULT_FILES = (
     "generated/rq12_inference_table.tex",
     "generated/rq34_results_table.tex",
     "generated/fairsynth_hosted_table.tex",
+    "generated/fairsynth_local_table.tex",
+    "generated/v7_execution_quality_table.tex",
     "generated/whitebox_summary_table.tex",
     "generated/hosted_pilot_operational_table.tex",
     # Artifact-generated result figures. These intentionally remain analysis-
