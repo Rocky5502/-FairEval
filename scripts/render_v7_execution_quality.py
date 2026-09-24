@@ -29,12 +29,12 @@ def render(report: dict) -> str:
         f"{int(qerr.get('nonlist_ranked_item_ids', 0))} non-list"
     )
     rows = [
-        "Phi-3.5-mini & {rows} & {valid} ({vp}) & {strict} ({sp}) & {norm} & -- \\\\".format(
-            rows=phi["rows"], valid=phi["semantic_valid_count"], vp=_pct(phi["semantic_valid_count"], phi["rows"]),
+        "Phi-3.5-mini & {valid} ({vp}) & {strict} ({sp}) & {norm} & -- \\\\".format(
+            valid=phi["semantic_valid_count"], vp=_pct(phi["semantic_valid_count"], phi["rows"]),
             strict=phi["strict_format_valid_count"], sp=_pct(phi["strict_format_valid_count"], phi["rows"]), norm=phi_norm,
         ),
-        "Qwen2.5-7B & {rows} & {valid} ({vp}) & {strict} ({sp}) & {norm} & {causes} \\\\".format(
-            rows=qwen["rows"], valid=qwen["semantic_valid_count"], vp=_pct(qwen["semantic_valid_count"], qwen["rows"]),
+        "Qwen2.5-7B & {valid} ({vp}) & {strict} ({sp}) & {norm} & {causes} \\\\".format(
+            valid=qwen["semantic_valid_count"], vp=_pct(qwen["semantic_valid_count"], qwen["rows"]),
             strict=qwen["strict_format_valid_count"], sp=_pct(qwen["strict_format_valid_count"], qwen["rows"]), norm=qwen_norm, causes=causes,
         ),
     ]
@@ -42,14 +42,14 @@ def render(report: dict) -> str:
         "% AUTO-GENERATED from audited V7 main-run integrity report; DO NOT EDIT BY HAND.",
         "\\begin{table}[t]",
         "\\centering",
-        "\\caption{V7 local output reliability over the complete 2,880-cell matrix. Deterministic normalization removes only permitted envelopes; no generative repair, ID mutation, or rank substitution is allowed.}",
+        "\\caption{Output reliability over the complete V7 local matrix (1,440 cells/model). Normalization removes only permitted envelopes; no generative repair is used.}",
         "\\label{tab:v7-output-quality}",
         "\\scriptsize",
         "\\setlength{\\tabcolsep}{3pt}",
-        "\\resizebox{\\textwidth}{!}{%",
-        "\\begin{tabular}{lrrrrl}",
+        "\\resizebox{\\linewidth}{!}{%",
+        "\\begin{tabular}{lrrrl}",
         "\\toprule",
-        "Model & Rows & Semantic valid & Strict format & Normalized & Persistent invalid causes \\\\",
+        "Model & Semantic valid & Strict JSON & Normalized & Persistent invalid causes \\\\",
         "\\midrule",
         *rows,
         "\\bottomrule",
