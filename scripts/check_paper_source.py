@@ -114,8 +114,8 @@ def main() -> int:
         raise SystemExit("primary invalid-output policy is missing from manuscript text")
     budget_markers = (
         "200 RMB normal stop target",
-        "250 RMB client-side emergency stop threshold",
-        "does not represent the 250 RMB threshold as an atomic provider-side spending cap",
+        "250 RMB client-side emergency threshold",
+        "not represented as a provider-enforced atomic spending cap",
     )
     if not all(marker in main_text for marker in budget_markers):
         raise SystemExit("hosted API client-side budget-safety wording missing from manuscript")
