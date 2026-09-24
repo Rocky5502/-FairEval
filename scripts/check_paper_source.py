@@ -206,7 +206,7 @@ def main() -> int:
     print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
     print("paper preflight: no atomic provider-side spend-cap claim")
     for token in (
-        "RQ3: Hosted Six-Family Black-Box Pilot",
+        "RQ3: Reliability and Black-Box Feasibility",
         "99 of 1,080 planned cells",
         "64.9362 RMB",
         "figures/hosted_pilot_blackbox_summary.pdf",
