@@ -29,12 +29,16 @@ repair or outcome-dependent rerun. The final evidence/provenance summary is
 `provenance/V7_FINAL_RESULTS_2026-09-24.md`.
 
 
-## Research questions
+## Empirical questions in the ECIR submission
 
-- **RQ1 — Demographic consequence.** Holding observed preferences, candidates, task, and prompt structure fixed, when demographic context changes an LLM ranking, does the change improve held-out utility, leave utility effectively unchanged, or create a harmful counterfactual utility/exposure disparity?
-- **RQ2 — Grounded personality value.** Does measured Big Five personality provide user-specific recommendation value beyond observed preference history, and does that value survive shuffled-profile and one-trait counterfactual controls?
-- **RQ3 — Reliability and generalization.** How stable are FairEval conclusions across datasets, model families, task paraphrases, cue realizations, candidate order, ranking cutoffs, and repeated generations?
-- **RQ4 — Personalization-preserving mitigation.** Can instruction-based and counterfactual re-ranking interventions reduce harmful identity-conditioned gaps while preserving overall utility and beneficial personality-driven personalization?
+- **RQ1 — Controlled identity sanity.** When identity is known to be irrelevant to relevance, does changing only the synthetic identity context produce a reliable held-out utility shift?
+- **RQ2 — Controlled personality value.** Does the true synthetic OCEAN profile provide user-specific value beyond a matched shuffled-profile control?
+- **RQ3 — Execution reliability and black-box feasibility.** How reliably do the two frozen local models satisfy the ranking contract, what do auxiliary generation-score diagnostics reveal, and what operational coverage/cost behavior appears in the six-family hosted pilot?
+
+The repository retains the broader real-world demographic, measured-personality,
+prompt/cue robustness, and PAIR mitigation protocol as a registered extension.
+Those components are not counted as completed empirical claims in the current
+submission.
 
 ## Benchmark design
 
