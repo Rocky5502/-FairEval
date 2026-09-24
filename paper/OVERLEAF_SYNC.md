@@ -98,3 +98,19 @@ before final upload. A passing closeout certifies the completed V7 local evidenc
 the outcome-blind hosted operational pilot, paper/result guards, tests/preflights,
 and regenerated anonymous Overleaf bundle. It does not fabricate or require the
 deferred six-real-dataset release locks.
+
+
+## Optional no-new-call V7 secondary artifacts
+
+The completed V7 result logs support one additional descriptive analysis without
+loading any model or making any API request. Running
+`scripts/analyze_v7_secondary.py` can generate:
+
+- `figures/v7_secondary_profiles.pdf`: condition-level nDCG profiles plus
+  per-user paired-effect distributions;
+- `generated/v7_repetition_stability_table.tex`: two-repetition RBO/Jaccard
+  stability and valid-pair coverage.
+
+These artifacts are derived only from the already frozen V7 analysis outputs.
+They introduce no new confirmatory hypothesis family. The Overleaf bundler
+includes them automatically when present.
