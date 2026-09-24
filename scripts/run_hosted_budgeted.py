@@ -87,6 +87,11 @@ def main() -> int:
         "--preexecution-seal",
         default="results/preexecution/seal-v1/PREEXECUTION_SEAL.json",
     )
+    parser.add_argument(
+        "--seal-plan-key",
+        default="hosted_fairsynth",
+        help="Plan block to verify inside the pre-execution seal.",
+    )
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
@@ -128,6 +133,7 @@ def main() -> int:
         "provider_side_atomic_spend_cap_claimed": False,
         "preexecution_seal_path": str(seal_path),
         "preexecution_seal_exists": seal_path.is_file(),
+        "preexecution_seal_plan_key": args.seal_plan_key,
         "api_calls_made": 0,
     }
     if not args.execute:
@@ -148,7 +154,7 @@ def main() -> int:
         seal_path,
         expected_commit_sha=checked_out_sha,
         plan_dir=plan_dir,
-        plan_key="hosted_fairsynth",
+        plan_key=args.seal_plan_key,
     )
 
     api_key = os.environ.get("ZZZ_API_KEY")
