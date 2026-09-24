@@ -1,0 +1,81 @@
+version: faireval-ecir2027-submission-scope-v1
+status: submission_scope_frozen
+frozen_on: 2026-09-24
+
+submission:
+  venue: ECIR 2027
+  branch: ecir-2027-final-results
+  double_blind: true
+
+completed_empirical_evidence:
+  local_v7_fairsynth:
+    required: true
+    status: complete
+    planned_cells: 2880
+    observed_cells: 2880
+    users: 120
+    conditions: 6
+    repetitions: 2
+    models:
+      - qwen25_local
+      - phi35_local
+    execution_commit: 83d7ac443a5797f7e0392134fa2ea6d62c7177cf
+    plan_sha256: 9108f00789ffa9d20fab3ca97315cee8db68086eea501dabec32f18700ae1519
+    preexecution_seal_sha256: dd04810ebd0c40daf58bf68533e60a9acfb963ade012743580611ed13c54489e
+    merged_run_sha256: 9c91a3f936ce734b6460ad3030ccd12f261f6f655c0f4dfa168e0b3248780977
+    inference_sha256: 5d84314f9cb1ab8b92c514545b35cb5626b530931c87fc0cce1c7d770797df7d
+    additional_gpu_inference_required: false
+
+  hosted_fairsynth_operational_pilot:
+    required: true
+    status: complete_operational_only
+    planned_cells: 1080
+    observed_cells: 99
+    outcome_blind_stop: true
+    scientific_effect_inference_allowed: false
+    role: operational_feasibility_cost_and_provenance
+    plan_sha256: 9304f13b41c5caefc5f366fbe8a5646bb3170b3d46650f70779d424246132d14
+
+deferred_not_claimed_in_submission:
+  real_world_rq1_rq2_rq4:
+    status: deferred
+    datasets:
+      - personality2018
+      - music_master_bfi2
+      - reasoner
+      - movielens_1m
+      - lastfm_1k
+      - mind
+    reason: exact third_party release/license/hash freezes are not complete
+    required_for_current_submission_closeout: false
+    allowed_claim: protocol_and_future_execution_path_only
+  full_hosted_fairsynth_inference:
+    status: deferred
+    reason: budget_guard_stopped_at_99_of_1080_cells
+    required_for_current_submission_closeout: false
+    allowed_claim: operational_pilot_only
+  real_world_local_replication:
+    status: deferred
+    reason: depends_on_real_world_release_freezes
+    required_for_current_submission_closeout: false
+
+submission_guards:
+  no_fake_dataset_freezes: true
+  no_manual_empirical_numbers_without_artifacts: true
+  no_hosted_fairness_inference_from_99_cell_pilot: true
+  no_real_world_fairness_claim_without_real_world_results: true
+  no_synthetic_ocean_as_human_psychometrics: true
+  no_repair_or_drop_of_v7_qwen_invalid_outputs: true
+  no_local_generation_scores_as_calibrated_uncertainty: true
+  strict_paid_pilot_readiness_may_remain_false: true
+  submission_closeout_requires_paid_pilot_readiness: false
+
+paper_artifacts_required:
+  - paper/generated/fairsynth_local_table.tex
+  - paper/generated/v7_execution_quality_table.tex
+  - paper/generated/whitebox_summary_table.tex
+  - paper/generated/hosted_pilot_operational_table.tex
+  - paper/figures/hosted_pilot_blackbox_summary.pdf
+  - paper/figures/faireval_framework.pdf
+  - paper/figures/faireval_conditions.pdf
+  - paper/figures/faireval_evaluation_pipeline.pdf
