@@ -71,8 +71,12 @@ def main() -> int:
     _require_tokens(
         entrypoint,
         (
-            r"\input{result_tables/rq12_main_table}",
-            r"\input{result_tables/rq34_main_table}",
+            "generated/rq12_inference_table.tex",
+            "generated/rq34_results_table.tex",
+            "generated/fairsynth_hosted_table.tex",
+            "generated/fairsynth_local_table.tex",
+            "generated/v7_execution_quality_table.tex",
+            "generated/whitebox_summary_table.tex",
         ),
         label="results entrypoint",
     )
@@ -136,7 +140,7 @@ def main() -> int:
         label="RQ4 prompting analyzer",
     )
 
-    print("result-table preflight: 2 main + 4 compact contracts present")
+    print("result-table preflight: legacy contracts retained; final entrypoint is generated-artifact only")
     print("result-table preflight: main result contracts use ordinary LNCS table floats")
     print("result-table preflight: canonical real-result rendering uses the LNCS wrapper")
     print("result-table preflight: publication dataset labels are normalized")
