@@ -128,3 +128,20 @@ into the page-limited manuscript.
 CI rejects accidental reintroduction of those auxiliary assets into `main.tex`.
 The final PDF also uses hidden hyperlink styling to avoid colored citation/reference
 boxes in the anonymous submission.
+
+
+## Hosted paired-extension artifacts
+
+When the separately sealed nine-user hosted extension is complete, the final
+paper automatically switches from the operational coverage fallback to:
+
+- `generated/fairsynth_hosted_table.tex`: 12-row six-family table covering
+  identity and personality contrasts with nDCG@10/Recall@10 CIs and Holm-adjusted
+  paired sign-flip p-values;
+- `generated/fairsynth_hosted_summary.tex`: artifact-derived RQ1/RQ2 cross-family
+  summary;
+- `figures/fairsynth_hosted_profiles.pdf`: six-panel raw mean nDCG@10 context
+  profiles on a shared radial scale.
+
+The original 99-cell operational radar remains packaged for provenance but is
+not typeset once the paired-result table exists.
