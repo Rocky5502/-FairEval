@@ -72,6 +72,8 @@ jobs:
           print(f"verified PDF+editable SVG: {pdf.name}, {svg.name}")
           PY
           done
+      - name: Render hosted black-box pilot artifacts
+        run: python scripts/render_hosted_pilot_operational.py
       - name: Manuscript source preflight
         run: python scripts/check_paper_source.py
       - name: Result-table contract preflight
