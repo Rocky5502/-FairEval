@@ -78,9 +78,9 @@ def main() -> int:
         default="results/plans/hosted-fairsynth-paired-extension-v1",
     )
     parser.add_argument("--users-per-identity-group", type=int, default=3)
-    parser.add_argument("--budget-target-rmb", type=float, default=190.0)
+    parser.add_argument("--budget-target-rmb", type=float, default=195.0)
     parser.add_argument("--budget-hard-cap-rmb", type=float, default=200.0)
-    parser.add_argument("--cost-safety-multiplier", type=float, default=1.20)
+    parser.add_argument("--cost-safety-multiplier", type=float, default=1.15)
     args = parser.parse_args()
 
     if args.users_per_identity_group <= 0:
@@ -129,14 +129,13 @@ def main() -> int:
     per_group = int(args.users_per_identity_group)
     for group in GROUPS:
         candidates = [u for u in user_order if group_by_user.get(u) == group]
-        # Reuse only fully complete prior users. Partially completed users are
-        # deliberately excluded so one matched user's conditions never span two
-        # execution commits/specifications.
-        reusable = [u for u in candidates if completed_by_user[u] == 36]
+        # Scientific extension users must be completely untouched by the
+        # historical hosted run. This keeps every inferential row under one
+        # execution commit/specification; the 99 historical rows remain
+        # operational provenance only.
         untouched = [u for u in candidates if completed_by_user[u] == 0]
-        reusable.sort(key=lambda u: order_index[u])
         untouched.sort(key=lambda u: order_index[u])
-        chosen = (reusable + untouched)[:per_group]
+        chosen = untouched[:per_group]
         if len(chosen) != per_group:
             raise ValueError(f"identity group {group} has insufficient hosted-plan users")
         target_users.extend(chosen)
@@ -146,18 +145,27 @@ def main() -> int:
                     "user_id": user,
                     "synthetic_identity_group": group,
                     "completed_cells_before_extension": int(completed_by_user[user]),
-                    "reused_prior_complete_user": bool(completed_by_user[user] == 36),
+                    "historically_untouched_user": bool(completed_by_user[user] == 0),
                     "parent_plan_order": int(order_index[user]),
                 }
             )
 
     target_user_set = set(target_users)
-    target_rows = [row for row in parent_rows if str(row["user_id"]) in target_user_set]
+    analysis_condition_rows = [
+        row
+        for row in parent_rows
+        if str(row["user_id"]) in target_user_set
+        and (
+            str(row["condition"]["condition_id"]) in {"C1", "C3", "C4"}
+            or str(row["condition"]["condition_id"]).startswith("C2:")
+        )
+    ]
+    target_rows = analysis_condition_rows
     pending_rows = [
         row for row in target_rows if str(row["cell_id"]) not in completed
     ]
 
-    expected_target_cells = len(target_users) * 6 * 6
+    expected_target_cells = len(target_users) * 5 * 6
     if len(target_rows) != expected_target_cells:
         raise RuntimeError(
             f"target geometry drift: expected {expected_target_cells}, got {len(target_rows)}"
@@ -220,18 +228,20 @@ def main() -> int:
         "operational_summary_sha256": file_sha256(Path(args.operational_summary)),
         "scientific_outcomes_inspected_before_extension_definition": False,
         "selection_rule": (
-            "within each synthetic identity group, reuse only previously fully complete "
-            "36-cell users, then fill remaining slots with previously untouched users in "
-            "immutable parent-plan order; partially completed users are excluded"
+            "within each synthetic identity group, select only users with zero historical "
+            "hosted cells, in immutable parent-plan order; no historical scientific rows "
+            "are reused in the paired extension"
         ),
+        "included_condition_ids": ["C1", "C2:*", "C3", "C4"],
+        "preference_only_c0_included": False,
         "users_per_identity_group": per_group,
         "target_users": target_user_records,
         "target_identity_group_counts": dict(sorted(target_group_counts.items())),
         "target_users_total": len(target_users),
         "target_cells_total_in_parent_plan": len(target_rows),
         "target_cells_completed_before_extension": len(target_rows) - len(pending_rows),
-        "partially_completed_users_excluded": sorted(
-            user for user in user_order if 0 < completed_by_user[user] < 36
+        "historically_touched_users_excluded": sorted(
+            user for user in user_order if completed_by_user[user] > 0
         ),
         "planned_api_cells": len(pending_rows),
         "pending_cells_by_family": dict(sorted(pending_by_family.items())),
