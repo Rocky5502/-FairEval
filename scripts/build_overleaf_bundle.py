@@ -47,6 +47,7 @@ OPTIONAL_RESULT_FILES = (
     "generated/rq12_inference_table.tex",
     "generated/rq34_results_table.tex",
     "generated/fairsynth_hosted_table.tex",
+    "generated/fairsynth_hosted_summary.tex",
     "generated/fairsynth_local_table.tex",
     "generated/v7_execution_quality_table.tex",
     "generated/v7_repetition_stability_table.tex",
@@ -59,6 +60,7 @@ OPTIONAL_RESULT_FILES = (
     "figures/rq3_variance.pdf",
     "figures/rq4_pareto.pdf",
     "figures/fairsynth_hosted_effects.pdf",
+    "figures/fairsynth_hosted_profiles.pdf",
     "figures/hosted_pilot_blackbox_summary.pdf",
     "figures/v7_secondary_profiles.pdf",
 )
