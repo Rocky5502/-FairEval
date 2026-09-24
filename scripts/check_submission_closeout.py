@@ -145,8 +145,8 @@ def main() -> int:
 
     main = (ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
     required_paper_markers = (
-        "complete 2,880-generation local matrix",
-        "operational feasibility, not fairness inference",
+        "complete 2,880-generation FairSynth-360 matrix",
+        "reported only as operational feasibility",
         "no hosted fairness/personality effect is reported",
         "Real-world demographic/personality and mitigation extensions remain preregistered but are not presented as completed claims",
         "\\section{Theory of Change, Limitations, and Ethical Scope}",
