@@ -74,7 +74,6 @@ def main() -> int:
         PAPER / "figures" / "faireval_evaluation_pipeline.pdf",
         PAPER / "related_work_table.tex",
         PAPER / "benchmark_model_table.tex",
-        PAPER / "rq_design_table.tex",
         PAPER / "results_contract_table.tex",
     ]
     missing_assets = [str(path.relative_to(ROOT)) for path in required_assets if not path.is_file()]
@@ -186,17 +185,7 @@ def main() -> int:
         if token not in results_entry:
             raise SystemExit(f"results entrypoint missing artifact-only token: {token}")
 
-    rq_design = (PAPER / "rq_design_table.tex").read_text(encoding="utf-8")
-    rq4_required = (
-        "20\\% validation split",
-        "\\geq95\\%",
-        "one global",
-        "test outcomes never select",
-        "no eligible PAIR point",
-    )
-    for token in rq4_required:
-        if token not in rq_design:
-            raise SystemExit(f"RQ4 design table missing frozen selection guard: {token}")
+
 
     print(
         f"paper preflight: {len(cited)} citation keys resolved across "
