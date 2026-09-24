@@ -228,3 +228,66 @@ def test_verify_v3_recovery_seal_rejects_seen_v6_results(tmp_path: Path) -> None
             plan_key="whitebox_core",
             spec_root=tmp_path,
         )
+
+
+def _convert_to_v4(seal_path: Path) -> None:
+    payload = json.loads(seal_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = "faireval-preexecution-seal-v4"
+    payload.pop("empirical_results_seen_or_inserted", None)
+    payload["prior_hosted_pilot_known"] = True
+    payload["prior_hosted_scientific_outcomes_inspected"] = False
+    payload["hosted_extension_selection_outcome_blind"] = True
+    payload["hosted_extension_results_seen_before_seal"] = False
+    payload["local_v7_results_known"] = True
+    seal_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+
+def test_verify_v4_hosted_extension_accepts_outcome_blind_selection(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="hosted-ext", plan_sha=plan_sha)
+    _convert_to_v4(seal)
+    result = verify_preexecution_seal(
+        seal,
+        expected_commit_sha="hosted-ext",
+        plan_dir=plan_dir,
+        plan_key="whitebox_core",
+        spec_root=tmp_path,
+    )
+    assert result["status"] == "pass"
+    assert result["schema_version"] == "faireval-preexecution-seal-verification-v4"
+
+
+def test_verify_v4_hosted_extension_rejects_prior_scientific_outcome_inspection(
+    tmp_path: Path,
+) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="hosted-ext", plan_sha=plan_sha)
+    _convert_to_v4(seal)
+    payload = json.loads(seal.read_text(encoding="utf-8"))
+    payload["prior_hosted_scientific_outcomes_inspected"] = True
+    seal.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="before hosted scientific outcomes are inspected"):
+        verify_preexecution_seal(
+            seal,
+            expected_commit_sha="hosted-ext",
+            plan_dir=plan_dir,
+            plan_key="whitebox_core",
+            spec_root=tmp_path,
+        )
+
+
+def test_verify_v4_hosted_extension_rejects_seen_extension_results(tmp_path: Path) -> None:
+    plan_dir, plan_sha = _write_plan(tmp_path)
+    seal, _ = _write_seal(tmp_path, commit="hosted-ext", plan_sha=plan_sha)
+    _convert_to_v4(seal)
+    payload = json.loads(seal.read_text(encoding="utf-8"))
+    payload["hosted_extension_results_seen_before_seal"] = True
+    seal.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="before any hosted extension result"):
+        verify_preexecution_seal(
+            seal,
+            expected_commit_sha="hosted-ext",
+            plan_dir=plan_dir,
+            plan_key="whitebox_core",
+            spec_root=tmp_path,
+        )
