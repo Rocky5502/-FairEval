@@ -106,8 +106,9 @@ def main() -> int:
     if "\\author{Anonymous Authors}" not in main_text:
         raise SystemExit("double-blind author placeholder missing")
     integrity_markers = (
-        "audited frozen experiment artifacts",
-        "No empirical value is typed into the manuscript by hand",
+        "traceable to audited frozen experiment artifacts",
+        "Generated tables and figures are artifact-derived",
+        "prose summaries are cross-checked against the same frozen artifacts",
     )
     if not all(marker in main_text for marker in integrity_markers):
         raise SystemExit("artifact-only result-integrity policy missing from manuscript")
