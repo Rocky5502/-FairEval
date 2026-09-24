@@ -4,12 +4,11 @@
 \caption{FairEval benchmark, model, and compute scope. Synthetic, hosted, local, and pending real-world evidence are reported separately.}
 \label{tab:benchmark-model-panel}
 \scriptsize
-\setlength{\tabcolsep}{3.0pt}
-\renewcommand{\arraystretch}{1.10}
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.08}
 
 \textbf{Panel A: benchmark scope}\par\vspace{0.4mm}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}p{2.35cm}p{3.80cm}p{2.05cm}p{3.20cm}@{}}
 \toprule
 Dataset & Evidence/context & FairEval role & Final paper state \\
 \midrule
@@ -21,36 +20,32 @@ Last.fm-1K & listening + gender/age & RQ1/RQ4 & upstream freeze pending \\
 MIND~\cite{wu2020mind} & click histories/impressions & RQ3 & upstream freeze pending \\
 FairSynth-360 & synthetic A/B/C identity + OCEAN & controlled sanity & complete local V7 evidence \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 
 \vspace{1.0mm}
 \textbf{Panel B: LLM and compute execution}\par\vspace{0.4mm}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}p{1.55cm}p{3.25cm}p{3.15cm}p{3.35cm}p{2.35cm}@{}}
+\begin{tabular}{@{}p{1.55cm}p{3.40cm}p{4.25cm}p{2.35cm}@{}}
 \toprule
-Track & Frozen model(s) & Interface / decoding & Compute / transparency & Evidence state \\
+Track & Frozen model(s) & Execution / transparency & Evidence state \\
 \midrule
 Hosted black-box
 & \texttt{gpt-5.6-terra}; \texttt{claude-sonnet-5}; \texttt{gemini-3.8-flash}; \texttt{deepseek-v4.1-flash}; \texttt{qwen3.8-max}; \texttt{llama-4-maverick}
-& Zhizengzeng OpenAI-compatible gateway; low-variance sampling requested; native reasoning/sampling application unverified
-& provider-side internals unavailable; exact model-list preflight, response/model hashes, timestamps, and gateway balance ledger recorded
+& Zhizengzeng OpenAI-compatible gateway; live exact-ID preflight; low-variance sampling requested; provider-native reasoning/sampling application unverified; request/response/model hashes and budget ledger recorded
 & 99/1,080-cell operational pilot; no hosted fairness inference \\
 
 Qwen local~\cite{qwen25tech}
 & \texttt{Qwen/Qwen2.5-7B-Instruct} @ \texttt{a09a3545...}
-& direct Transformers; $T=0.2$, top-$p=1.0$, 512-token cap; seeded
-& RTX~5070~Ti; NF4 4-bit; bf16; eager attention; KV cache; internal generation-score diagnostics
+& direct Transformers; seeded $T=0.2$, top-$p=1.0$; NF4 4-bit + bf16; RTX~5070~Ti; eager attention; KV cache; internal generation-score diagnostics
 & 1,440/1,440 cells complete; 95.21\% semantic valid \\
 
 Phi local~\cite{phi3tech}
 & \texttt{microsoft/Phi-3.5-mini-instruct} @ \texttt{2fe19245...}
-& direct Transformers; $T=0.2$, top-$p=1.0$, 512-token cap; seeded
-& RTX~5070~Ti; NF4 4-bit; bf16; eager attention; KV cache; internal generation-score diagnostics
+& direct Transformers; seeded $T=0.2$, top-$p=1.0$; NF4 4-bit + bf16; RTX~5070~Ti; eager attention; KV cache; internal generation-score diagnostics
 & 1,440/1,440 cells complete; 100\% semantic valid \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 
-\vspace{0.5mm}
+\vspace{0.6mm}
 \parbox{0.985\linewidth}{\scriptsize
 \textit{Local runtime.} One model is loaded at a time on the recorded 16~GB NVIDIA GeForce RTX~5070~Ti. The sealed environment uses Python~3.11.9, PyTorch~2.11.0+cu128 (CUDA~12.8), Transformers~4.44.2, Accelerate~0.34.2, and bitsandbytes~0.50.2. The complete V7 matrix is 120 canary-excluded users $\times$ 6 conditions $\times$ 2 repetitions $\times$ 2 models $=2{,}880$ cells. Hosted and local evidence are never pooled merely because they answer related questions.}
 \end{table}
