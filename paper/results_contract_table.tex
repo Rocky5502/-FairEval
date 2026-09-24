@@ -1,26 +1,8 @@
-% Results entrypoint. Only audited generated artifacts are included in the final manuscript.
-% Missing empirical artifacts are omitted rather than replaced by hand-entered or TBD values. Do not type empirical values into this entrypoint.
-
-\IfFileExists{generated/rq12_inference_table.tex}{%
-  \input{generated/rq12_inference_table}%
-}{}
-
-\IfFileExists{generated/rq34_results_table.tex}{%
-  \input{generated/rq34_results_table}%
-}{}
-
-\IfFileExists{generated/fairsynth_hosted_table.tex}{%
-  \input{generated/fairsynth_hosted_table}%
-}{}
+% Final ECIR results entrypoint.
+% Only the primary audited paired-effect table is typeset here; execution-quality,
+% white-box, hosted-operational, and repeat-stability artifacts remain packaged and
+% are summarized in prose/figures to satisfy the ECIR page limit.
 
 \IfFileExists{generated/fairsynth_local_table.tex}{%
   \input{generated/fairsynth_local_table}%
-}{}
-
-\IfFileExists{generated/v7_execution_quality_table.tex}{%
-  \input{generated/v7_execution_quality_table}%
-}{}
-
-\IfFileExists{generated/whitebox_summary_table.tex}{%
-  \input{generated/whitebox_summary_table}%
 }{}
