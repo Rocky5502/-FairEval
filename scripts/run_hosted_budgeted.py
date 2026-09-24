@@ -82,6 +82,14 @@ def main() -> int:
     parser.add_argument("--target-rmb", type=float, default=200.0)
     parser.add_argument("--hard-cap-rmb", type=float, default=250.0)
     parser.add_argument("--request-reserve-rmb", type=float, default=2.0)
+    parser.add_argument(
+        "--minimum-initial-balance-rmb",
+        type=float,
+        help=(
+            "Optional pre-spend gate. On a new ledger, refuse all generation calls "
+            "unless the live available balance is at least this value."
+        ),
+    )
     parser.add_argument("--code-commit-sha")
     parser.add_argument(
         "--preexecution-seal",
@@ -128,6 +136,7 @@ def main() -> int:
         "target_rmb": args.target_rmb,
         "emergency_stop_threshold_rmb": args.hard_cap_rmb,
         "request_reserve_rmb": args.request_reserve_rmb,
+        "minimum_initial_balance_rmb": args.minimum_initial_balance_rmb,
         "maximum_allowed_target_rmb": FROZEN_MAX_TARGET_RMB,
         "maximum_allowed_emergency_stop_threshold_rmb": FROZEN_MAX_EMERGENCY_THRESHOLD_RMB,
         "provider_side_atomic_spend_cap_claimed": False,
@@ -181,6 +190,15 @@ def main() -> int:
         request_reserve_rmb=args.request_reserve_rmb,
     )
     initial = guard.ensure_initialized()
+    if (
+        args.minimum_initial_balance_rmb is not None
+        and initial.available_rmb < args.minimum_initial_balance_rmb
+    ):
+        raise BudgetExceeded(
+            "Refusing to start before any generation call: "
+            f"available balance {initial.available_rmb:.4f} RMB is below required "
+            f"minimum {args.minimum_initial_balance_rmb:.2f} RMB."
+        )
     if initial.spent_rmb >= args.target_rmb:
         raise BudgetExceeded(
             f"Refusing to start: existing experiment spend {initial.spent_rmb:.4f} RMB "
