@@ -135,4 +135,19 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
     assert ext["target_cells_total_in_parent_plan"] == 270
     assert ext["target_cells_completed_before_extension"] == 0
     assert ext["preference_only_c0_included"] is False
+    assert ext["run_schema_version"] == "faireval-run-v6"
+    assert ext["prompt_interface_version"] == "faireval-prompt-interface-v6"
+    extension_rows = [
+        json.loads(line)
+        for line in (output / "run_plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(extension_rows) == 270
+    assert all(row["run_schema_version"] == "faireval-run-v6" for row in extension_rows)
+    assert all(
+        row["prompt_interface_version"] == "faireval-prompt-interface-v6"
+        for row in extension_rows
+    )
+    parent_cell_ids = {row["cell_id"] for row in cells}
+    assert all(row["cell_id"] not in parent_cell_ids for row in extension_rows)
     assert ext["scientific_outcomes_inspected_before_extension_definition"] is False
