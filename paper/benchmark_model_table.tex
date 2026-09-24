@@ -1,145 +1,56 @@
-% Unified benchmark/model panel. Hosted semantics mirror configs/models.yaml;
-% local open-weight semantics mirror configs/local_models.yaml.
+% Compact benchmark/model/compute summary for the final ECIR manuscript.
 \begin{table}[t]
 \centering
-\caption{FairEval benchmark and execution panel. Real-world, synthetic, hosted, and local evidence are reported in separate strata; \emph{Pending} means that the exact third-party release has not yet been locally frozen.}
+\caption{FairEval benchmark, model, and compute scope. Synthetic, hosted, local, and pending real-world evidence are reported separately.}
 \label{tab:benchmark-model-panel}
 \scriptsize
-\setlength{\tabcolsep}{2.15pt}
-\renewcommand{\arraystretch}{1.12}
+\setlength{\tabcolsep}{3.0pt}
+\renewcommand{\arraystretch}{1.10}
 
-\textbf{Panel A: Dataset benchmark}\par\vspace{0.5mm}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}p{2.45cm}p{1.25cm}p{3.05cm}p{2.75cm}p{2.75cm}p{2.65cm}p{2.20cm}@{}}
+\textbf{Panel A: benchmark scope}\par\vspace{0.4mm}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llll@{}}
 \toprule
-\textbf{Dataset} & \textbf{Domain} & \textbf{Observed/generated evidence} & \textbf{Context used} & \textbf{Candidate grounding} & \textbf{FairEval role} & \textbf{Release state} \\
+Dataset & Evidence/context & FairEval role & Final paper state \\
 \midrule
-Personality 2018~\cite{nguyen2018personality}
-& Movies
-& interactions/ratings + measured Big Five
-& measured OCEAN only; no inferred identity
-& held-out positives + frozen negatives
-& RQ2 personality value; RQ3
-& exact upstream lock pending \\
-
-Music Master / BFI-2~\cite{klec2023bigfive}
-& Music
-& song ratings + BFI/BFI-2 facets + audio features
-& measured profile/facets
-& held-out positives + popularity-matched unseen songs
-& RQ2 personality/facet controls; RQ3
-& CC-BY-4.0; exact hash pending \\
-
-REASONER~\cite{chen2023reasoner}
-& Short video
-& interactions + metadata + CBF-PI-15 responses
-& measured Big Five responses
-& deterministic held-out task
-& RQ2 personality generalization; RQ3
-& exact upstream lock pending \\
-
-MovieLens-1M
-& Movies
-& ratings + gender + age + occupation + ZIP
-& gender confirmatory; age robustness; occupation/ZIP excluded
-& held-out positives + frozen negatives
-& RQ1 confirmatory; RQ4 mitigation
-& exact ML-1M lock pending \\
-
-Last.fm-1K
-& Music
-& listening events + available gender/age/country
-& gender confirmatory; age robustness; country excluded
-& held-out positives + popularity-matched unseen artists
-& RQ1 confirmatory; RQ4; domain generalization
-& exact noncommercial lock pending \\
-
-MIND~\cite{wu2020mind}
-& News
-& click histories + logged impressions + news metadata
-& no observed demographic/personality claim
-& logged impression candidates
-& RQ3 utility/reliability generalization
-& Microsoft terms; exact hash pending \\
-
-\addlinespace[1pt]
-\textbf{FairSynth-360}
-& Synthetic
-& 360 generated users + 120-item latent-feature catalog
-& meaningless balanced A/B/C identity + synthetic OCEAN
-& known latent utility; frozen top-5 relevance
-& controlled identity/personality sanity checks
-& generated + frozen by project \\
+Personality 2018~\cite{nguyen2018personality} & ratings + measured Big Five & RQ2/RQ3 & upstream freeze pending \\
+Music Master/BFI-2~\cite{klec2023bigfive} & music ratings + BFI/BFI-2 & RQ2/RQ3 & upstream freeze pending \\
+REASONER~\cite{chen2023reasoner} & short-video interactions + Big Five & RQ2/RQ3 & upstream freeze pending \\
+MovieLens-1M & ratings + gender/age & RQ1/RQ4 & upstream freeze pending \\
+Last.fm-1K & listening + gender/age & RQ1/RQ4 & upstream freeze pending \\
+MIND~\cite{wu2020mind} & click histories/impressions & RQ3 & upstream freeze pending \\
+FairSynth-360 & synthetic A/B/C identity + OCEAN & controlled sanity & complete local V7 evidence \\
 \bottomrule
 \end{tabular}}
 
-\vspace{1.7mm}
-\textbf{Panel B: Hosted gateway + local white-box execution}\par\vspace{0.5mm}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}p{2.05cm}p{3.55cm}p{4.30cm}p{3.20cm}p{4.25cm}p{3.30cm}@{}}
+\vspace{1.0mm}
+\textbf{Panel B: LLM and compute execution}\par\vspace{0.4mm}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}p{1.55cm}p{3.25cm}p{3.15cm}p{3.35cm}p{2.35cm}@{}}
 \toprule
-\textbf{Family / track} & \textbf{Frozen model ID} & \textbf{Reasoning + sampling semantics} & \textbf{Output-token contract} & \textbf{Execution / transparency path} & \textbf{Freeze state} \\
+Track & Frozen model(s) & Interface / decoding & Compute / transparency & Evidence state \\
 \midrule
-OpenAI
-& \texttt{gpt-5.6-terra}
-& gateway-native reasoning unverified; no CoT requested; $T$/top-$p$ requested, application unverified
-& \texttt{max\_completion\_tokens}
-& Zhizengzeng OpenAI-compatible gateway
-& gateway ID frozen \\
+Hosted black-box
+& \texttt{gpt-5.6-terra}; \texttt{claude-sonnet-5}; \texttt{gemini-3.8-flash}; \texttt{deepseek-v4.1-flash}; \texttt{qwen3.8-max}; \texttt{llama-4-maverick}
+& Zhizengzeng OpenAI-compatible gateway; low-variance sampling requested; native reasoning/sampling application unverified
+& provider-side internals unavailable; exact model-list preflight, response/model hashes, timestamps, and gateway balance ledger recorded
+& 99/1,080-cell operational pilot; no hosted fairness inference \\
 
-Anthropic
-& \texttt{claude-sonnet-5}
-& gateway-native reasoning unverified; $T$/top-$p$ requested, application unverified
-& \texttt{max\_tokens}
-& Zhizengzeng OpenAI-compatible gateway
-& gateway ID frozen \\
-
-Google
-& \texttt{gemini-3.8-flash}
-& gateway-native reasoning unverified; $T$/top-$p$ requested, application unverified
-& native \texttt{max\_output\_tokens}; gateway wire \texttt{max\_tokens}
-& Zhizengzeng OpenAI-compatible gateway
-& gateway ID frozen \\
-
-DeepSeek
-& \texttt{deepseek-v4.1-flash}
-& gateway-native reasoning unverified; $T$/top-$p$ requested, application unverified
-& \texttt{max\_tokens}
-& Zhizengzeng OpenAI-compatible gateway
-& gateway ID frozen \\
-
-Alibaba Qwen
-& \texttt{qwen3.8-max}
-& gateway-native reasoning unverified; $T$/top-$p$ requested, application unverified
-& \texttt{max\_tokens}
-& Zhizengzeng OpenAI-compatible gateway
-& gateway ID frozen \\
-
-Meta Llama
-& \texttt{llama-4-maverick}
-& gateway-native reasoning unverified; $T$/top-$p$ requested, application unverified
-& \texttt{max\_tokens}
-& Zhizengzeng OpenAI-compatible gateway
-& gateway ID frozen \\
-
-\addlinespace[1pt]
 Qwen local~\cite{qwen25tech}
-& \texttt{Qwen/Qwen2.5-7B-Instruct}
-& no reasoning wrapper; explicit $T$/top-$p$; seeded locally
-& \texttt{max\_new\_tokens}
-& direct Transformers; NF4 4-bit, bf16 compute; generation-score diagnostics
-& required separate stratum; HF \texttt{a09a3545...} \\
+& \texttt{Qwen/Qwen2.5-7B-Instruct} @ \texttt{a09a3545...}
+& direct Transformers; $T=0.2$, top-$p=1.0$, 512-token cap; seeded
+& RTX~5070~Ti; NF4 4-bit; bf16; eager attention; KV cache; internal generation-score diagnostics
+& 1,440/1,440 cells complete; 95.21\% semantic valid \\
 
-Microsoft local~\cite{phi3tech}
-& \texttt{microsoft/Phi-3.5-mini-instruct}
-& no reasoning wrapper; explicit $T$/top-$p$; seeded locally
-& \texttt{max\_new\_tokens}
-& direct Transformers; NF4 4-bit, bf16 compute; eager attention; KV cache enabled
-& required separate stratum; HF \texttt{2fe19245...} \\
+Phi local~\cite{phi3tech}
+& \texttt{microsoft/Phi-3.5-mini-instruct} @ \texttt{2fe19245...}
+& direct Transformers; $T=0.2$, top-$p=1.0$, 512-token cap; seeded
+& RTX~5070~Ti; NF4 4-bit; bf16; eager attention; KV cache; internal generation-score diagnostics
+& 1,440/1,440 cells complete; 100\% semantic valid \\
 \bottomrule
 \end{tabular}}
 
-\vspace{0.6mm}
-\parbox{0.985\textwidth}{\scriptsize
-\textit{Protocol note.} One frozen Zhizengzeng OpenAI-compatible gateway provides hosted endpoint/key provenance but does not establish vendor-native reasoning or sampling semantics; those remain unverified unless returned metadata proves otherwise. A live model-list preflight is mandatory before paid execution. The project-wide client ceiling retains a 200 RMB normal stop target, a separate 250 RMB client-side emergency stop threshold, and a 2 RMB pre-cell reserve; this is not an atomic provider-side spend cap. The lean hosted FairSynth sweep uses stricter 65/75 RMB runtime thresholds and 1,080 planned calls (30 balanced users $\times$ 6 conditions $\times$ 6 families $\times$ 1 generation). The two open-weight models form a required but separately reported white-box stratum. Its submission-time FairSynth run is the complete outcome-independent 2,880-cell matrix (120 canary-excluded users $\times$ 6 conditions $\times$ 2 seeded repetitions $\times$ 2 models). The frozen local runtime uses one model at a time on the recorded 16~GB RTX~5070~Ti with NF4 4-bit loading and bfloat16 compute; both models keep KV caching enabled on the pinned Transformers 4.44.2 stack, while Phi-3.5 uses eager attention. Local log-probability, NLL, perplexity, and margin diagnostics are uncalibrated and are never pooled with unavailable hosted internals.}
+\vspace{0.5mm}
+\parbox{0.985\linewidth}{\scriptsize
+\textit{Local runtime.} One model is loaded at a time on the recorded 16~GB NVIDIA GeForce RTX~5070~Ti. The sealed environment uses Python~3.11.9, PyTorch~2.11.0+cu128 (CUDA~12.8), Transformers~4.44.2, Accelerate~0.34.2, and bitsandbytes~0.50.2. The complete V7 matrix is 120 canary-excluded users $\times$ 6 conditions $\times$ 2 repetitions $\times$ 2 models $=2{,}880$ cells. Hosted and local evidence are never pooled merely because they answer related questions.}
 \end{table}
