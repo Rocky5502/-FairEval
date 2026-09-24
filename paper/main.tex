@@ -109,7 +109,7 @@ Strict serialization and semantic ranking validity are audited separately. A val
 Earlier sealed canaries exposed output-interface failures and were never scaled. V7 replaces raw output item IDs with deterministic candidate handles (e.g., \texttt{C01}--\texttt{C30}) that map bijectively back to the frozen candidate IDs. After a disjoint V7 canary passed the unchanged 95\% per-model semantic-validity gate, the 2,880-cell matrix was sealed. Final auditing verifies plan linkage, handle mapping, parser provenance, commit/model revisions, and hardware/provider metadata before any paper-facing analysis. Full V4--V7 forensic history remains in the public artifact rather than being compressed into the empirical claims.
 
 \section{Results}
-The audited V7 matrix contains all 2,880 planned cells with zero missing/duplicate IDs, parser ambiguity, candidate-ID mutation, mapping mismatch, or provenance mismatch. Table~\ref{tab:fairsynth-local-generated} reports the primary paired utility effects.
+All numerical claims are traceable to audited frozen experiment artifacts. Generated tables and figures are artifact-derived; prose summaries are cross-checked against the same frozen artifacts. The V7 matrix contains all 2,880 planned cells with zero missing/duplicate IDs, parser ambiguity, candidate-ID mutation, mapping mismatch, or provenance mismatch. Table~\ref{tab:fairsynth-local-generated} reports the primary paired utility effects.
 
 \input{results_contract_table}
 
