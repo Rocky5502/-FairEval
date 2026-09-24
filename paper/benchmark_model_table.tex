@@ -34,12 +34,12 @@ Hosted black-box
 & 99/1,080-cell operational pilot; no hosted fairness inference \\
 
 Qwen local~\cite{qwen25tech}
-& \texttt{Qwen/Qwen2.5-7B-Instruct} @ \texttt{a09a3545...}
+& \path{Qwen/Qwen2.5-7B-Instruct} @ \texttt{a09a3545...}
 & direct Transformers; seeded $T=0.2$, top-$p=1.0$; NF4 4-bit + bf16; RTX~5070~Ti; eager attention; KV cache; internal generation-score diagnostics
 & 1,440/1,440 cells complete; 95.21\% semantic valid \\
 
 Phi local~\cite{phi3tech}
-& \texttt{microsoft/Phi-3.5-mini-instruct} @ \texttt{2fe19245...}
+& \path{microsoft/Phi-3.5-mini-instruct} @ \texttt{2fe19245...}
 & direct Transformers; seeded $T=0.2$, top-$p=1.0$; NF4 4-bit + bf16; RTX~5070~Ti; eager attention; KV cache; internal generation-score diagnostics
 & 1,440/1,440 cells complete; 100\% semantic valid \\
 \bottomrule
