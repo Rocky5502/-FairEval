@@ -150,12 +150,12 @@ Candidate position is also controlled. One deterministic candidate permutation i
 
 \textbf{Local open-weight panel.} The reproducible local stratum uses Qwen2.5-7B-Instruct \cite{qwen25tech} at Hugging Face revision \texttt{a09a3545...} and Phi-3.5-mini-instruct \cite{phi3tech} at revision \texttt{2fe19245...}. The final FairSynth matrix contains 2,880 generations: 120 protocol-canary-excluded users $\times$ six conditions $\times$ two seeded repetitions $\times$ two models. Models are loaded one at a time on an NVIDIA GeForce RTX~5070~Ti (16~GB) using bitsandbytes NF4 4-bit weights with bfloat16 compute, eager attention, and KV caching. The sealed runtime records Python~3.11.9, PyTorch~2.11.0+cu128 (CUDA~12.8), Transformers~4.44.2, Accelerate~0.34.2, and bitsandbytes~0.50.2. These versions and model revisions are checked against the pre-execution seal before generation.
 
+\input{benchmark_model_table}
+\FloatBarrier
+
 \textbf{Generation and provenance.} Local ranking uses $T=0.2$, top-$p=1.0$, and a 512-token output cap with explicit seeds; no chain-of-thought is requested. Hosted requests use the same study-level low-variance intent where the gateway accepts it, but provider-native sampling or reasoning application is not assumed without returned metadata. Every cell records the planned-cell ID, model/revision, prompt and response hashes, candidate-order seed, decoding request, timestamp, code commit, and hardware/provider metadata. Local generation-score diagnostics (token log-probability, NLL, perplexity, and top1--top2 margin) are exploratory and uncalibrated.
 
 \textbf{Hosted budget guard.} The project-wide hosted policy uses a 200 RMB normal stop target, a 250 RMB client-side emergency threshold, and a 2 RMB pre-request reserve; the lean FairSynth campaign applies stricter 65/75 RMB runtime thresholds. Balance is reconciled before and after each persisted request and execution order is immutable. Budget exhaustion therefore truncates coverage rather than selecting cells from interim scientific outcomes, and the 250 RMB threshold is not represented as a provider-enforced atomic spending cap.
-
-\input{benchmark_model_table}
-\FloatBarrier
 
 \subsection{Metrics and Statistical Analysis}
 Recommendation effectiveness is measured primarily by nDCG@10 and Recall@10. RBO and Jaccard quantify behavioral change only. Fairness analyses report paired $\CUG$, $\GUD$, $\CEG$ where item metadata supports a defensible exposure definition, and $\IOD$. Primary $\CEG$ is computed only when every top-$K$ item has auditable group metadata; incomplete coverage is reported explicitly and is not silently renormalized. Exploratory partial-metadata exposure analysis, if used, is labeled separately. Personality analysis reports $\PVA$ and trait-stratified effects. The original PAFS is retained only as a legacy sensitivity diagnostic and is not the headline fairness estimand.
