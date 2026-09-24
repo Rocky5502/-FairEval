@@ -207,7 +207,8 @@ def main() -> int:
     print("paper preflight: no atomic provider-side spend-cap claim")
     for token in (
         "RQ3: Reliability and Black-Box Feasibility",
-        "99 of 1,080 planned cells",
+        "1,080 cells",
+        "after 99",
         "64.9362 RMB",
         "figures/hosted_pilot_blackbox_summary.pdf",
     ):
