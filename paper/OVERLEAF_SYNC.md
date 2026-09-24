@@ -83,3 +83,18 @@ python scripts/build_overleaf_bundle.py \
 
 The resulting ZIP must include the audited V7 generated tables and the hosted pilot
 operational table/figure when present. The bundle remains double blind.
+
+
+## Submission closeout
+
+The paper-facing submission scope is frozen in
+`configs/submission_scope_ecir2027.yaml`. Run:
+
+```bash
+python scripts/check_submission_closeout.py
+```
+
+before final upload. A passing closeout certifies the completed V7 local evidence,
+the outcome-blind hosted operational pilot, paper/result guards, tests/preflights,
+and regenerated anonymous Overleaf bundle. It does not fabricate or require the
+deferred six-real-dataset release locks.
