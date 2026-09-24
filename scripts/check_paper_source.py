@@ -158,11 +158,13 @@ def main() -> int:
         if token not in benchmark:
             raise SystemExit(f"benchmark/model table missing required token: {token}")
 
-    for token in ("figures/faireval_evaluation_pipeline.pdf", r"\label{fig:audit-pipeline}"):
+    for token in (
+        "figures/faireval_framework.pdf",
+        "figures/v7_secondary_profiles.pdf",
+        "figures/hosted_pilot_blackbox_summary.pdf",
+    ):
         if token not in main_text:
-            raise SystemExit(
-                f"auditable artifact-to-claim pipeline missing from manuscript: {token}"
-            )
+            raise SystemExit(f"required compact-paper figure missing from manuscript: {token}")
 
     for marker in (
         "Controlled identity sanity",
@@ -172,23 +174,26 @@ def main() -> int:
         if marker not in main_text:
             raise SystemExit(f"completed empirical RQ marker missing: {marker}")
 
+    if "\\section{Theory of Change, Limitations, and Ethical Scope}" not in main_text:
+        raise SystemExit("IR-for-Good theory-of-change section missing from compact manuscript")
+
     if "FairSynth-360" not in main_text:
         raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
     if "Qwen2.5" not in main_text or "Phi-3.5" not in main_text:
         raise SystemExit("manuscript must explain the full-scale local open-weight models")
 
     results_entry = (PAPER / "results_contract_table.tex").read_text(encoding="utf-8")
-    for token in (
-        "generated/rq12_inference_table.tex",
-        "generated/rq34_results_table.tex",
-        "generated/fairsynth_hosted_table.tex",
-        "generated/fairsynth_local_table.tex",
+    if "generated/fairsynth_local_table.tex" not in results_entry:
+        raise SystemExit("primary audited FairSynth result table missing from ECIR results entrypoint")
+    for forbidden in (
         "generated/v7_execution_quality_table.tex",
         "generated/whitebox_summary_table.tex",
-        "Do not type empirical values",
+        "generated/hosted_pilot_operational_table.tex",
     ):
-        if token not in results_entry:
-            raise SystemExit(f"results entrypoint missing artifact-only token: {token}")
+        if forbidden in results_entry:
+            raise SystemExit(
+                f"auxiliary result table should remain packaged but not auto-typeset: {forbidden}"
+            )
 
 
 
@@ -204,13 +209,12 @@ def main() -> int:
         "RQ3: Hosted Six-Family Black-Box Pilot",
         "99 of 1,080 planned cells",
         "64.9362 RMB",
-        "generated/hosted_pilot_operational_table.tex",
         "figures/hosted_pilot_blackbox_summary.pdf",
     ):
         if token not in main_text:
             raise SystemExit(f"hosted pilot operational reporting missing: {token}")
 
-    print("paper preflight: generated hosted/local result tables are artifact-only")
+    print("paper preflight: primary local effect table typeset; auxiliary generated artifacts remain packaged")
     print("paper preflight: hosted pilot operational reporting is outcome-blind and explicitly non-inferential")
     print("paper preflight: RQ4 validation/no-test-selection rule synchronized")
     print("paper preflight: double-blind and invalid-output guards present")
