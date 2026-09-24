@@ -12,6 +12,7 @@ SEAL_SCHEMAS = {
     "faireval-preexecution-seal-v1",
     "faireval-preexecution-seal-v2",
     "faireval-preexecution-seal-v3",
+    "faireval-preexecution-seal-v4",
 }
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -120,7 +121,7 @@ def verify_preexecution_seal(
             raise ValueError("V2 seal must disclose the known V4 protocol failure")
         if seal.get("v5_canary_results_seen_before_seal") is not False:
             raise ValueError("V2 seal must be created before any V5 canary result is inspected")
-    else:
+    elif seal.get("schema_version") == "faireval-preexecution-seal-v3":
         # V6 follows a failed, fully audited V5 canary. V5 outcomes are known, so
         # the next safeguard is a new, disjoint canary whose outcomes are unseen
         # when the V6 gate is sealed.
@@ -136,6 +137,27 @@ def verify_preexecution_seal(
                 raise ValueError(f"V3 seal must disclose/confirm {field}")
         if seal.get("v6_canary_results_seen_before_seal") is not False:
             raise ValueError("V3 seal must be created before any V6 canary result is inspected")
+    else:
+        # V4 is a transparently versioned hosted paired-completion extension.
+        # The prior 99-cell hosted execution is known operationally (coverage/cost)
+        # but its scientific recommendation outcomes must remain uninspected when
+        # the extension target is frozen.
+        required_true = (
+            "prior_hosted_pilot_known",
+            "hosted_extension_selection_outcome_blind",
+            "local_v7_results_known",
+        )
+        for field in required_true:
+            if seal.get(field) is not True:
+                raise ValueError(f"V4 seal must disclose/confirm {field}")
+        if seal.get("prior_hosted_scientific_outcomes_inspected") is not False:
+            raise ValueError(
+                "V4 hosted extension must be defined before hosted scientific outcomes are inspected"
+            )
+        if seal.get("hosted_extension_results_seen_before_seal") is not False:
+            raise ValueError(
+                "V4 seal must be created before any hosted extension result is inspected"
+            )
 
     actual_spec_digest, spec_file_count = _verify_scientific_spec_files(
         seal,
@@ -166,9 +188,13 @@ def verify_preexecution_seal(
 
     return {
         "schema_version": (
-            "faireval-preexecution-seal-verification-v3"
-            if seal.get("schema_version") == "faireval-preexecution-seal-v3"
-            else "faireval-preexecution-seal-verification-v2"
+            "faireval-preexecution-seal-verification-v4"
+            if seal.get("schema_version") == "faireval-preexecution-seal-v4"
+            else (
+                "faireval-preexecution-seal-verification-v3"
+                if seal.get("schema_version") == "faireval-preexecution-seal-v3"
+                else "faireval-preexecution-seal-verification-v2"
+            )
         ),
         "status": "pass",
         "seal_path": str(path),
