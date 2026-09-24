@@ -101,16 +101,19 @@ def build_overleaf_bundle(
             raise ValueError(f"double-blind Overleaf bundle guard missing: {token}")
 
     results_entrypoint = (paper_dir / "results_contract_table.tex").read_text(encoding="utf-8")
-    for token in (
+    if "generated/fairsynth_local_table.tex" not in results_entrypoint:
+        raise ValueError("results entrypoint missing primary audited FairSynth table")
+    for forbidden in (
         "generated/rq12_inference_table.tex",
         "generated/rq34_results_table.tex",
         "generated/fairsynth_hosted_table.tex",
-        "generated/fairsynth_local_table.tex",
         "generated/v7_execution_quality_table.tex",
         "generated/whitebox_summary_table.tex",
     ):
-        if token not in results_entrypoint:
-            raise ValueError(f"results entrypoint missing result contract: {token}")
+        if forbidden in results_entrypoint:
+            raise ValueError(
+                f"page-limited ECIR entrypoint must not auto-typeset auxiliary table: {forbidden}"
+            )
 
     selected = list(REQUIRED_FILES)
     if include_available_results:
