@@ -297,13 +297,26 @@ def _render_figure(
             ]
             groups.append((f"{contrast}\n{MODEL_LABELS[model]}", values))
 
-    box = ax_delta.boxplot(
-        [values for _, values in groups],
-        labels=[label for label, _ in groups],
-        showfliers=False,
-        widths=0.58,
-        patch_artist=False,
-    )
+    box_values = [values for _, values in groups]
+    box_labels = [label for label, _ in groups]
+    # Matplotlib renamed the boxplot keyword from labels to tick_labels.
+    # Prefer the current API but retain compatibility with older environments.
+    try:
+        box = ax_delta.boxplot(
+            box_values,
+            tick_labels=box_labels,
+            showfliers=False,
+            widths=0.58,
+            patch_artist=False,
+        )
+    except TypeError:
+        box = ax_delta.boxplot(
+            box_values,
+            labels=box_labels,
+            showfliers=False,
+            widths=0.58,
+            patch_artist=False,
+        )
     del box
     ax_delta.axhline(0.0, linestyle="--", linewidth=0.9)
     ax_delta.set_ylabel("Per-user paired ΔnDCG@10")
