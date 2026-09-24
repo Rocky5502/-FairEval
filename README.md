@@ -200,6 +200,28 @@ python scripts/finalize_hosted_fairsynth.py
 
 The full local path is similarly wrapped by `scripts/finalize_whitebox.py`. Until audited artifacts exist, corresponding paper cells remain explicitly pending; empirical numbers are never typed into the manuscript manually.
 
+## ECIR submission closeout
+
+The current ECIR submission has a separate final scope manifest:
+`configs/submission_scope_ecir2027.yaml`. It freezes the completed evidence as
+the 2,880-cell local V7 FairSynth experiment plus the 99-cell hosted operational
+pilot. The six real-world datasets remain explicitly deferred and unclaimed;
+their missing third-party release locks are **not** treated as a submission
+failure and are never fabricated.
+
+Run one final closeout audit:
+
+```bash
+python scripts/check_submission_closeout.py
+```
+
+A PASS means no additional GPU inference is required for the current paper,
+all paper-facing artifacts and guards are present, the test/preflight suite
+passes, and a fresh anonymous Overleaf ZIP has been built. The stricter
+`check_pilot_readiness.py --strict` may correctly remain non-zero because it
+answers a different question: whether the deferred six-dataset paid campaign is
+ready to launch.
+
 ## Reproducibility checks
 
 ```bash
