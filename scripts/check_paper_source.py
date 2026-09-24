@@ -135,15 +135,13 @@ def main() -> int:
         or "persistent semantic failure" in lowered_main
     ):
         raise SystemExit("primary invalid-output policy is missing from manuscript text")
-    budget_markers = (
-        "200 RMB normal stop target",
-        "250 RMB client-side emergency threshold",
-        "not represented as a provider-enforced atomic spending cap",
+    hosted_design_markers = (
+        "The hosted panel spans six independently named model families",
+        "Exact model identifiers, returned serving metadata, and the audited cost ledger",
+        "identity-balanced paired-completion extension",
     )
-    if not all(marker in main_text for marker in budget_markers):
-        raise SystemExit("hosted API client-side budget-safety wording missing from manuscript")
-    if "Zhizengzeng" not in main_text:
-        raise SystemExit("hosted gateway provenance missing from manuscript")
+    if not all(marker in main_text for marker in hosted_design_markers):
+        raise SystemExit("hosted paired-extension design/provenance wording missing from manuscript")
     if "2,880" not in main_text or "complete 2,880-generation" not in main_text:
         raise SystemExit("completed 2,880-cell local campaign is missing from manuscript")
 
@@ -219,21 +217,19 @@ def main() -> int:
         f"{len(bib_targets)} bibliography files"
     )
     print("paper preflight: LaTeX inputs and required vector/table assets present")
-    print("paper preflight: six hosted gateway IDs + 99/1,080 hosted pilot + complete 2,880-cell local V7 stratum synchronized")
-    print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
-    print("paper preflight: no atomic provider-side spend-cap claim")
+    print("paper preflight: six hosted families + paired-extension design + complete 2,880-cell local V7 stratum synchronized")
+    print("paper preflight: gateway/budget implementation details remain in the artifact, not the narrative")
     for token in (
         "RQ3: Reliability and Black-Box Feasibility",
-        "1,080 cells",
-        "after 99",
-        "64.9362 RMB",
+        "generated/fairsynth_hosted_table.tex",
+        "figures/fairsynth_hosted_profiles.pdf",
         "figures/hosted_pilot_blackbox_summary.pdf",
     ):
         if token not in main_text:
-            raise SystemExit(f"hosted pilot operational reporting missing: {token}")
+            raise SystemExit(f"hosted paired-result/fallback reporting missing: {token}")
 
-    print("paper preflight: primary local effect table typeset; auxiliary generated artifacts remain packaged")
-    print("paper preflight: hosted pilot operational reporting is outcome-blind and explicitly non-inferential")
+    print("paper preflight: primary local table plus conditional hosted paired result table/figure are wired")
+    print("paper preflight: operational hosted fallback remains non-inferential until paired results exist")
     print("paper preflight: RQ4 validation/no-test-selection rule synchronized")
     print("paper preflight: double-blind and invalid-output guards present")
     return 0
