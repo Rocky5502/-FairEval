@@ -21,7 +21,7 @@ def test_hosted_paired_extension_reuses_only_full_users_and_excludes_partial(
         FairSynth360Adapter(),
         tmp_path / "unused",
         freeze_root / "fairsynth360",
-        users=12,
+        users=90,
         candidate_set_size=30,
         max_history_items=8,
         seed=1729,
