@@ -135,7 +135,7 @@ def build_overleaf_bundle(
         "schema_version": "faireval-overleaf-bundle-v3",
         "entrypoint": "main.tex",
         "double_blind": True,
-        "canonical_source": "paper/ on ecir-2027-redesign",
+        "canonical_source": "tracked paper/ sources on the checked-out final-paper branch",
         "empirical_numbers_manually_entered": False,
         "editable_concept_figures": list(EDITABLE_CONCEPT_FIGURES),
         "result_figure_policy": "artifact-generated; do not manually edit empirical geometry or values",
