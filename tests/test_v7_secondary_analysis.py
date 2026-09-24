@@ -1,5 +1,5 @@
 import pytest
-from scripts.analyze_v7_secondary import _collapse_counterfactuals, _repetition_stability
+from scripts.analyze_v7_secondary import _collapse_counterfactuals, _render_figure, _repetition_stability
 
 
 def _row(condition_id: str, *, ndcg: float, recall: float, invalid_rate: float = 0.0):
@@ -48,3 +48,42 @@ def test_repeat_stability_uses_only_valid_two_repetition_cells():
         assert row["mean_rbo_at_10"] == 1.0
         assert row["mean_jaccard_at_10"] == 1.0
         assert row["exact_order_fraction"] == 1.0
+
+
+def test_secondary_figure_renderer_smoke(tmp_path):
+    condition_summary = []
+    for model in ("phi35_local", "qwen25_local"):
+        for i, condition in enumerate(
+            (
+                "preference_only",
+                "observed_identity",
+                "counterfactual_identity",
+                "true_ocean",
+                "shuffled_ocean",
+            )
+        ):
+            mean = 0.30 + 0.01 * i
+            condition_summary.append(
+                {
+                    "model_family": model,
+                    "condition_group": condition,
+                    "ndcg_mean": mean,
+                    "ndcg_ci_low": mean - 0.02,
+                    "ndcg_ci_high": mean + 0.02,
+                }
+            )
+
+    identity_pairs = [
+        {"model_family": model, "delta_ndcg": delta}
+        for model in ("phi35_local", "qwen25_local")
+        for delta in (-0.02, 0.0, 0.03)
+    ]
+    personality_pairs = [
+        {"model_family": model, "delta_ndcg": delta}
+        for model in ("phi35_local", "qwen25_local")
+        for delta in (-0.01, 0.0, 0.02)
+    ]
+    output = tmp_path / "secondary.pdf"
+    _render_figure(condition_summary, identity_pairs, personality_pairs, output)
+    assert output.is_file()
+    assert output.stat().st_size > 0
