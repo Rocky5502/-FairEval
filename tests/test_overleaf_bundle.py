@@ -75,3 +75,9 @@ def test_overleaf_bundle_rejects_zero_byte_optional_result(tmp_path: Path):
             output_zip=tmp_path / "bad.zip",
             include_available_results=True,
         )
+
+
+def test_hosted_paired_result_artifacts_are_optional_bundle_inputs():
+    assert "generated/fairsynth_hosted_table.tex" in OPTIONAL_RESULT_FILES
+    assert "generated/fairsynth_hosted_summary.tex" in OPTIONAL_RESULT_FILES
+    assert "figures/fairsynth_hosted_profiles.pdf" in OPTIONAL_RESULT_FILES
