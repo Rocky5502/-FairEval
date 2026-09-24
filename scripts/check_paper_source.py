@@ -97,6 +97,8 @@ def main() -> int:
         "250 RMB hard ceiling",
         "250 RMB emergency hard ceiling",
         "250 RMB non-bypassable emergency ceiling",
+        "We ask four research questions:",
+        "\\section{Mitigation: Preference-Aligned Identity Re-ranking}",
     ]
     stale = [phrase for phrase in stale_phrases if phrase in main_text]
     if stale:
@@ -157,6 +159,14 @@ def main() -> int:
             raise SystemExit(
                 f"auditable artifact-to-claim pipeline missing from manuscript: {token}"
             )
+
+    for marker in (
+        "Controlled identity sanity",
+        "Controlled personality value",
+        "Execution reliability and black-box feasibility",
+    ):
+        if marker not in main_text:
+            raise SystemExit(f"completed empirical RQ marker missing: {marker}")
 
     if "FairSynth-360" not in main_text:
         raise SystemExit("manuscript must explain the FairSynth-360 auxiliary scope")
