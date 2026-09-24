@@ -54,16 +54,15 @@ A second weakness is personality operationalization. Informal labels such as ``i
 
 A third challenge is evaluation reliability. Persona construction itself can alter measured LLM behavior \cite{lutz2025persona}, and recent large-scale evidence shows that different sociodemographic cue styles can produce different personalization and bias conclusions \cite{weeber2026cues}. More generally, single-prompt evaluation can be brittle \cite{mizrahi2024multiprompt}, although some apparent prompt sensitivity can also be an evaluation artifact \cite{hua2025promptsensitivity}. FairEval consequently freezes a primary prompt before the main run and treats task paraphrases, demographic cue representation, candidate order, ranking cutoff, and repeated generation as pre-registered robustness factors rather than tuning knobs.
 
-We ask four research questions:
+This submission evaluates three empirical questions within the completed evidence scope:
 
 \begin{description}
-\item[RQ1:] \textbf{Consequence of demographic context.} Holding observed preferences, candidates, task, and prompt structure fixed, when demographic context changes an LLM ranking, does the change improve held-out utility, leave utility effectively unchanged, or create a harmful counterfactual utility/exposure disparity?
-\item[RQ2:] \textbf{Grounded personality value.} Does measured Big Five personality provide user-specific recommendation value beyond observed preference history, and does that value survive shuffled-profile and one-trait counterfactual controls?
-\item[RQ3:] \textbf{Reliability and generalization.} How stable are FairEval conclusions across six real-world datasets and six hosted LLM families, with FairSynth-360 as a separately analyzed controlled sanity benchmark and a separately reported two-model local white-box replication stratum, under prompt/cue formulations, candidate order, ranking cutoffs, and repeated generations?
-\item[RQ4:] \textbf{Personalization-preserving mitigation.} Can instruction-based and counterfactual re-ranking interventions reduce harmful identity-conditioned gaps while preserving overall utility and beneficial personality-driven personalization?
+\item[RQ1:] \textbf{Controlled identity sanity.} When identity is known to be irrelevant to relevance, does changing only the synthetic identity context produce a reliable change in held-out recommendation utility?
+\item[RQ2:] \textbf{Controlled personality value.} Does the user's true synthetic OCEAN profile provide recommendation value beyond a matched shuffled-profile control under the same preference history and candidate set?
+\item[RQ3:] \textbf{Execution reliability and black-box feasibility.} How reliably do frozen local models satisfy the ranking contract, what do auxiliary generation-score diagnostics reveal, and what operational coverage/cost behavior is observed in a six-family hosted pilot?
 \end{description}
 
-Our contributions are therefore not simply a larger model sweep. They are (i) a consequence-aware reformulation of fairness auditing, (ii) psychometrically grounded personality controls, (iii) a reliability protocol spanning prompts, cues, order, models, domains, and stochastic generations, and (iv) mitigation evaluated by whether it reduces harmful gaps \emph{without collapsing useful personalization}. We make no empirical claim that a particular model is fairer or that personality improves recommendation until the frozen experiments support it.
+The repository also preregisters real-world demographic, measured-personality, prompt/cue robustness, and mitigation extensions, but those are not counted as completed empirical claims in this submission. The paper's contributions are therefore (i) a consequence-aware distinction between ranking sensitivity and harm, (ii) a complete 2,880-generation controlled FairSynth validation with paired user-level inference, (iii) an auditable output-validity protocol that exposes materially different failure modes across local models, and (iv) a six-family hosted feasibility pilot with outcome-blind cost and coverage accounting.
 
 Figure~\ref{fig:framework} uses the matched-context motivating pattern familiar from counterfactual LLM-recommendation auditing~\cite{zhang2023fairllm}, but changes the interpretation: a ranking shift is treated first as sensitivity, and only preference-conditioned consequence evidence can support a harmful-disparity claim.
 
@@ -117,7 +116,7 @@ Positive aggregate $\PVA$ indicates that the measured profile provides user-spec
 
 \section{Benchmark and Evaluation Design}
 \subsection{Datasets}
-The primary empirical benchmark contains six real-world datasets. Three provide measured psychometric information; two support observed-demographic counterfactuals; MIND supplies candidate-constrained news-domain generalization. Before any paid real-world run, repository manifests freeze the exact release, terms, hashes, filtering counts, and split/candidate-generation hashes. Third-party raw files are never substituted silently.
+The broader FairEval protocol is designed for six real-world datasets: three with measured psychometric information, two with observed demographics, and MIND for candidate-constrained news generalization. Those third-party release locks are deliberately deferred in the current submission and are not treated as completed empirical evidence. Before any future paid real-world run, repository manifests must freeze the exact release, terms, hashes, filtering counts, and split/candidate-generation hashes; third-party raw files are never substituted silently.
 
 We additionally include \textbf{FairSynth-360}, a project-generated 360-user controlled stress-test dataset with 120 synthetic items. Its A/B/C identity label is semantically meaningless, exactly balanced, and generated independently of ground-truth relevance. A synthetic OCEAN-like vector is partially informative about the latent preference function so the same true-versus-shuffled logic can be sanity-checked under known ground truth. These quantities are \emph{synthetic controls, not observations of human demographics or measured human personality}, and FairSynth results are never pooled with RQ1/RQ2 real-world estimates.
 
@@ -162,7 +161,6 @@ Recommendation effectiveness is measured primarily by nDCG@10 and Recall@10. RBO
 
 We pre-specify user as the primary unit of inference. Repeated generations are averaged within a user-condition before pairing. Persistent invalid output that remains semantically invalid after deterministic envelope parsing receives zero nDCG/Recall/MRR in the primary end-to-end system analysis because no usable recommendation was delivered; valid-only utility is reported only as a labeled sensitivity analysis. $\IOD$ is analyzed as its own paired user-level outcome rather than being hidden inside utility. The inference stack uses paired bootstrap confidence intervals, paired sign-flip permutation tests as the primary matched test, Wilcoxon signed-rank sensitivity analysis with matched rank-biserial effect size, and Holm correction within pre-registered RQ$\times$metric$\times$contrast families. Prompt, cue, candidate-order, model, dataset, and generation variation are reported rather than collapsed into a single mean when they materially alter the conclusion.
 
-\input{rq_design_table}
 
 \subsection{Output Validation}
 Every response is evaluated along two separate axes: strict serialization compliance and semantic ranking validity. Semantic validity requires exactly $K$ unique string IDs drawn from the frozen candidate set and copied exactly, including leading zeros. The raw first response is always retained and cryptographically hashed. All recovery protocols use exactly one model generation per cell and prohibit LLM-based or generative repair. Deterministic normalization may remove only surrounding whitespace, one mechanically recognized JSON fence, or one unambiguous prose wrapper; it may never change, truncate, reorder, replace, stringify, or invent item IDs. Ambiguous parses remain invalid. Persistent semantic failures receive zero primary system utility and contribute to $\IOD$.
@@ -180,16 +178,8 @@ The protocol history is itself auditable. The frozen V4 campaign is preserved un
 \label{fig:audit-pipeline}
 \end{figure}
 
-\section{Mitigation: Preference-Aligned Identity Re-ranking}
-RQ4 compares three interventions: (i) the unmitigated audit prompt; (ii) identity-irrelevance prompting, motivated by prior counterfactually fair prompting work \cite{hua2024up5}; and (iii) a lightweight re-ranker, \textbf{PAIR} (Preference-Aligned Identity Re-ranking).
-
-For item $i$, let $b(i)$ be normalized rank support under preference-only evidence, let $r_a(i)$ be support under the focal demographic context $a$, and let $A$ denote the pre-registered identity contexts. Contextual PAIR is
-\begin{align}
-\mathrm{Fit}_{a}(i) &= \alpha b(i)+(1-\alpha)r_a(i),\\
-\mathrm{CFInstability}(i) &= \operatorname{Var}_{a'\in A}[r_{a'}(i)],\\
-\mathrm{PAIR}_{a}(i) &= \mathrm{Fit}_{a}(i)-\lambda\,\mathrm{CFInstability}(i).
-\end{align}
-Candidates are sorted by $\mathrm{PAIR}_{a}(i)$. This focal-context form intentionally avoids an identity-averaged output whose counterfactual disparity would be zero by construction. Hyperparameters $\alpha$ and $\lambda$ are selected on validation users only; test users never choose an operating point. PAIR requires at least two identity-conditioned rankings. We report a utility--fairness Pareto frontier rather than selecting a post-hoc configuration that makes one method look best. A mitigation is considered useful only if it reduces harmful gaps without erasing overall utility or beneficial true-versus-shuffled personality value.
+\subsection{Registered Real-World and Mitigation Extensions}
+The repository retains a preregistered extension from the controlled FairSynth study to observed-demographic and measured-personality datasets, together with an identity-irrelevance prompting baseline and the validation-selected PAIR re-ranker. These components are useful as a reproducible next-stage protocol but are \emph{not} presented as completed evidence here because the exact third-party release freezes are not yet part of the submission artifact. No test-set outcome, hosted pilot row, or synthetic control is used to back-fill those deferred real-world claims.
 
 \section{Results}
 All numerical results in this section are rendered from audited frozen experiment artifacts. No empirical value is typed into the manuscript by hand. The complete local V7 matrix contains 2,880 planned and observed cells, with zero missing or duplicate planned-cell IDs, zero parser ambiguity, zero candidate-ID mutation, zero handle-mapping mismatch, and no commit, model-revision, or hardware-provenance mismatch. The local analysis is therefore permitted by the preregistered audit gate.
@@ -200,6 +190,16 @@ All numerical results in this section are rendered from audited frozen experimen
 FairSynth-360 is a controlled synthetic stress test rather than real-world demographic evidence. Its A/B/C identity label is independent of relevance by construction, so a well-behaved recommender should not exhibit a stable preference-conditioned utility shift merely because the label changes. This is what we observe. For Phi-3.5-mini, the observed-identity versus mean-counterfactual contrast is $\Delta$nDCG@10=$+0.009$ (95\% CI $[-0.008,0.029]$, Holm-adjusted $p_H=0.700$) and $\Delta$Recall@10=$+0.012$ ($[-0.005,0.030]$, $p_H=0.435$). Qwen2.5-7B yields $\Delta$nDCG@10=$-0.008$ ($[-0.027,0.009]$, $p_H=0.700$) and $\Delta$Recall@10=$-0.005$ ($[-0.030,0.019]$, $p_H=0.714$). Thus the controlled identity intervention produces no reliable nonzero utility effect in either local model.
 
 The true-versus-shuffled synthetic OCEAN contrast is also small and uncertain. For Phi-3.5-mini, $\Delta$nDCG@10 is $-0.014$ (95\% CI $[-0.029,0.000]$, $p_H=0.145$), while $\Delta$Recall@10 is $-0.019$ ($[-0.040,0.000]$, $p_H=0.144$). For Qwen2.5-7B, the corresponding effects are $+0.009$ ($[-0.015,0.032]$, $p_H=0.480$) and $+0.003$ ($[-0.027,0.033]$, $p_H=0.875$). Thus synthetic OCEAN does not provide reliable user-specific recommendation value beyond the matched shuffled-profile control in this setting. Merely supplying personality-shaped context is not sufficient evidence that a recommender exploits personality in a user-specific way.
+
+\IfFileExists{figures/v7_secondary_profiles.pdf}{%
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/v7_secondary_profiles.pdf}
+\caption{Descriptive secondary analysis of the frozen V7 results with no additional model or API calls. Left: user-level mean nDCG@10 across the controlled context conditions with descriptive bootstrap intervals. Right: distributions of paired per-user $\Delta$nDCG@10 for the synthetic identity and personality contrasts. This figure introduces no new confirmatory hypothesis family.}
+\label{fig:v7-secondary}
+\end{figure}
+}{}
+
 
 \subsection{Output Reliability Is Distinct from Ranking Quality}
 The two local models exhibit sharply different output-protocol behavior. Phi-3.5-mini is semantically valid on all 1,440 cells, but only one response is strictly compliant JSON. The remaining 1,439 responses are recovered solely by the preregistered deterministic envelope normalizer, most commonly by removing extra surrounding text or a single JSON fence. No ranking item, order, or value is changed. Qwen2.5-7B is almost perfectly strict-format compliant (1,431/1,440; 99.38\%) yet has 69 persistent semantic failures, leaving 1,371/1,440 semantically valid cells (95.21\%). Its failures are 54 duplicate-selection outputs, six wrong-$K$ outputs, five invalid-JSON responses, and four non-list payloads. These failures are not regenerated or repaired; they receive zero primary system utility and remain visible in invalid-output disparity analyses.
@@ -213,7 +213,7 @@ Internal generation scores are descriptive and uncalibrated. Across valid Phi-3.
 The separately frozen hosted FairSynth campaign planned 1,080 cells over 30 balanced users, six conditions, and six model families. The outcome-blind client budget guard stopped execution after 99 of 1,080 planned cells (9.17\% coverage), with 64.9362 RMB of ledger-wide balance movement and 40.5347 RMB remaining in the gateway account. Every family touched three users; each had three structurally complete identity contrasts and two structurally complete personality contrasts. That coverage is far below the predeclared user-level inference target, so we do not compute or report hosted fairness, utility, or personality-effect estimates from these rows. The pilot instead establishes multi-family execution feasibility, exact-model provenance, and auditable cost behavior under a fixed budget policy.
 
 \IfFileExists{generated/hosted_pilot_operational_table.tex}{\input{generated/hosted_pilot_operational_table}}{}
-\resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.96}{Hosted black-box FairSynth operational pilot. Left: completed cells by model family, annotated with structurally complete identity (ID) and personality (P) paired users. Right: observed request-window gateway balance movement. The 99/1,080-cell pilot is outcome-blind and is not used for hosted fairness or personality-effect inference.}
+\resultfigure{figures/hosted_pilot_blackbox_summary.pdf}{0.96}{Hosted black-box FairSynth operational coverage profiles. Each radar axis is normalized to the frozen per-family full plan (180 cells or 30 users); the dashed ring marks 10\% coverage. The six profiles visualize coverage structure only---not capability, utility, fairness, or personality performance. Cost remains reported separately in Table~\ref{tab:hosted-pilot-operational}.}
 
 \subsection{Scope of the Completed Evidence}
 The completed evidence validates FairEval's controlled-sanity and execution-reliability layers. It does not show that one hosted family is fairer than another, and FairSynth cannot substitute for observed human demographics or measured personality. Real-world RQ1/RQ2 comparisons and RQ4 mitigation still require separately frozen third-party data and complete execution artifacts. We leave those claims unmade rather than back-filling them from pilots or synthetic controls.
