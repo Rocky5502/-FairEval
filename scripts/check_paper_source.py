@@ -103,6 +103,23 @@ def main() -> int:
     if stale:
         raise SystemExit(f"stale pre-gateway/white-box/budget manuscript wording found: {stale}")
 
+    compact_body_forbidden = (
+        "\\input{related_work_table}",
+        "\\input{benchmark_model_table}",
+        "figures/faireval_conditions.pdf",
+        "figures/faireval_evaluation_pipeline.pdf",
+        "generated/hosted_pilot_operational_table.tex",
+        "generated/v7_execution_quality_table.tex",
+        "generated/whitebox_summary_table.tex",
+    )
+    leaked = [token for token in compact_body_forbidden if token in main_text]
+    if leaked:
+        raise SystemExit(
+            f"compact ECIR body regressed by reintroducing auxiliary material: {leaked}"
+        )
+    if "\\hypersetup{hidelinks}" not in main_text:
+        raise SystemExit("submission PDF must hide hyperlink boxes")
+
     if "\\author{Anonymous Authors}" not in main_text:
         raise SystemExit("double-blind author placeholder missing")
     integrity_markers = (
