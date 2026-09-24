@@ -155,6 +155,7 @@ Candidate position is also controlled. One deterministic candidate permutation i
 \textbf{Hosted budget guard.} The project-wide hosted policy uses a 200 RMB normal stop target, a 250 RMB client-side emergency threshold, and a 2 RMB pre-request reserve; the lean FairSynth campaign applies stricter 65/75 RMB runtime thresholds. Balance is reconciled before and after each persisted request and execution order is immutable. Budget exhaustion therefore truncates coverage rather than selecting cells from interim scientific outcomes, and the 250 RMB threshold is not represented as a provider-enforced atomic spending cap.
 
 \input{benchmark_model_table}
+\FloatBarrier
 
 \subsection{Metrics and Statistical Analysis}
 Recommendation effectiveness is measured primarily by nDCG@10 and Recall@10. RBO and Jaccard quantify behavioral change only. Fairness analyses report paired $\CUG$, $\GUD$, $\CEG$ where item metadata supports a defensible exposure definition, and $\IOD$. Primary $\CEG$ is computed only when every top-$K$ item has auditable group metadata; incomplete coverage is reported explicitly and is not silently renormalized. Exploratory partial-metadata exposure analysis, if used, is labeled separately. Personality analysis reports $\PVA$ and trait-stratified effects. The original PAFS is retained only as a legacy sensitivity diagnostic and is not the headline fairness estimand.
