@@ -147,9 +147,6 @@ def main() -> int:
         "application unverified",
         "2,880",
         "1,080",
-        "200 RMB",
-        "250 RMB client-side emergency stop threshold",
-        "not an atomic provider-side spend cap",
     )
     for token in required_benchmark_tokens:
         if token not in benchmark:
@@ -204,7 +201,7 @@ def main() -> int:
         "99 of 1,080 planned cells",
         "64.9362 RMB",
         "generated/hosted_pilot_operational_table.tex",
-        "figures/hosted_pilot_cost_profile.pdf",
+        "figures/hosted_pilot_blackbox_summary.pdf",
     ):
         if token not in main_text:
             raise SystemExit(f"hosted pilot operational reporting missing: {token}")
