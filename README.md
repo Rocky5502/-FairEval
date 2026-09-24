@@ -4,7 +4,7 @@
 
 FairEval is a preference-conditioned benchmark for evaluating fairness in LLM-based recommendation with personality awareness. The central design principle is simple: **recommendation change is sensitivity; harmfulness requires consequence evidence**.
 
-The ECIR 2027 redesign separates demographic counterfactual effects from beneficial personalization, grounds personality in measured Big Five profiles, freezes prompt/cue/order controls before execution, and reports hosted/API and local/open-weight evidence in separate strata.
+The ECIR 2027 submission separates counterfactual ranking sensitivity from preference-conditioned consequence, evaluates synthetic identity/personality controls on FairSynth-360, and reports hosted/API and local/open-weight evidence in separate strata. The repository also retains a broader registered real-world extension that requires dataset-native measured Big Five profiles before making human-personality claims.
 
 ## Final V7 local experiment status
 
@@ -44,7 +44,7 @@ submission.
 
 The real-world benchmark contains six datasets spanning personality-aware recommendation, demographic fairness, and domain generalization. FairSynth-360 is a project-generated 360-user controlled sanity benchmark whose synthetic A/B/C identity is independent of relevance by construction. Real and synthetic results are always reported separately.
 
-The primary matched conditions are `C0` preference history only, `C1` observed demographic context, `C2` matched one-field demographic counterfactual, `C3` true measured personality, `C4` deterministic whole-profile derangement, and `C5` one measured Big Five trait changed while the other four stay fixed.
+The generic protocol defines `C0` preference history only, `C1` observed identity context, `C2` matched identity counterfactual, `C3` true personality context, `C4` shuffled personality, and an optional `C5` one-trait intervention for real-world measured-personality datasets. In the completed FairSynth study, the personality fields are explicitly synthetic OCEAN rather than human psychometric measurements.
 
 Candidates, history, task structure, and candidate ordering are frozen across matched conditions. The model must return exactly `K` unique candidate IDs from the supplied candidate set in structured JSON.
 
