@@ -157,7 +157,7 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
         return "none" if not values else ", ".join(values)
 
     return (
-        "Across the six hosted families ($N={} $ paired users per family), "
+        "Across the six hosted families ($N={}$ paired users per family), "
         "the controlled identity $\\Delta$nDCG@10 ranges from {:.3f} to {:.3f}; "
         "{}/6 bootstrap intervals contain zero and Holm-adjusted $p_H<.05$ for {}. "
         "For RQ2, true-versus-shuffled synthetic OCEAN $\\Delta$nDCG@10 ranges "
