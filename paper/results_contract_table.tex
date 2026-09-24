@@ -1,39 +1,26 @@
-% Results entrypoint. Generated audited artifacts take precedence automatically.
-% If a generated artifact is absent, the pre-registered TBD contract remains visible.
-% Do not type empirical values into these LaTeX files by hand.
+% Results entrypoint. Only audited generated artifacts are included in the final manuscript.
+% Missing empirical artifacts are omitted rather than replaced by hand-entered or TBD values.
+
 \IfFileExists{generated/rq12_inference_table.tex}{%
   \input{generated/rq12_inference_table}%
-}{%
-  \input{result_tables/rq12_main_table}%
-}
+}{}
 
 \IfFileExists{generated/rq34_results_table.tex}{%
   \input{generated/rq34_results_table}%
-}{%
-  \input{result_tables/rq34_main_table}%
-}
+}{}
 
-% FairSynth is an auxiliary controlled sanity layer and therefore has no fake
-% TBD table. It appears only when its audited inference artifact has actually
-% been rendered.
 \IfFileExists{generated/fairsynth_hosted_table.tex}{%
   \input{generated/fairsynth_hosted_table}%
 }{}
 
-% The local white-box table is also artifact-only. It is rendered from the
-% audited local analysis summary and never receives hand-entered numbers.
-\IfFileExists{generated/whitebox_summary_table.tex}{%
-  \input{generated/whitebox_summary_table}%
-}{}
-
-
-% Complete local V7 FairSynth evidence. This artifact is generated only from the
-% audited 2,880-cell main run and remains separate from real-world RQ1/RQ2 claims.
 \IfFileExists{generated/fairsynth_local_table.tex}{%
   \input{generated/fairsynth_local_table}%
 }{}
 
-% Output-reliability evidence from the same audited V7 main-run report.
 \IfFileExists{generated/v7_execution_quality_table.tex}{%
   \input{generated/v7_execution_quality_table}%
+}{}
+
+\IfFileExists{generated/whitebox_summary_table.tex}{%
+  \input{generated/whitebox_summary_table}%
 }{}
