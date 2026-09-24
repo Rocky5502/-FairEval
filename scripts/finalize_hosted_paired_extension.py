@@ -48,10 +48,6 @@ def main() -> int:
         )
     )
     parser.add_argument(
-        "--parent-plan-dir",
-        default="results/plans/hosted-fairsynth-lean-v1",
-    )
-    parser.add_argument(
         "--extension-plan-dir",
         default="results/plans/hosted-fairsynth-paired-extension-v1",
     )
