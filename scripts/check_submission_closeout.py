@@ -94,6 +94,38 @@ def main() -> int:
     if missing:
         failures.append(f"missing paper artifacts: {missing}")
 
+    secondary_paths = (
+        ROOT / "results" / "analysis" / "fairsynth-v7-secondary" / "secondary_summary.json",
+        ROOT / "paper" / "figures" / "v7_secondary_profiles.pdf",
+        ROOT / "paper" / "generated" / "v7_repetition_stability_table.tex",
+    )
+    secondary_present = [path.is_file() for path in secondary_paths]
+    if any(secondary_present):
+        if not all(secondary_present):
+            failures.append(
+                "secondary V7 artifacts are partially present; expected summary, figure, and stability table"
+            )
+        else:
+            zero_byte = [
+                str(path.relative_to(ROOT))
+                for path in secondary_paths
+                if path.stat().st_size <= 0
+            ]
+            if zero_byte:
+                failures.append(f"secondary V7 artifacts contain zero-byte files: {zero_byte}")
+            else:
+                try:
+                    secondary = json.loads(secondary_paths[0].read_text(encoding="utf-8"))
+                    if secondary.get("schema_version") != "faireval-v7-secondary-analysis-v1":
+                        failures.append("secondary V7 summary schema mismatch")
+                    if secondary.get("new_model_or_api_calls") is not False:
+                        failures.append("secondary V7 summary does not certify zero new model/API calls")
+                    stability = secondary.get("repetition_stability_summary", [])
+                    if len(stability) != 2:
+                        failures.append("secondary V7 repetition stability must contain exactly two model rows")
+                except (OSError, json.JSONDecodeError) as exc:
+                    failures.append(f"secondary V7 summary unreadable: {exc}")
+
     provenance = ROOT / "provenance" / "V7_FINAL_RESULTS_2026-09-24.md"
     if not provenance.is_file():
         failures.append("V7 final-results provenance is missing")
