@@ -35,7 +35,7 @@ def render(rows: list[dict[str, Any]]) -> str:
             ndcg = index[(rq, model, "ndcg")]
             recall = index[(rq, model, "recall")]
             body.append(
-                "{} & {} & {} [{}, {}] & {} & {} [{}, {}] & {} & {} \\\\".format(
+                "{} & {} & {} [{}, {}] & {} & {} [{}, {}] & {} \\\\".format(
                     RQ_LABELS[rq],
                     MODEL_LABELS[model],
                     _f(ndcg["mean_paired_difference"]),
@@ -46,28 +46,27 @@ def render(rows: list[dict[str, Any]]) -> str:
                     _f(recall["bootstrap_ci_low"]),
                     _f(recall["bootstrap_ci_high"]),
                     _f(recall["holm_adjusted_p"]),
-                    _f(ndcg["invalid_rate_difference_mean"]),
                 )
             )
     return "\n".join([
         "% AUTO-GENERATED from audited V7 FairSynth inference artifact; DO NOT EDIT BY HAND.",
-        "\\begin{table*}[t]",
+        "\\begin{table}[t]",
         "\\centering",
-        "\\caption{Complete local FairSynth-360 controlled-sanity results ($N=120$ paired users per model). Identity compares the observed meaningless A/B/C label with the mean of its alternative labels; personality compares true synthetic OCEAN with the shuffled-profile control. Values are paired mean differences with 95\\% bootstrap CIs and Holm-adjusted paired sign-flip $p_H$. FairSynth is synthetic and is not pooled with real-world fairness or measured-human-personality claims.}",
+        "\\caption{Local FairSynth-360 controlled sanity checks ($N=120$ paired users/model). Values are paired mean differences with 95\\% bootstrap CIs and Holm-adjusted $p_H$; synthetic controls are not pooled with real-world claims.}",
         "\\label{tab:fairsynth-local-generated}",
         "\\scriptsize",
         "\\setlength{\\tabcolsep}{2.5pt}",
-        "\\resizebox{\\textwidth}{!}{%",
-        "\\begin{tabular}{llccccc}",
+        "\\resizebox{\\linewidth}{!}{%",
+        "\\begin{tabular}{llcccc}",
         "\\toprule",
-        "Contrast & Model & $\\Delta$nDCG@10 [95\\% CI] & $p_H$ & $\\Delta$Recall@10 [95\\% CI] & $p_H$ & $\\Delta$ invalid rate \\\\",
+        "Contrast & Model & $\\Delta$nDCG@10 [95\\% CI] & $p_H$ & $\\Delta$Recall@10 [95\\% CI] & $p_H$ \\\\",
         "\\midrule",
         *body,
         "\\bottomrule",
         "\\end{tabular}}",
         "\\vspace{0.4mm}",
-        "\\parbox{0.985\\textwidth}{\\scriptsize Invalid-rate differences are signed left-minus-right proportions. No local FairSynth contrast survives the preregistered uncertainty analysis as evidence of a reliable nonzero utility effect.}",
-        "\\end{table*}",
+        "\\parbox{0.985\\linewidth}{\\scriptsize No local FairSynth contrast provides evidence of a reliable nonzero utility effect under the preregistered uncertainty analysis.}",
+        "\\end{table}",
         "",
     ])
 
