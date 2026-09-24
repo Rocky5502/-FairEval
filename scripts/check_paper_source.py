@@ -121,8 +121,8 @@ def main() -> int:
         raise SystemExit("hosted API client-side budget-safety wording missing from manuscript")
     if "Zhizengzeng" not in main_text:
         raise SystemExit("hosted gateway provenance missing from manuscript")
-    if "12,960" not in main_text or "full-scale local white-box" not in main_text:
-        raise SystemExit("full-scale local white-box campaign is missing from manuscript")
+    if "2,880" not in main_text or "complete 2,880-generation" not in main_text:
+        raise SystemExit("completed 2,880-cell local campaign is missing from manuscript")
 
     related = (PAPER / "related_work_table.tex").read_text(encoding="utf-8")
     if related.count("\\\\") < 16:
@@ -145,7 +145,7 @@ def main() -> int:
         "microsoft/Phi-3.5-mini-instruct",
         "generation-score diagnostics",
         "application unverified",
-        "12,960",
+        "2,880",
         "1,080",
         "200 RMB",
         "250 RMB client-side emergency stop threshold",
@@ -171,6 +171,8 @@ def main() -> int:
         "generated/rq12_inference_table.tex",
         "generated/rq34_results_table.tex",
         "generated/fairsynth_hosted_table.tex",
+        "generated/fairsynth_local_table.tex",
+        "generated/v7_execution_quality_table.tex",
         "generated/whitebox_summary_table.tex",
         "Do not type empirical values",
     ):
@@ -194,7 +196,7 @@ def main() -> int:
         f"{len(bib_targets)} bibliography files"
     )
     print("paper preflight: LaTeX inputs and required vector/table assets present")
-    print("paper preflight: six hosted gateway IDs + lean 1,080-call hosted FairSynth + full-scale local white-box stratum synchronized")
+    print("paper preflight: six hosted gateway IDs + 99/1,080 hosted pilot + complete 2,880-cell local V7 stratum synchronized")
     print("paper preflight: 200 RMB normal stop / 250 RMB client-side emergency threshold documented")
     print("paper preflight: no atomic provider-side spend-cap claim")
     for token in (
