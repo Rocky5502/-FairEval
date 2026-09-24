@@ -59,7 +59,7 @@ OPTIONAL_RESULT_FILES = (
     "figures/rq3_variance.pdf",
     "figures/rq4_pareto.pdf",
     "figures/fairsynth_hosted_effects.pdf",
-    "figures/hosted_pilot_cost_profile.pdf",
+    "figures/hosted_pilot_blackbox_summary.pdf",
 )
 
 
