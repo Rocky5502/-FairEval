@@ -72,6 +72,16 @@ def main() -> int:
     if len(extension_rows) != int(extension_manifest.get("planned_api_cells", -1)):
         raise ValueError("hosted extension plan row count mismatch")
 
+    if extension_manifest.get("run_schema_version") != "faireval-run-v6":
+        raise ValueError("hosted extension must freeze faireval-run-v6")
+    if extension_manifest.get("prompt_interface_version") != "faireval-prompt-interface-v6":
+        raise ValueError("hosted extension must freeze faireval-prompt-interface-v6")
+    for row in extension_rows:
+        if row.get("run_schema_version") != "faireval-run-v6":
+            raise ValueError("hosted extension row run schema drift")
+        if row.get("prompt_interface_version") != "faireval-prompt-interface-v6":
+            raise ValueError("hosted extension row prompt interface drift")
+
     spec_hashes = collect_spec_hashes()
     seal: dict[str, Any] = {
         "schema_version": "faireval-preexecution-seal-v4",
