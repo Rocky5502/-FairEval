@@ -25,3 +25,15 @@
 \IfFileExists{generated/whitebox_summary_table.tex}{%
   \input{generated/whitebox_summary_table}%
 }{}
+
+
+% Complete local V7 FairSynth evidence. This artifact is generated only from the
+% audited 2,880-cell main run and remains separate from real-world RQ1/RQ2 claims.
+\IfFileExists{generated/fairsynth_local_table.tex}{%
+  \input{generated/fairsynth_local_table}%
+}{}
+
+% Output-reliability evidence from the same audited V7 main-run report.
+\IfFileExists{generated/v7_execution_quality_table.tex}{%
+  \input{generated/v7_execution_quality_table}%
+}{}
