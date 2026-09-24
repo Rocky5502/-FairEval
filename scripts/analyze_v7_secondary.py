@@ -425,7 +425,6 @@ def main() -> int:
     stability_table.write_text(
         _render_stability_table(stability_summary),
         encoding="utf-8",
-        newline="\\n",
     )
     print(json.dumps({
         "status": "PASS",
