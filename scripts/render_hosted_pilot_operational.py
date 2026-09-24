@@ -77,88 +77,93 @@ def render_table(payload: dict[str, Any]) -> str:
 
 
 def render_figure(payload: dict[str, Any], output: Path) -> None:
-    """Render a compact black-box operational pilot summary.
+    """Render six small-multiple radar charts for *operational coverage* only.
 
-    The figure intentionally contains no capability, fairness, utility, or
-    personality-effect estimates because the 99-cell pilot was outcome-blind
-    and underpowered for the preregistered hosted inference.
+    This deliberately mirrors the visual language of a model-profile figure while
+    avoiding unsupported capability/performance claims. Every axis is normalized
+    to the frozen per-family campaign plan: 180 cells and 30 users.
     """
+    import math
+
     families = payload["families"]
-    labels = [FAMILY_LABELS[f] for f in FAMILY_ORDER]
-    colors = [FAMILY_COLORS[f] for f in FAMILY_ORDER]
-    cells = [int(families[f]["cells"]) for f in FAMILY_ORDER]
-    identity = [int(families[f]["identity_complete_users"]) for f in FAMILY_ORDER]
-    personality = [int(families[f]["personality_complete_users"]) for f in FAMILY_ORDER]
-    costs = [float(families[f]["observed_request_window_cost_rmb"]) for f in FAMILY_ORDER]
+    model_ids = {
+        "openai": "gpt-5.6-terra",
+        "anthropic": "claude-sonnet-5",
+        "google": "gemini-3.8-flash",
+        "deepseek": "deepseek-v4.1-flash",
+        "qwen": "qwen3.8-max",
+        "meta": "llama-4-maverick",
+    }
+    axes_labels = ("cells", "users", "ID pairs", "P pairs", "all-6")
+    angles = [2.0 * math.pi * i / len(axes_labels) for i in range(len(axes_labels))]
+    closed_angles = angles + angles[:1]
 
     mpl.rcParams.update({
         "font.family": "DejaVu Sans",
-        "font.size": 8.0,
+        "font.size": 7.5,
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
-        "axes.edgecolor": "#64748B",
-        "axes.labelcolor": "#172033",
-        "xtick.color": "#475569",
-        "ytick.color": "#475569",
         "text.color": "#172033",
+        "axes.edgecolor": "#94A3B8",
     })
 
-    fig, (ax_cov, ax_cost) = plt.subplots(
-        1, 2, figsize=(6.75, 2.85), gridspec_kw={"width_ratios": [1.05, 1.15]}
+    fig, axes = plt.subplots(
+        2, 3,
+        figsize=(6.75, 4.55),
+        subplot_kw={"projection": "polar"},
     )
-    y = list(range(len(labels)))
+    for ax, family in zip(axes.ravel(), FAMILY_ORDER, strict=True):
+        row = families[family]
+        values = [
+            float(row["cells"]) / 180.0,
+            float(row["users_touched"]) / 30.0,
+            float(row["identity_complete_users"]) / 30.0,
+            float(row["personality_complete_users"]) / 30.0,
+            float(row["all_six_conditions_complete_users"]) / 30.0,
+        ]
+        closed = values + values[:1]
+        color = FAMILY_COLORS[family]
 
-    # Panel A: execution and paired-user structure.
-    bars = ax_cov.barh(y, cells, color=colors, alpha=0.86, height=0.58)
-    ax_cov.set_yticks(y, labels)
-    ax_cov.invert_yaxis()
-    ax_cov.set_xlim(0, 20.5)
-    ax_cov.set_xlabel("Completed cells")
-    ax_cov.set_title("(a) Coverage", loc="left", fontsize=8.5, fontweight="bold")
-    ax_cov.grid(axis="x", linewidth=0.45, alpha=0.28)
-    ax_cov.spines[["top", "right"]].set_visible(False)
-    for bar, n in zip(bars, cells, strict=True):
-        ax_cov.text(
-            bar.get_width() + 0.35,
-            bar.get_y() + bar.get_height() / 2,
-            f"{n}",
-            va="center",
-            fontsize=7.0,
+        ax.set_theta_offset(math.pi / 2.0)
+        ax.set_theta_direction(-1)
+        ax.plot(closed_angles, closed, linewidth=1.35, color=color)
+        ax.fill(closed_angles, closed, alpha=0.22, color=color)
+        ax.scatter(angles, values, s=10, color=color, zorder=3)
+
+        ax.set_xticks(angles)
+        ax.set_xticklabels(axes_labels, fontsize=6.4)
+        ax.set_ylim(0.0, 0.125)
+        ax.set_yticks([0.05, 0.10])
+        ax.set_yticklabels(["5%", "10%"], fontsize=5.8, color="#64748B")
+        ax.set_rlabel_position(20)
+        ax.grid(linewidth=0.45, alpha=0.35)
+        ax.spines["polar"].set_color("#CBD5E1")
+        ax.plot(
+            [0.0, 2.0 * math.pi],
+            [0.10, 0.10],
+            linestyle="--",
+            linewidth=0.8,
+            color="#475569",
+            alpha=0.75,
+        )
+        ax.set_title(
+            f"{FAMILY_LABELS[family]}\n({model_ids[family]})",
+            fontsize=7.3,
+            fontweight="bold",
+            pad=9,
         )
 
-    # Panel B: observed request-window spend.
-    bars2 = ax_cost.barh(y, costs, color=colors, alpha=0.86, height=0.58)
-    ax_cost.set_yticks(y, [""] * len(labels))
-    ax_cost.invert_yaxis()
-    ax_cost.set_xlabel("Request-window RMB")
-    ax_cost.set_title("(b) Gateway balance movement", loc="left", fontsize=8.5, fontweight="bold")
-    ax_cost.grid(axis="x", linewidth=0.45, alpha=0.28)
-    ax_cost.spines[["top", "right"]].set_visible(False)
-    max_cost = max(costs) if costs else 1.0
-    ax_cost.set_xlim(0, max_cost * 1.22)
-    for bar, cost in zip(bars2, costs, strict=True):
-        ax_cost.text(
-            bar.get_width() + max_cost * 0.018,
-            bar.get_y() + bar.get_height() / 2,
-            f"{cost:.2f}",
-            va="center",
-            fontsize=7.0,
-        )
-
-    pair_note = (
-        f"Each family: ID-complete={min(identity)}; personality-complete={min(personality)} users. "
-        "Outcome-blind pilot: 99/1,080 cells; no hosted fairness/personality inference."
-    )
     fig.text(
         0.5,
-        0.005,
-        pair_note,
+        0.012,
+        "Operational coverage relative to the frozen full plan (180 cells / 30 users per family). "
+        "Dashed ring = 10% coverage. These are not capability, utility, or fairness scores.",
         ha="center",
         va="bottom",
-        fontsize=6.7,
+        fontsize=6.4,
         color="#64748B",
     )
-    fig.tight_layout(rect=(0.0, 0.055, 1.0, 1.0), w_pad=1.0)
+    fig.tight_layout(rect=(0.01, 0.055, 0.99, 0.995), h_pad=0.55, w_pad=0.35)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, bbox_inches="tight", pad_inches=0.02)
     plt.close(fig)
