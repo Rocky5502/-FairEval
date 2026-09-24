@@ -42,10 +42,11 @@ completed_empirical_evidence:
     status: planned_outcome_blind_extension
     target_users: 9
     identity_group_target: {A: 3, B: 3, C: 3}
-    target_complete_cells: 324
+    target_complete_cells: 270
     prior_scientific_outcomes_inspected: false
-    selection_basis: prior_coverage_and_cost_only
+    selection_basis: prior_coverage_and_cost_only_unseen_users
     synthetic_effect_inference_allowed_when_complete: true
+    historical_pilot_reused_for_inference: false
     real_world_claim_allowed: false
 
 
