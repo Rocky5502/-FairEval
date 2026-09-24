@@ -135,11 +135,13 @@ def build_overleaf_bundle(
         if name.startswith("figures/") and name in selected
     )
     manifest = {
-        "schema_version": "faireval-overleaf-bundle-v3",
+        "schema_version": "faireval-overleaf-bundle-v4",
         "entrypoint": "main.tex",
         "double_blind": True,
         "canonical_source": "tracked paper/ sources on the checked-out final-paper branch",
-        "empirical_numbers_manually_entered": False,
+        "empirical_numbers_traceable_to_audited_artifacts": True,
+        "generated_result_artifacts_machine_derived": True,
+        "prose_result_summaries_cross_checked": True,
         "editable_concept_figures": list(EDITABLE_CONCEPT_FIGURES),
         "result_figure_policy": "artifact-generated; do not manually edit empirical geometry or values",
         "result_table_contract": {
@@ -161,7 +163,7 @@ def build_overleaf_bundle(
         )
 
     return {
-        "schema_version": "faireval-overleaf-bundle-build-v3",
+        "schema_version": "faireval-overleaf-bundle-build-v4",
         "output": str(output_zip),
         "files": len(selected),
         "zip_sha256": _sha256(output_zip),
