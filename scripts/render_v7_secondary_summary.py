@@ -73,7 +73,7 @@ def render_figure(summary: dict[str, Any], output: Path) -> None:
     })
 
     fig, (ax_profile, ax_effect) = plt.subplots(
-        1, 2, figsize=(6.75, 2.75), gridspec_kw={"width_ratios": [1.15, 1.0]}
+        1, 2, figsize=(6.75, 2.95), gridspec_kw={"width_ratios": [1.12, 1.08]}
     )
 
     x = np.arange(len(CONDITION_ORDER))
@@ -123,10 +123,9 @@ def render_figure(summary: dict[str, Any], output: Path) -> None:
         neg = 100.0 * float(row["negative_fraction"])
         zero = 100.0 * float(row["zero_fraction"])
         ax_effect.text(
-            0.99,
+            0.145,
             ypos,
             f"+{pos:.0f}% / -{neg:.0f}% / 0={zero:.0f}%",
-            transform=ax_effect.get_yaxis_transform(),
             ha="right",
             va="center",
             fontsize=6.0,
@@ -134,21 +133,16 @@ def render_figure(summary: dict[str, Any], output: Path) -> None:
         )
 
     ax_effect.axvline(0.0, linestyle="--", linewidth=0.8, color="#475569")
+    ax_effect.set_xlim(-0.09, 0.155)
     ax_effect.set_yticks(y, [g[0] for g in groups])
     ax_effect.set_xlabel("Paired ΔnDCG@10")
     ax_effect.set_title("(b) Heterogeneous paired effects", loc="left", fontsize=8.5, fontweight="bold")
     ax_effect.grid(axis="x", linewidth=0.45, alpha=0.28)
     ax_effect.spines[["top", "right"]].set_visible(False)
-    ax_effect.text(
-        0.01, 0.01,
-        "thick bar = IQR; circle = median; diamond = mean",
-        transform=ax_effect.transAxes,
-        ha="left", va="bottom", fontsize=5.8, color="#64748B",
-    )
 
     fig.text(
         0.5, 0.006,
-        "Descriptive secondary analysis of frozen V7 artifacts; no new model/API calls and no new confirmatory hypothesis family.",
+        "IQR bar; black circle = median; diamond = mean; labels show positive / negative / zero user fractions. Frozen V7 artifacts only.",
         ha="center", va="bottom", fontsize=6.2, color="#64748B",
     )
     fig.tight_layout(rect=(0.01, 0.055, 0.99, 1.0), w_pad=1.0)
