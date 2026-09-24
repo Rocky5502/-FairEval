@@ -145,7 +145,7 @@ def main() -> int:
         "microsoft/Phi-3.5-mini-instruct",
         "generation-score diagnostics",
         "application unverified",
-        "2,880",
+        "2{,}880",
         "1,080",
     )
     for token in required_benchmark_tokens:
