@@ -116,7 +116,7 @@ def main() -> int:
         "complete 2,880-generation local matrix",
         "operational feasibility, not fairness inference",
         "does not show that one hosted family is fairer than another",
-        "Real-world RQ1/RQ2 comparisons and RQ4 mitigation still require",
+        "registered real-world demographic/personality comparisons and mitigation extension still require",
     )
     for marker in required_paper_markers:
         if marker not in main:
