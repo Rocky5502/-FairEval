@@ -101,9 +101,11 @@ def build_overleaf_bundle(
 
     results_entrypoint = (paper_dir / "results_contract_table.tex").read_text(encoding="utf-8")
     for token in (
-        r"\input{result_tables/rq12_main_table}",
-        r"\input{result_tables/rq34_main_table}",
+        "generated/rq12_inference_table.tex",
+        "generated/rq34_results_table.tex",
         "generated/fairsynth_hosted_table.tex",
+        "generated/fairsynth_local_table.tex",
+        "generated/v7_execution_quality_table.tex",
         "generated/whitebox_summary_table.tex",
     ):
         if token not in results_entrypoint:
@@ -140,11 +142,8 @@ def build_overleaf_bundle(
         "editable_concept_figures": list(EDITABLE_CONCEPT_FIGURES),
         "result_figure_policy": "artifact-generated; do not manually edit empirical geometry or values",
         "result_table_contract": {
-            "fallback_main_tables": [
-                "result_tables/rq12_main_table.tex",
-                "result_tables/rq34_main_table.tex",
-            ],
-            "compact_supporting_tables": list(RESULT_TABLE_FILES[2:]),
+            "legacy_contract_tables_bundled_but_not_auto_included": list(RESULT_TABLE_FILES),
+            "artifact_only_final_entrypoint": True,
             "artifact_generated_tables_included": generated_tables,
         },
         "artifact_generated_figures_included": generated_figures,
