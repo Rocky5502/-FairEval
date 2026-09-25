@@ -89,14 +89,44 @@ def _item_payload(item: Any) -> dict[str, Any]:
     }
 
 
-def _candidate_payload(
+def _ordered_candidates(
     instance: UserInstance,
     candidate_order_seed: int | None,
-) -> list[dict[str, Any]]:
+) -> list[Any]:
     candidates = list(instance.candidates)
     if candidate_order_seed is not None:
         random.Random(candidate_order_seed).shuffle(candidates)
-    return [_item_payload(x) for x in candidates]
+    return candidates
+
+
+def candidate_selection_map(
+    instance: UserInstance,
+    candidate_order_seed: int | None,
+) -> dict[str, str]:
+    ordered = _ordered_candidates(instance, candidate_order_seed)
+    return {
+        f"C{index:02d}": str(item.item_id)
+        for index, item in enumerate(ordered, start=1)
+    }
+
+
+def _candidate_payload(
+    instance: UserInstance,
+    candidate_order_seed: int | None,
+    *,
+    prompt_interface_version: str,
+) -> list[dict[str, Any]]:
+    ordered = _ordered_candidates(instance, candidate_order_seed)
+    if prompt_interface_version == "faireval-prompt-interface-v7":
+        return [
+            {
+                "selection_id": f"C{index:02d}",
+                "title": item.title,
+                "metadata": dict(item.metadata),
+            }
+            for index, item in enumerate(ordered, start=1)
+        ]
+    return [_item_payload(x) for x in ordered]
 
 
 def _render_demographic_context(
@@ -140,6 +170,7 @@ def build_prompt_payload(
     template_id: str = "field_v2_a",
     cue_id: str = "structured_key_value",
     candidate_order_seed: int | None = None,
+    prompt_interface_version: str = "faireval-prompt-interface-v6",
 ) -> dict[str, Any]:
     """Construct the structured portion of a controlled recommendation prompt.
 
@@ -156,10 +187,26 @@ def build_prompt_payload(
     if cue_id not in CUE_IDS:
         raise ValueError(f"unknown cue_id={cue_id!r}")
 
+    if prompt_interface_version not in {
+        "faireval-prompt-interface-v5",
+        "faireval-prompt-interface-v6",
+        "faireval-prompt-interface-v7",
+    }:
+        raise ValueError(f"unsupported prompt_interface_version={prompt_interface_version!r}")
+
     demographic_context = _render_demographic_context(condition.demographics, cue_id)
     personality: dict[str, float] | str = (
         condition.personality.as_dict() if condition.personality else "unspecified"
     )
+    candidate_payload = _candidate_payload(
+        instance,
+        candidate_order_seed,
+        prompt_interface_version=prompt_interface_version,
+    )
+    if prompt_interface_version == "faireval-prompt-interface-v7":
+        eligible_ids = [row["selection_id"] for row in candidate_payload]
+    else:
+        eligible_ids = [row["item_id"] for row in candidate_payload]
 
     return {
         "task": "rank_candidates_for_user",
@@ -169,10 +216,8 @@ def build_prompt_payload(
         "demographic_context": demographic_context,
         "personality_measurement": _personality_measurement(instance),
         "personality_ocean": personality,
-        "candidate_items": _candidate_payload(instance, candidate_order_seed),
-        "eligible_candidate_ids": [
-            row["item_id"] for row in _candidate_payload(instance, candidate_order_seed)
-        ],
+        "candidate_items": candidate_payload,
+        "eligible_candidate_ids": eligible_ids,
         "output_contract": {
             "k": int(k),
             "return_type": "single_json_object",
@@ -204,6 +249,7 @@ def build_ranking_prompt(
     prompt_mode: str = "audit",
     cue_id: str = "structured_key_value",
     candidate_order_seed: int | None = None,
+    prompt_interface_version: str = "faireval-prompt-interface-v6",
 ) -> str:
     """Render a controlled prompt for either auditing or mitigation.
 
@@ -226,6 +272,7 @@ def build_ranking_prompt(
         template_id=template_id,
         cue_id=cue_id,
         candidate_order_seed=candidate_order_seed,
+        prompt_interface_version=prompt_interface_version,
     )
     return SYSTEM_BY_MODE[prompt_mode] + "\nINPUT_JSON:\n" + json.dumps(
         payload,
