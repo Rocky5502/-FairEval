@@ -64,6 +64,14 @@ def _p(value: object) -> str:
     return "$<.001$" if x < 0.001 else f"{x:.3f}"
 
 
+def _present_families(rows: list[dict[str, Any]]) -> tuple[str, ...]:
+    present = {str(row["model_family"]) for row in rows}
+    families = tuple(family for family in FAMILY_ORDER if family in present)
+    if not families:
+        raise ValueError("hosted paired results contain no recognized model families")
+    return families
+
+
 def _index_inference(rows: list[dict[str, Any]]) -> dict[tuple[str, str, str], dict[str, Any]]:
     out: dict[tuple[str, str, str], dict[str, Any]] = {}
     for row in rows:
@@ -84,8 +92,9 @@ def _effect(row: dict[str, Any]) -> str:
 
 def render_table(inference: list[dict[str, Any]]) -> str:
     idx = _index_inference(inference)
+    families = _present_families(inference)
     body: list[str] = []
-    for family in FAMILY_ORDER:
+    for family in families:
         for label, contrast in (("Identity", ID_CONTRAST), ("Personality", P_CONTRAST)):
             ndcg = idx[(family, contrast, "ndcg")]
             recall = idx[(family, contrast, "recall")]
@@ -131,8 +140,9 @@ def _ci_contains_zero(row: dict[str, Any]) -> bool:
 
 def render_summary(inference: list[dict[str, Any]]) -> str:
     idx = _index_inference(inference)
-    identity = [idx[(family, ID_CONTRAST, "ndcg")] for family in FAMILY_ORDER]
-    personality = [idx[(family, P_CONTRAST, "ndcg")] for family in FAMILY_ORDER]
+    families = _present_families(inference)
+    identity = [idx[(family, ID_CONTRAST, "ndcg")] for family in families]
+    personality = [idx[(family, P_CONTRAST, "ndcg")] for family in families]
 
     n_values = {int(row["n_users"]) for row in identity + personality}
     if len(n_values) != 1:
@@ -145,12 +155,12 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
     p_zero = sum(_ci_contains_zero(row) for row in personality)
     id_sig = [
         FAMILY_LABELS[family]
-        for family, row in zip(FAMILY_ORDER, identity, strict=True)
+        for family, row in zip(families, identity, strict=True)
         if float(row["holm_adjusted_p"]) < 0.05
     ]
     p_sig = [
         FAMILY_LABELS[family]
-        for family, row in zip(FAMILY_ORDER, personality, strict=True)
+        for family, row in zip(families, personality, strict=True)
         if float(row["holm_adjusted_p"]) < 0.05
     ]
 
@@ -158,7 +168,7 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
         return "none" if not values else ", ".join(values)
 
     return (
-        "Across the six hosted families ($N={}$ paired users per family), "
+        "Across the {} hosted families ($N={}$ paired users per family), "
         "the controlled identity $\\Delta$nDCG@10 ranges from {:.3f} to {:.3f}; "
         "{}/6 bootstrap intervals contain zero and Holm-adjusted $p_H<.05$ for {}. "
         "For RQ2, true-versus-shuffled synthetic OCEAN $\\Delta$nDCG@10 ranges "
@@ -167,6 +177,7 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
         "across model families but do not establish real-world demographic fairness "
         "or measured-human-personality effects."
     ).format(
+        len(families),
         n,
         min(id_means),
         max(id_means),
@@ -206,8 +217,14 @@ def _condition_means(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
         per_family[family][group].append(sum(values) / len(values))
 
     required = ("identity", "cf_identity", "true_ocean", "shuffled_ocean")
+    families = tuple(
+        family for family in FAMILY_ORDER
+        if any(key[0] == family for key in by_user)
+    )
+    if not families:
+        raise ValueError("hosted user-condition rows contain no recognized model families")
     output: dict[str, dict[str, float]] = {}
-    for family in FAMILY_ORDER:
+    for family in families:
         output[family] = {}
         for group in required:
             values = per_family[family][group]
@@ -223,7 +240,8 @@ def render_figure(user_condition: list[dict[str, Any]], output: Path) -> None:
     labels = ("ID", "cf-ID", "true P", "shuf P")
     angles = [2.0 * math.pi * i / len(groups) for i in range(len(groups))]
     closed_angles = angles + angles[:1]
-    global_max = max(means[f][g] for f in FAMILY_ORDER for g in groups)
+    families = tuple(family for family in FAMILY_ORDER if family in means)
+    global_max = max(means[f][g] for f in families for g in groups)
     radial_max = min(1.0, max(0.4, math.ceil((global_max + 0.03) * 10.0) / 10.0))
 
     mpl.rcParams.update({
@@ -234,10 +252,17 @@ def render_figure(user_condition: list[dict[str, Any]], output: Path) -> None:
         "text.color": "#172033",
         "axes.edgecolor": "#94A3B8",
     })
+    ncols = 2 if len(families) <= 4 else 3
+    nrows = math.ceil(len(families) / ncols)
     fig, axes = plt.subplots(
-        2, 3, figsize=(6.75, 4.45), subplot_kw={"projection": "polar"}
+        nrows,
+        ncols,
+        figsize=(6.75, 2.35 * nrows),
+        subplot_kw={"projection": "polar"},
+        squeeze=False,
     )
-    for ax, family in zip(axes.ravel(), FAMILY_ORDER, strict=True):
+    flat_axes = list(axes.ravel())
+    for ax, family in zip(flat_axes, families, strict=False):
         values = [means[family][group] for group in groups]
         closed = values + values[:1]
         color = FAMILY_COLORS[family]
@@ -260,6 +285,9 @@ def render_figure(user_condition: list[dict[str, Any]], output: Path) -> None:
             fontweight="bold",
             pad=8,
         )
+
+    for ax in flat_axes[len(families):]:
+        fig.delaxes(ax)
 
     fig.text(
         0.5,
