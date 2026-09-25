@@ -236,6 +236,53 @@ def _condition_means(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
     return output
 
 
+def render_profile_table(
+    inference: list[dict[str, Any]],
+    user_condition: list[dict[str, Any]],
+) -> str:
+    means = _condition_means(user_condition)
+    idx = _index_inference(inference)
+    families = tuple(family for family in FAMILY_ORDER if family in means)
+    body: list[str] = []
+    for family in families:
+        id_row = idx[(family, ID_CONTRAST, "ndcg")]
+        p_row = idx[(family, P_CONTRAST, "ndcg")]
+        if int(id_row["n_users"]) != int(p_row["n_users"]):
+            raise ValueError(f"hosted profile-table N mismatch for {family}")
+        body.append(
+            "{} & {} & {} & {} & {} & {} & {} & {} \\\\".format(
+                FAMILY_LABELS[family],
+                int(id_row["n_users"]),
+                _fmt(means[family]["identity"]),
+                _fmt(means[family]["cf_identity"]),
+                _fmt(means[family]["true_ocean"]),
+                _fmt(means[family]["shuffled_ocean"]),
+                _fmt(id_row["mean_paired_difference"]),
+                _fmt(p_row["mean_paired_difference"]),
+            )
+        )
+
+    return "\n".join([
+        r"% AUTO-GENERATED companion table for hosted Fig. 3; DO NOT EDIT.",
+        r"\begin{table}[t]",
+        r"\centering",
+        r"\caption{Exact hosted nDCG@10 values underlying Fig.~\ref{fig:hosted-profiles}. Obs-ID is the observed synthetic identity condition; cf-ID is the within-user mean over the two counterfactual identity alternatives; true P and shuf P are true and shuffled synthetic OCEAN. The last two columns are the paired estimands used for RQ1/RQ2.}",
+        r"\label{tab:hosted-profile-values}",
+        r"\scriptsize",
+        r"\setlength{\tabcolsep}{3.0pt}",
+        r"\resizebox{\linewidth}{!}{%",
+        r"\begin{tabular}{lrrrrrrr}",
+        r"\toprule",
+        r"Model & $N$ & Obs-ID & cf-ID & true P & shuf P & $\Delta_{ID}$ & $\Delta_{P}$ \\",
+        r"\midrule",
+        *body,
+        r"\bottomrule",
+        r"\end{tabular}}",
+        r"\end{table}",
+        "",
+    ])
+
+
 def render_figure(user_condition: list[dict[str, Any]], output: Path) -> None:
     means = _condition_means(user_condition)
     groups = ("identity", "cf_identity", "true_ocean", "shuffled_ocean")
@@ -319,6 +366,10 @@ def main() -> int:
         default="paper/generated/fairsynth_hosted_summary.tex",
     )
     parser.add_argument(
+        "--profiles-table",
+        default="paper/generated/fairsynth_hosted_profiles_table.tex",
+    )
+    parser.add_argument(
         "--figure",
         default="paper/figures/fairsynth_hosted_profiles.pdf",
     )
@@ -335,11 +386,19 @@ def main() -> int:
     summary.parent.mkdir(parents=True, exist_ok=True)
     summary.write_text(render_summary(inference) + "\n", encoding="utf-8")
 
+    profiles_table = Path(args.profiles_table)
+    profiles_table.parent.mkdir(parents=True, exist_ok=True)
+    profiles_table.write_text(
+        render_profile_table(inference, user_condition),
+        encoding="utf-8",
+    )
+
     render_figure(user_condition, Path(args.figure))
     print(json.dumps({
         "status": "PASS",
         "table": str(table),
         "summary": str(summary),
+        "profiles_table": str(profiles_table),
         "figure": args.figure,
     }, indent=2, sort_keys=True))
     return 0
