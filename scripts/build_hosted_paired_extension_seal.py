@@ -83,14 +83,14 @@ def main() -> int:
     if len(extension_rows) != int(extension_manifest.get("planned_api_cells", -1)):
         raise ValueError("hosted extension plan row count mismatch")
 
-    if extension_manifest.get("run_schema_version") != "faireval-run-v6":
+    if extension_manifest.get("run_schema_version") != "faireval-run-v7":
         raise ValueError("hosted extension must freeze faireval-run-v6")
-    if extension_manifest.get("prompt_interface_version") != "faireval-prompt-interface-v6":
+    if extension_manifest.get("prompt_interface_version") != "faireval-prompt-interface-v7":
         raise ValueError("hosted extension must freeze faireval-prompt-interface-v6")
     for row in extension_rows:
-        if row.get("run_schema_version") != "faireval-run-v6":
+        if row.get("run_schema_version") != "faireval-run-v7":
             raise ValueError("hosted extension row run schema drift")
-        if row.get("prompt_interface_version") != "faireval-prompt-interface-v6":
+        if row.get("prompt_interface_version") != "faireval-prompt-interface-v7":
             raise ValueError("hosted extension row prompt interface drift")
 
     spec_hashes = collect_spec_hashes()
@@ -154,7 +154,7 @@ def main() -> int:
             "The hosted paired-completion target was selected from prior plan coverage "
             "and observed cost only. All nine inferential users are historically untouched; "
             "zero historical recommendation rows are reused; C0 is omitted; and all 270 "
-            "scientific rows are frozen to one V6 prompt/output interface. No prior hosted "
+            "scientific rows are frozen to one V7 handle prompt/output interface. No prior hosted "
             "rankings, utilities, effect sizes, or p-values were inspected before this seal."
         ),
     }
