@@ -132,9 +132,17 @@ def main() -> int:
 
     plan_dir = Path(args.plan_dir)
     output_jsonl = Path(args.output_jsonl)
+    ledger_path = Path(args.ledger)
     families = set(args.family) if args.family else None
     cells, manifest = load_and_verify_plan(plan_dir)
     completed = completed_cell_ids(output_jsonl)
+    ledger_preexisting = ledger_path.is_file()
+    if completed and not ledger_preexisting:
+        raise RuntimeError(
+            "Refusing to resume hosted execution with completed output rows but no "
+            "existing budget ledger. Restore the matching ledger instead of resetting "
+            "spend accounting."
+        )
     selected = pending_cells(cells, completed=completed, families=families)
     if args.max_cells is not None:
         if args.max_cells <= 0:
@@ -155,6 +163,7 @@ def main() -> int:
         "emergency_stop_threshold_rmb": args.hard_cap_rmb,
         "request_reserve_rmb": args.request_reserve_rmb,
         "minimum_initial_balance_rmb": args.minimum_initial_balance_rmb,
+        "ledger_preexisting": ledger_preexisting,
         "maximum_allowed_target_rmb": FROZEN_MAX_TARGET_RMB,
         "maximum_allowed_emergency_stop_threshold_rmb": FROZEN_MAX_EMERGENCY_THRESHOLD_RMB,
         "provider_side_atomic_spend_cap_claimed": False,
