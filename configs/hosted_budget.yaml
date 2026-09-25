@@ -50,7 +50,7 @@ paired_fairsynth_extension:
   identity_groups: {A: 3, B: 3, C: 3}
   target_complete_cells: 270
   hosted_families: 6
-  conditions_per_user: 6
+  conditions_per_user: 5
   repetitions: 1
   runtime_target_rmb: 195.0
   runtime_emergency_threshold_rmb: 200.0
