@@ -69,6 +69,17 @@ def main() -> int:
         raise ValueError("hosted paired extension seal expects exactly 9 target users")
     if int(extension_manifest.get("target_cells_total_in_parent_plan", -1)) != 270:
         raise ValueError("hosted paired extension target geometry must be 270 total cells")
+    if int(extension_manifest.get("target_cells_completed_before_extension", -1)) != 0:
+        raise ValueError("hosted paired extension must reuse zero historical scientific cells")
+    if extension_manifest.get("preference_only_c0_included") is not False:
+        raise ValueError("hosted paired extension must omit C0 from paid inferential execution")
+    if extension_manifest.get("included_condition_ids") != ["C1", "C2:*", "C3", "C4"]:
+        raise ValueError("hosted paired extension condition-set drift")
+    target_users = extension_manifest.get("target_users")
+    if not isinstance(target_users, list) or len(target_users) != 9:
+        raise ValueError("hosted paired extension target-user manifest is malformed")
+    if not all(bool(row.get("historically_untouched_user", False)) for row in target_users):
+        raise ValueError("every hosted paired-extension target user must be historically untouched")
     if len(extension_rows) != int(extension_manifest.get("planned_api_cells", -1)):
         raise ValueError("hosted extension plan row count mismatch")
 
@@ -141,8 +152,10 @@ def main() -> int:
         "local_model_weights_loaded": False,
         "interpretation": (
             "The hosted paired-completion target was selected from prior plan coverage "
-            "and observed cost only. No prior hosted rankings, utilities, effect sizes, "
-            "or p-values were inspected before this seal."
+            "and observed cost only. All nine inferential users are historically untouched; "
+            "zero historical recommendation rows are reused; C0 is omitted; and all 270 "
+            "scientific rows are frozen to one V6 prompt/output interface. No prior hosted "
+            "rankings, utilities, effect sizes, or p-values were inspected before this seal."
         ),
     }
     seal["seal_sha256_without_self"] = _json_digest(seal)
