@@ -67,8 +67,15 @@ def main() -> int:
         )
     if int(extension_manifest.get("target_users_total", -1)) != 9:
         raise ValueError("hosted paired extension seal expects exactly 9 target users")
-    if int(extension_manifest.get("target_cells_total_in_parent_plan", -1)) != 270:
-        raise ValueError("hosted paired extension target geometry must be 270 total cells")
+    model_families = extension_manifest.get("model_families")
+    if not isinstance(model_families, list) or not model_families:
+        raise ValueError("hosted paired extension must freeze at least one model family")
+    expected_cells = 9 * 5 * len(model_families)
+    if int(extension_manifest.get("target_cells_total_in_parent_plan", -1)) != expected_cells:
+        raise ValueError(
+            "hosted paired extension target geometry drift: "
+            f"expected {expected_cells} total cells for {len(model_families)} families"
+        )
     if int(extension_manifest.get("target_cells_completed_before_extension", -1)) != 0:
         raise ValueError("hosted paired extension must reuse zero historical scientific cells")
     if extension_manifest.get("preference_only_c0_included") is not False:
@@ -84,9 +91,9 @@ def main() -> int:
         raise ValueError("hosted extension plan row count mismatch")
 
     if extension_manifest.get("run_schema_version") != "faireval-run-v7":
-        raise ValueError("hosted extension must freeze faireval-run-v6")
+        raise ValueError("hosted extension must freeze faireval-run-v7")
     if extension_manifest.get("prompt_interface_version") != "faireval-prompt-interface-v7":
-        raise ValueError("hosted extension must freeze faireval-prompt-interface-v6")
+        raise ValueError("hosted extension must freeze faireval-prompt-interface-v7")
     for row in extension_rows:
         if row.get("run_schema_version") != "faireval-run-v7":
             raise ValueError("hosted extension row run schema drift")
@@ -108,7 +115,7 @@ def main() -> int:
                 "manifest_sha256": file_sha256(extension_dir / "plan_manifest.json"),
                 "plan_sha256": extension_manifest.get("plan_sha256"),
                 "planned_cells": len(extension_rows),
-                "model_families": extension_manifest.get("model_families"),
+                "model_families": model_families,
             },
             "hosted_parent": {
                 "manifest_path": str(parent_dir / "plan_manifest.json"),
@@ -153,8 +160,9 @@ def main() -> int:
         "interpretation": (
             "The hosted paired-completion target was selected from prior plan coverage "
             "and observed cost only. All nine inferential users are historically untouched; "
-            "zero historical recommendation rows are reused; C0 is omitted; and all 270 "
-            "scientific rows are frozen to one V7 handle prompt/output interface. No prior hosted "
+            "zero historical recommendation rows are reused; C0 is omitted; and all "
+            f"{len(extension_rows)} scientific rows across {len(model_families)} frozen families "
+            "use one V7 handle prompt/output interface. No prior hosted "
             "rankings, utilities, effect sizes, or p-values were inspected before this seal."
         ),
     }
