@@ -49,9 +49,9 @@ def _load_manifest() -> dict:
 def _assert_geometry(manifest: dict) -> None:
     expected = {
         "target_users_total": 9,
-        "target_cells_total_in_parent_plan": 324,
-        "target_cells_completed_before_extension": 72,
-        "planned_api_cells": 252,
+        "target_cells_total_in_parent_plan": 270,
+        "target_cells_completed_before_extension": 0,
+        "planned_api_cells": 270,
     }
     for field, wanted in expected.items():
         actual = int(manifest.get(field, -1))
@@ -64,9 +64,9 @@ def _assert_geometry(manifest: dict) -> None:
     if manifest.get("scientific_outcomes_inspected_before_extension_definition") is not False:
         raise RuntimeError("hosted extension no longer satisfies outcome-blind selection")
     projected = float(manifest.get("projected_incremental_cost_with_safety_rmb", 1e9))
-    if projected > 190.0:
+    if projected > 195.0:
         raise RuntimeError(
-            f"hosted extension safety-adjusted projection {projected:.2f} RMB exceeds 190 RMB"
+            f"hosted extension safety-adjusted projection {projected:.2f} RMB exceeds 195 RMB"
         )
 
 
@@ -90,7 +90,7 @@ def prepare() -> int:
         "--freeze-root", "data/frozen",
         "--output-jsonl", str(EXTENSION_RUN.relative_to(ROOT)),
         "--ledger", str(LEDGER.relative_to(ROOT)),
-        "--target-rmb", "190",
+        "--target-rmb", "195",
         "--hard-cap-rmb", "200",
         "--request-reserve-rmb", "2",
         "--minimum-initial-balance-rmb", "200",
@@ -103,13 +103,13 @@ def prepare() -> int:
         "git_commit_sha": _git_head(),
         "target_users": manifest["target_users_total"],
         "target_identity_group_counts": manifest["target_identity_group_counts"],
-        "prior_complete_cells_reused": manifest["target_cells_completed_before_extension"],
+        "historical_scientific_cells_reused": manifest["target_cells_completed_before_extension"],
         "new_calls": manifest["planned_api_cells"],
         "projected_incremental_cost_rmb": manifest["projected_incremental_cost_rmb"],
         "projected_incremental_cost_with_safety_rmb": manifest[
             "projected_incremental_cost_with_safety_rmb"
         ],
-        "normal_stop_target_rmb": 190.0,
+        "normal_stop_target_rmb": 195.0,
         "emergency_threshold_rmb": 200.0,
         "minimum_live_balance_for_first_launch_rmb": 200.0,
         "next": (
