@@ -170,9 +170,9 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
     return (
         "Across the {} hosted families ($N={}$ paired users per family), "
         "the controlled identity $\\Delta$nDCG@10 ranges from {:.3f} to {:.3f}; "
-        "{}/6 bootstrap intervals contain zero and Holm-adjusted $p_H<.05$ for {}. "
+        "{}/{} bootstrap intervals contain zero and Holm-adjusted $p_H<.05$ for {}. "
         "For RQ2, true-versus-shuffled synthetic OCEAN $\\Delta$nDCG@10 ranges "
-        "from {:.3f} to {:.3f}; {}/6 intervals contain zero and Holm-adjusted "
+        "from {:.3f} to {:.3f}; {}/{} intervals contain zero and Holm-adjusted "
         "$p_H<.05$ for {}. These hosted results extend the controlled sanity test "
         "across model families but do not establish real-world demographic fairness "
         "or measured-human-personality effects."
@@ -182,10 +182,12 @@ def render_summary(inference: list[dict[str, Any]]) -> str:
         min(id_means),
         max(id_means),
         id_zero,
+        len(families),
         sig_text(id_sig),
         min(p_means),
         max(p_means),
         p_zero,
+        len(families),
         sig_text(p_sig),
     )
 
