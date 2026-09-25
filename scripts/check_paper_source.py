@@ -136,8 +136,8 @@ def main() -> int:
     ):
         raise SystemExit("primary invalid-output policy is missing from manuscript text")
     hosted_design_markers = (
-        "The hosted panel spans six independently named model families",
-        "Exact model identifiers, returned serving metadata, and the audited cost ledger",
+        "The hosted panel freezes six service model IDs spanning independent families",
+        "Returned serving metadata and request/response hashes are retained in the anonymized artifact",
         "identity-balanced paired-completion extension",
     )
     if not all(marker in main_text for marker in hosted_design_markers):
