@@ -68,10 +68,15 @@ def main() -> int:
 
     extension_manifest = _load_json(Path(args.extension_plan_dir) / "plan_manifest.json")
     target_records = extension_manifest.get("target_users")
-    if not isinstance(target_records, list) or len(target_records) != 9:
-        raise ValueError("hosted paired extension must define exactly 9 target users")
+    expected_user_count = int(extension_manifest.get("target_users_total", -1))
+    if expected_user_count <= 0:
+        raise ValueError("hosted paired extension manifest lacks a positive target_users_total")
+    if not isinstance(target_records, list) or len(target_records) != expected_user_count:
+        raise ValueError(
+            f"hosted paired extension must define exactly {expected_user_count} target users"
+        )
     target_users = {str(row["user_id"]) for row in target_records}
-    if len(target_users) != 9:
+    if len(target_users) != expected_user_count:
         raise ValueError("target user IDs are not unique")
 
     frozen_family_values = extension_manifest.get("model_families")
@@ -208,7 +213,7 @@ def main() -> int:
 
     print(json.dumps({
         "status": "PASS",
-        "target_users": 9,
+        "target_users": expected_user_count,
         "target_cells": expected_cells,
         "model_families": list(families),
         "identity_pairs": expected_pairs,
