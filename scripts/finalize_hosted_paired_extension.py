@@ -74,6 +74,17 @@ def main() -> int:
     if len(target_users) != 9:
         raise ValueError("target user IDs are not unique")
 
+    frozen_family_values = extension_manifest.get("model_families")
+    if not isinstance(frozen_family_values, list) or not frozen_family_values:
+        raise ValueError("hosted paired extension manifest lacks frozen model families")
+    frozen_family_set = {str(value) for value in frozen_family_values}
+    unknown_families = frozen_family_set - set(FAMILIES)
+    if unknown_families:
+        raise ValueError(f"unknown hosted model families: {sorted(unknown_families)}")
+    families = tuple(family for family in FAMILIES if family in frozen_family_set)
+    expected_cells = len(target_users) * 5 * len(families)
+    expected_pairs = len(target_users) * len(families)
+
     if not all(bool(row.get("historically_untouched_user", False)) for row in target_records):
         raise ValueError("every hosted paired-extension target user must be historically untouched")
 
@@ -95,10 +106,10 @@ def main() -> int:
     ids = [str(row["planned_cell_id"]) for row in combined]
     if len(ids) != len(set(ids)):
         raise ValueError("target analysis contains duplicate planned cells")
-    if len(combined) != 270:
+    if len(combined) != expected_cells:
         raise RuntimeError(
             "hosted paired target is incomplete: "
-            f"expected 270 target cells, found {len(combined)}"
+            f"expected {expected_cells} target cells, found {len(combined)}"
         )
 
     coverage: dict[tuple[str, str], set[str]] = defaultdict(set)
@@ -106,7 +117,7 @@ def main() -> int:
         coverage[(str(row["model_family"]), str(row["user_id"]))].add(
             str(row["condition_id"])
         )
-    for family in FAMILIES:
+    for family in families:
         for user in target_users:
             conditions = coverage.get((family, user), set())
             has_required = (
@@ -124,9 +135,9 @@ def main() -> int:
     aggregated = aggregate_repetitions(combined)
     identity = build_fairsynth_identity_pairs(aggregated)
     personality = build_fairsynth_personality_pairs(aggregated)
-    if len(identity) != 54 or len(personality) != 54:
+    if len(identity) != expected_pairs or len(personality) != expected_pairs:
         raise RuntimeError(
-            f"expected 54 identity and 54 personality pairs, got "
+            f"expected {expected_pairs} identity and {expected_pairs} personality pairs, got "
             f"{len(identity)} and {len(personality)}"
         )
 
@@ -157,6 +168,8 @@ def main() -> int:
         "target_users": sorted(target_users),
         "target_users_total": len(target_users),
         "target_cells": len(combined),
+        "model_families": list(families),
+        "model_family_count": len(families),
         "identity_pairs": len(identity),
         "personality_pairs": len(personality),
         "inference_rows": len(inference),
@@ -196,9 +209,10 @@ def main() -> int:
     print(json.dumps({
         "status": "PASS",
         "target_users": 9,
-        "target_cells": 270,
-        "identity_pairs": 54,
-        "personality_pairs": 54,
+        "target_cells": expected_cells,
+        "model_families": list(families),
+        "identity_pairs": expected_pairs,
+        "personality_pairs": expected_pairs,
         "analysis_manifest": str(out / "manifest.json"),
         "hosted_table": "paper/generated/fairsynth_hosted_table.tex",
         "hosted_summary": "paper/generated/fairsynth_hosted_summary.tex",
