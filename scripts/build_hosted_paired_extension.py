@@ -78,6 +78,14 @@ def main() -> int:
         default="results/plans/hosted-fairsynth-paired-extension-v1",
     )
     parser.add_argument("--users-per-identity-group", type=int, default=3)
+    parser.add_argument(
+        "--family",
+        action="append",
+        help=(
+            "Optional hosted model family to retain. Repeat to freeze a cost-selected "
+            "subset before any scientific hosted outcome is inspected."
+        ),
+    )
     parser.add_argument("--budget-target-rmb", type=float, default=195.0)
     parser.add_argument("--budget-hard-cap-rmb", type=float, default=200.0)
     parser.add_argument("--cost-safety-multiplier", type=float, default=1.15)
@@ -151,10 +159,20 @@ def main() -> int:
             )
 
     target_user_set = set(target_users)
+    requested_families = None if not args.family else {str(value) for value in args.family}
+    parent_families = {str(row["model_family"]) for row in parent_rows}
+    if requested_families is not None:
+        unknown_families = requested_families - parent_families
+        if unknown_families:
+            raise ValueError(
+                f"requested hosted families are absent from parent plan: {sorted(unknown_families)}"
+            )
+
     analysis_condition_rows = [
         row
         for row in parent_rows
         if str(row["user_id"]) in target_user_set
+        and (requested_families is None or str(row["model_family"]) in requested_families)
         and (
             str(row["condition"]["condition_id"]) in {"C1", "C3", "C4"}
             or str(row["condition"]["condition_id"]).startswith("C2:")
@@ -173,7 +191,10 @@ def main() -> int:
         target_rows.append(row)
     pending_rows = list(target_rows)
 
-    expected_target_cells = len(target_users) * 5 * 6
+    model_families = sorted({str(row["model_family"]) for row in target_rows})
+    if not model_families:
+        raise RuntimeError("hosted extension contains no model families")
+    expected_target_cells = len(target_users) * 5 * len(model_families)
     if len(target_rows) != expected_target_cells:
         raise RuntimeError(
             f"target geometry drift: expected {expected_target_cells}, got {len(target_rows)}"
@@ -261,7 +282,11 @@ def main() -> int:
         "projected_incremental_cost_with_safety_rmb": round(projected_with_safety, 6),
         "extension_budget_target_rmb": float(args.budget_target_rmb),
         "extension_budget_hard_cap_rmb": float(args.budget_hard_cap_rmb),
-        "model_families": sorted({str(row["model_family"]) for row in target_rows}),
+        "model_families": model_families,
+        "family_selection_rule": (
+            "all parent-plan families" if requested_families is None else
+            "pre-outcome subset selected only from historical request-window cost"
+        ),
         "run_schema_version": "faireval-run-v7",
         "prompt_interface_version": "faireval-prompt-interface-v7",
         "plan_sha256": _plan_digest(pending_rows),
