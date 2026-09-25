@@ -167,8 +167,8 @@ def main() -> int:
     target_rows: list[dict[str, Any]] = []
     for parent_row in analysis_condition_rows:
         row = {key: value for key, value in parent_row.items() if key != "cell_id"}
-        row["run_schema_version"] = "faireval-run-v6"
-        row["prompt_interface_version"] = "faireval-prompt-interface-v6"
+        row["run_schema_version"] = "faireval-run-v7"
+        row["prompt_interface_version"] = "faireval-prompt-interface-v7"
         row["cell_id"] = hashlib.sha256(canonical_json(row).encode("utf-8")).hexdigest()
         target_rows.append(row)
     pending_rows = list(target_rows)
@@ -262,8 +262,8 @@ def main() -> int:
         "extension_budget_target_rmb": float(args.budget_target_rmb),
         "extension_budget_hard_cap_rmb": float(args.budget_hard_cap_rmb),
         "model_families": sorted({str(row["model_family"]) for row in target_rows}),
-        "run_schema_version": "faireval-run-v6",
-        "prompt_interface_version": "faireval-prompt-interface-v6",
+        "run_schema_version": "faireval-run-v7",
+        "prompt_interface_version": "faireval-prompt-interface-v7",
         "plan_sha256": _plan_digest(pending_rows),
     }
     manifest["run_plan_file_sha256"] = file_sha256(plan_path)
