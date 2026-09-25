@@ -15,6 +15,11 @@ EXTENSION_RUN = ROOT / "results" / "runs" / "hosted-fairsynth-paired-extension-v
 LEDGER = ROOT / "results" / "budget" / "hosted_fairsynth_paired_extension_v1.json"
 FINAL_ZIP = ROOT / "dist" / "FairEval_ECIR2027_Overleaf_HOSTED_PAIRED.zip"
 
+TARGET_RMB = 195.0
+EMERGENCY_RMB = 200.0
+REQUEST_RESERVE_RMB = 2.0
+MINIMUM_FIRST_LAUNCH_BALANCE_RMB = 200.0
+
 
 def _run(args: list[str], *, allow_budget_stop: bool = False) -> int:
     result = subprocess.run([sys.executable, *args], cwd=ROOT)
@@ -64,9 +69,9 @@ def _assert_geometry(manifest: dict) -> None:
     if manifest.get("scientific_outcomes_inspected_before_extension_definition") is not False:
         raise RuntimeError("hosted extension no longer satisfies outcome-blind selection")
     projected = float(manifest.get("projected_incremental_cost_with_safety_rmb", 1e9))
-    if projected > 195.0:
+    if projected > TARGET_RMB:
         raise RuntimeError(
-            f"hosted extension safety-adjusted projection {projected:.2f} RMB exceeds 195 RMB"
+            f"hosted extension safety-adjusted projection {projected:.2f} RMB exceeds {TARGET_RMB:.0f} RMB"
         )
 
 
@@ -90,10 +95,10 @@ def prepare() -> int:
         "--freeze-root", "data/frozen",
         "--output-jsonl", str(EXTENSION_RUN.relative_to(ROOT)),
         "--ledger", str(LEDGER.relative_to(ROOT)),
-        "--target-rmb", "195",
-        "--hard-cap-rmb", "200",
-        "--request-reserve-rmb", "2",
-        "--minimum-initial-balance-rmb", "200",
+        "--target-rmb", f"{TARGET_RMB:g}",
+        "--hard-cap-rmb", f"{EMERGENCY_RMB:g}",
+        "--request-reserve-rmb", f"{REQUEST_RESERVE_RMB:g}",
+        "--minimum-initial-balance-rmb", f"{MINIMUM_FIRST_LAUNCH_BALANCE_RMB:g}",
         "--preexecution-seal", str(SEAL.relative_to(ROOT)),
         "--seal-plan-key", "hosted_extension",
     ])
@@ -109,9 +114,9 @@ def prepare() -> int:
         "projected_incremental_cost_with_safety_rmb": manifest[
             "projected_incremental_cost_with_safety_rmb"
         ],
-        "normal_stop_target_rmb": 195.0,
-        "emergency_threshold_rmb": 200.0,
-        "minimum_live_balance_for_first_launch_rmb": 200.0,
+        "normal_stop_target_rmb": TARGET_RMB,
+        "emergency_threshold_rmb": EMERGENCY_RMB,
+        "minimum_live_balance_for_first_launch_rmb": MINIMUM_FIRST_LAUNCH_BALANCE_RMB,
         "next": (
             "Fund the hosted account so live available balance is >=200 RMB, then run "
             "this script with --execute. Do not inspect hosted rankings/effects before execution."
@@ -133,10 +138,10 @@ def execute() -> int:
             "--freeze-root", "data/frozen",
             "--output-jsonl", str(EXTENSION_RUN.relative_to(ROOT)),
             "--ledger", str(LEDGER.relative_to(ROOT)),
-            "--target-rmb", "190",
-            "--hard-cap-rmb", "200",
-            "--request-reserve-rmb", "2",
-            "--minimum-initial-balance-rmb", "200",
+            "--target-rmb", f"{TARGET_RMB:g}",
+            "--hard-cap-rmb", f"{EMERGENCY_RMB:g}",
+            "--request-reserve-rmb", f"{REQUEST_RESERVE_RMB:g}",
+            "--minimum-initial-balance-rmb", f"{MINIMUM_FIRST_LAUNCH_BALANCE_RMB:g}",
             "--preexecution-seal", str(SEAL.relative_to(ROOT)),
             "--seal-plan-key", "hosted_extension",
             "--code-commit-sha", _git_head(),
