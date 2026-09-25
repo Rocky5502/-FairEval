@@ -7,6 +7,7 @@ from scripts.render_hosted_paired_results import (
     ID_CONTRAST,
     P_CONTRAST,
     render_figure,
+    render_profile_table,
     render_summary,
     render_table,
 )
@@ -69,12 +70,17 @@ def _user_condition_rows():
 def test_hosted_paired_table_and_summary_are_complete():
     rows = _inference_rows()
     table = render_table(rows)
+    profile_table = render_profile_table(rows, _user_condition_rows())
     summary = render_summary(rows)
     for family in ("OpenAI", "Anthropic", "Google", "DeepSeek", "Qwen", "Llama"):
         assert family in table
     assert "Identity" in table
     assert "Personality" in table
     assert "$\\Delta$Invalid" in table
+    assert "Obs-ID" in profile_table
+    assert "cf-ID" in profile_table
+    assert "$\\Delta_{ID}$" in profile_table
+    assert "$\\Delta_{P}$" in profile_table
     assert "$N=9$" in summary
     assert "real-world demographic fairness" in summary
 
