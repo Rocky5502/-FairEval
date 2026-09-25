@@ -56,7 +56,7 @@ This submission asks:
 \item[RQ3:] \textbf{Execution reliability and black-box feasibility.} How reliably do frozen local models satisfy the ranking contract, and what operational coverage is achieved by a six-family hosted pilot?
 \end{description}
 
-The contributions are: (i) a consequence-aware distinction between ranking sensitivity and harm; (ii) a complete 2,880-generation FairSynth evaluation with paired user-level inference; (iii) an auditable output-validity/repeat-stability analysis that exposes different local-model failure modes; and (iv) an outcome-blind six-family hosted feasibility pilot with explicit coverage and cost accounting. Real-world demographic/personality and mitigation extensions remain preregistered but are not presented as completed claims.
+The contributions are: (i) a consequence-aware distinction between ranking sensitivity and harm; (ii) a complete 2,880-generation FairSynth evaluation with paired user-level inference; (iii) an auditable output-validity/repeat-stability analysis that exposes different local-model failure modes; and (iv) \IfFileExists{generated/fairsynth_hosted_table.tex}{a separately sealed six-family hosted paired extension on nine untouched users, enabling cross-family synthetic identity/personality estimates}{an outcome-blind six-family hosted feasibility pilot with explicit coverage and cost accounting}. Real-world demographic/personality and mitigation extensions remain preregistered but are not presented as completed claims.
 
 Figure~\ref{fig:framework} uses the matched-context motivating pattern familiar from counterfactual LLM-recommendation auditing~\cite{zhang2023fairllm}, but changes the interpretation: a ranking shift is treated first as sensitivity, and only preference-conditioned consequence evidence can support a harmful-disparity claim.
 
@@ -145,7 +145,7 @@ The separately sealed hosted extension uses nine previously untouched FairSynth 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.94\linewidth]{figures/fairsynth_hosted_profiles.pdf}
-\caption{Hosted FairSynth utility profiles after paired-complete extension. Each panel shows raw mean nDCG@10 under observed identity, mean counterfactual identity, true synthetic OCEAN, and shuffled OCEAN on a shared radial scale. Paired fairness/personality effects and uncertainty are reported in Table~\ref{tab:hosted-fairsynth-results}.}
+\caption{Hosted FairSynth utility profiles after the paired-complete extension. Each panel shows raw mean nDCG@10 for observed identity, mean counterfactual identity, true synthetic OCEAN, and shuffled OCEAN on a shared zero-based radial scale. These absolute utility profiles are descriptive; paired fairness/personality effects and uncertainty are reported in Table~\ref{tab:hosted-fairsynth-results}.}
 \label{fig:hosted-profiles}
 \end{figure}
 }{%
