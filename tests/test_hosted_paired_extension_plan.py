@@ -135,17 +135,17 @@ def test_hosted_paired_extension_uses_only_historically_untouched_users(
     assert ext["target_cells_total_in_parent_plan"] == 270
     assert ext["target_cells_completed_before_extension"] == 0
     assert ext["preference_only_c0_included"] is False
-    assert ext["run_schema_version"] == "faireval-run-v6"
-    assert ext["prompt_interface_version"] == "faireval-prompt-interface-v6"
+    assert ext["run_schema_version"] == "faireval-run-v7"
+    assert ext["prompt_interface_version"] == "faireval-prompt-interface-v7"
     extension_rows = [
         json.loads(line)
         for line in (output / "run_plan.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     assert len(extension_rows) == 270
-    assert all(row["run_schema_version"] == "faireval-run-v6" for row in extension_rows)
+    assert all(row["run_schema_version"] == "faireval-run-v7" for row in extension_rows)
     assert all(
-        row["prompt_interface_version"] == "faireval-prompt-interface-v6"
+        row["prompt_interface_version"] == "faireval-prompt-interface-v7"
         for row in extension_rows
     )
     parent_cell_ids = {row["cell_id"] for row in cells}
