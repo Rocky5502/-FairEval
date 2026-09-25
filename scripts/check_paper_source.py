@@ -138,7 +138,7 @@ def main() -> int:
     hosted_design_markers = (
         "The hosted candidate panel freezes six service model IDs spanning independent families",
         "Returned serving metadata and request/response hashes are retained in the anonymized artifact",
-        "cost-selected four-family paired extension",
+        "cost-selected five-family paired extension",
     )
     if not all(marker in main_text for marker in hosted_design_markers):
         raise SystemExit("hosted paired-extension design/provenance wording missing from manuscript")
@@ -222,6 +222,7 @@ def main() -> int:
     for token in (
         "RQ3: Reliability and Black-Box Feasibility",
         "generated/fairsynth_hosted_table.tex",
+        "generated/fairsynth_hosted_profiles_table.tex",
         "figures/fairsynth_hosted_profiles.pdf",
         "figures/hosted_pilot_blackbox_summary.pdf",
     ):
