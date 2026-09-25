@@ -221,6 +221,7 @@ def main() -> int:
         "analysis_manifest": str(out / "manifest.json"),
         "hosted_table": "paper/generated/fairsynth_hosted_table.tex",
         "hosted_summary": "paper/generated/fairsynth_hosted_summary.tex",
+        "hosted_profiles_table": "paper/generated/fairsynth_hosted_profiles_table.tex",
         "hosted_figure": "paper/figures/fairsynth_hosted_profiles.pdf",
         "overleaf_zip": args.overleaf_zip,
         "overleaf_zip_sha256": file_sha256(Path(args.overleaf_zip)),
