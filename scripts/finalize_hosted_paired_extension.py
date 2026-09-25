@@ -196,7 +196,7 @@ def main() -> int:
     print(json.dumps({
         "status": "PASS",
         "target_users": 9,
-        "target_cells": 324,
+        "target_cells": 270,
         "identity_pairs": 54,
         "personality_pairs": 54,
         "analysis_manifest": str(out / "manifest.json"),
