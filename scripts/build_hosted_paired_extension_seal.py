@@ -60,17 +60,25 @@ def main() -> int:
     if str(extension_manifest.get("parent_plan_sha256")) != str(parent_manifest.get("plan_sha256")):
         raise ValueError("hosted extension parent-plan hash mismatch")
 
+    per_group = int(extension_manifest.get("users_per_identity_group", -1))
+    if per_group <= 0:
+        raise ValueError("hosted paired extension seal requires positive users_per_identity_group")
     target_group_counts = extension_manifest.get("target_identity_group_counts")
-    if target_group_counts != {"A": 3, "B": 3, "C": 3}:
+    expected_group_counts = {"A": per_group, "B": per_group, "C": per_group}
+    if target_group_counts != expected_group_counts:
         raise ValueError(
-            "hosted paired extension seal expects exactly 3 users per synthetic identity group"
+            "hosted paired extension seal identity-balance drift: "
+            f"expected {expected_group_counts}, got {target_group_counts}"
         )
-    if int(extension_manifest.get("target_users_total", -1)) != 9:
-        raise ValueError("hosted paired extension seal expects exactly 9 target users")
+    expected_users = per_group * 3
+    if int(extension_manifest.get("target_users_total", -1)) != expected_users:
+        raise ValueError(
+            f"hosted paired extension seal expects exactly {expected_users} target users"
+        )
     model_families = extension_manifest.get("model_families")
     if not isinstance(model_families, list) or not model_families:
         raise ValueError("hosted paired extension must freeze at least one model family")
-    expected_cells = 9 * 5 * len(model_families)
+    expected_cells = expected_users * 5 * len(model_families)
     if int(extension_manifest.get("target_cells_total_in_parent_plan", -1)) != expected_cells:
         raise ValueError(
             "hosted paired extension target geometry drift: "
@@ -83,7 +91,7 @@ def main() -> int:
     if extension_manifest.get("included_condition_ids") != ["C1", "C2:*", "C3", "C4"]:
         raise ValueError("hosted paired extension condition-set drift")
     target_users = extension_manifest.get("target_users")
-    if not isinstance(target_users, list) or len(target_users) != 9:
+    if not isinstance(target_users, list) or len(target_users) != expected_users:
         raise ValueError("hosted paired extension target-user manifest is malformed")
     if not all(bool(row.get("historically_untouched_user", False)) for row in target_users):
         raise ValueError("every hosted paired-extension target user must be historically untouched")
@@ -159,7 +167,7 @@ def main() -> int:
         "local_model_weights_loaded": False,
         "interpretation": (
             "The hosted paired-completion target was selected from prior plan coverage "
-            "and observed cost only. All nine inferential users are historically untouched; "
+            f"and observed cost only. All {expected_users} inferential users are historically untouched; "
             "zero historical recommendation rows are reused; C0 is omitted; and all "
             f"{len(extension_rows)} scientific rows across {len(model_families)} frozen families "
             "use one V7 handle prompt/output interface. No prior hosted "
@@ -180,7 +188,7 @@ def main() -> int:
         "seal": str(seal_path),
         "git_commit_sha": seal["git_commit_sha"],
         "planned_extension_calls": len(extension_rows),
-        "target_users_total": 9,
+        "target_users_total": expected_users,
         "target_identity_group_counts": target_group_counts,
         "projected_incremental_cost_with_safety_rmb": seal[
             "hosted_extension_manifest"
